@@ -1,2 +1,2 @@
 # Frencia
-App para trackear tus entrenamientos para dispositivos móviles
+App para iOS para trackear los entrenamientos
