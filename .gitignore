@@ -30,6 +30,14 @@ yarn-error.*
 .DS_Store
 *.pem
 
+# Windows
+desktop.ini
+Thumbs.db
+
+# Claude local
+.claude/_claude_tmp_fitness/
+.claude/settings.local.json
+
 # local env files
 .env*.local
 
