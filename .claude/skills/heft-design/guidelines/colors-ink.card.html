@@ -1,0 +1,30 @@
+<!-- @dsCard group="Colors" viewport="700x210" name="Ink — warm-dark neutrals" subtitle="App field, surfaces, borders, text. Steps by lightness, not shadow." -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="../styles.css">
+<style>
+  body { padding: 20px; }
+  .grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 8px; }
+  .sw { border-radius: var(--radius-md); height: 70px; border: 1px solid var(--divider); }
+  .meta { margin-top: 6px; }
+  .name { font: var(--text-data-label); text-transform: uppercase; letter-spacing: var(--ls-wide); color: var(--text-secondary); display: block; }
+  .hex { font: 11px var(--font-mono); color: var(--text-tertiary); }
+</style>
+</head>
+<body>
+  <div class="grid">
+    <div><div class="sw" style="background:var(--ink-950)"></div><div class="meta"><span class="name">950</span><span class="hex">#0D0B0E</span></div></div>
+    <div><div class="sw" style="background:var(--ink-900)"></div><div class="meta"><span class="name">900 ·bg</span><span class="hex">#161317</span></div></div>
+    <div><div class="sw" style="background:var(--ink-800)"></div><div class="meta"><span class="name">800 ·card</span><span class="hex">#221E24</span></div></div>
+    <div><div class="sw" style="background:var(--ink-700)"></div><div class="meta"><span class="name">700</span><span class="hex">#322C34</span></div></div>
+    <div><div class="sw" style="background:var(--ink-600)"></div><div class="meta"><span class="name">600 ·brdr</span><span class="hex">#443D47</span></div></div>
+    <div><div class="sw" style="background:var(--ink-400)"></div><div class="meta"><span class="name">400</span><span class="hex">#7A7280</span></div></div>
+    <div><div class="sw" style="background:var(--ink-300)"></div><div class="meta"><span class="name">300 ·txt2</span><span class="hex">#9C949F</span></div></div>
+    <div><div class="sw" style="background:var(--ink-200)"></div><div class="meta"><span class="name">200</span><span class="hex">#C4BEC6</span></div></div>
+    <div><div class="sw" style="background:var(--ink-100)"></div><div class="meta"><span class="name">100 ·txt</span><span class="hex">#E8E4E9</span></div></div>
+    <div><div class="sw" style="background:var(--ink-0)"></div><div class="meta"><span class="name">0 ·white</span><span class="hex">#F9F9F9</span></div></div>
+  </div>
+</body>
+</html>

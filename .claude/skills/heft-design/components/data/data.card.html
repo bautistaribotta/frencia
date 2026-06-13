@@ -1,0 +1,66 @@
+<!-- @dsCard group="Components" viewport="700x440" name="Data — stats & set logging" subtitle="StatTile · SetRow · Stepper · ProgressBar · MetricPill" -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="../../styles.css">
+<style>
+  body { padding: 24px; }
+  .demo { display: grid; grid-template-columns: 1fr 1fr; gap: 22px 28px; align-items: start; }
+  .col { display: flex; flex-direction: column; gap: 14px; }
+  .stats { display: flex; gap: 28px; align-items: flex-end; }
+  .pills { display: flex; gap: 10px; flex-wrap: wrap; }
+  .cap { font: 11px var(--font-mono); letter-spacing: var(--ls-wider); text-transform: uppercase; color: var(--text-tertiary); }
+  .span2 { grid-column: 1 / -1; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script src="../../_ds_bundle.js"></script>
+<script src="https://unpkg.com/lucide@latest"></script>
+<script type="text/babel">
+const { StatTile, SetRow, Stepper, ProgressBar, MetricPill, Card } = window.HeftDesignSystem_377129;
+function Demo() {
+  const [peso, setPeso] = React.useState(82.5);
+  const [done, setDone] = React.useState(true);
+  return (
+    <div className="demo">
+      <div className="col">
+        <span className="cap">StatTile</span>
+        <div className="stats">
+          <StatTile label="Volumen" value="12 480" unit="kg" size="lg" delta="+640" deltaDir="up" />
+          <StatTile label="RIR medio" value="1.8" tone="green" size="md" />
+        </div>
+        <span className="cap" style={{marginTop:'6px'}}>MetricPill</span>
+        <div className="pills">
+          <MetricPill icon="timer" label="Descanso" value="2:00" tone="green" />
+          <MetricPill icon="flame" label="RIR" value="1" tone="orange" />
+          <MetricPill icon="repeat" label="Series" value="4/4" />
+        </div>
+      </div>
+      <div className="col">
+        <span className="cap">Stepper</span>
+        <Stepper label="Peso" value={peso} onChange={setPeso} step={2.5} precision={1} unit="kg" size="lg" />
+        <span className="cap" style={{marginTop:'6px'}}>ProgressBar</span>
+        <ProgressBar label="Volumen objetivo" value={68} showValue />
+        <ProgressBar segments={4} value={3} label="Series hechas" showValue />
+      </div>
+      <div className="col span2">
+        <span className="cap">SetRow — pending · active · done</span>
+        <Card variant="inset" style={{display:'flex', flexDirection:'column', gap:'8px'}}>
+          <SetRow index={1} load={82.5} reps={8} rir={2} state="done" onToggle={()=>{}} />
+          <SetRow index={2} load={82.5} reps={8} state="active" onToggle={()=>setDone(!done)} />
+          <SetRow index={3} load={85} reps={6} state="pending" onToggle={()=>{}} />
+        </Card>
+      </div>
+    </div>
+  );
+}
+ReactDOM.createRoot(document.getElementById('root')).render(<Demo />);
+setTimeout(() => window.lucide && lucide.createIcons(), 60);
+</script>
+</body>
+</html>

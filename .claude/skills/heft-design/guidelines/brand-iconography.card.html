@@ -1,0 +1,35 @@
+<!-- @dsCard group="Brand" viewport="700x180" name="Iconography — Lucide" subtitle="Line icons, 1.75–2px stroke, currentColor. Accent only when active." -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="../styles.css">
+<style>
+  body { padding: 26px; }
+  .row { display: flex; gap: 22px; align-items: center; flex-wrap: wrap; }
+  .ic { display: flex; flex-direction: column; align-items: center; gap: 8px; }
+  .ic svg { width: 26px; height: 26px; color: var(--text-secondary); stroke-width: 1.85; }
+  .ic .nm { font: 10px var(--font-mono); color: var(--text-tertiary); letter-spacing: var(--ls-wide); }
+  .ic.green svg { color: var(--accent); }
+  .ic.orange svg { color: var(--intensity); }
+</style>
+</head>
+<body>
+  <div class="row">
+    <div class="ic green"><i data-lucide="dumbbell"></i><span class="nm">dumbbell</span></div>
+    <div class="ic"><i data-lucide="activity"></i><span class="nm">activity</span></div>
+    <div class="ic"><i data-lucide="trending-up"></i><span class="nm">trending-up</span></div>
+    <div class="ic"><i data-lucide="timer"></i><span class="nm">timer</span></div>
+    <div class="ic orange"><i data-lucide="flame"></i><span class="nm">flame</span></div>
+    <div class="ic orange"><i data-lucide="zap"></i><span class="nm">zap</span></div>
+    <div class="ic"><i data-lucide="repeat"></i><span class="nm">repeat</span></div>
+    <div class="ic"><i data-lucide="target"></i><span class="nm">target</span></div>
+    <div class="ic"><i data-lucide="bar-chart-3"></i><span class="nm">bar-chart</span></div>
+    <div class="ic green"><i data-lucide="check"></i><span class="nm">check</span></div>
+    <div class="ic"><i data-lucide="plus"></i><span class="nm">plus</span></div>
+    <div class="ic"><i data-lucide="calendar"></i><span class="nm">calendar</span></div>
+  </div>
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <script>lucide.createIcons();</script>
+</body>
+</html>

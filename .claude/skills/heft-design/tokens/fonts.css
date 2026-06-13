@@ -1,0 +1,9 @@
+/* ============================================================
+   HEFT · Fonts
+   Loaded from Google Fonts CDN (no local binaries shipped).
+   - Archivo      → UI, body, medium headings (modern grotesque)
+   - Anton        → display / hero numbers (ultra-bold condensed)
+   - JetBrains Mono → data, stats, RIR/RPE/AMRAP technical readouts
+   ============================================================ */
+
+@import url('https://fonts.googleapis.com/css2?family=Anton&family=Archivo:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&display=swap');

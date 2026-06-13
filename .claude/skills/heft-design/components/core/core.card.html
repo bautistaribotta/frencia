@@ -1,0 +1,59 @@
+<!-- @dsCard group="Components" viewport="700x420" name="Core — buttons, badges, tags" subtitle="Button · IconButton · Badge · Tag · Avatar · Card" -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="../../styles.css">
+<style>
+  body { padding: 24px; }
+  .demo { display: flex; flex-direction: column; gap: 22px; }
+  .grp { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
+  .cap { font: 11px var(--font-mono); letter-spacing: var(--ls-wider); text-transform: uppercase; color: var(--text-tertiary); width: 100%; margin-bottom: -4px; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script src="../../_ds_bundle.js"></script>
+<script src="https://unpkg.com/lucide@latest"></script>
+<script type="text/babel">
+const { Button, IconButton, Badge, Tag, Avatar, Card } = window.HeftDesignSystem_377129;
+function Demo() {
+  return (
+    <div className="demo">
+      <div className="grp">
+        <span className="cap">Button — variants</span>
+        <Button variant="primary" icon="play">Empezar</Button>
+        <Button variant="intensity" icon="flame">Nuevo PR</Button>
+        <Button variant="secondary">Editar rutina</Button>
+        <Button variant="ghost" iconRight="chevron-right">Ver historial</Button>
+        <Button variant="primary" disabled>Bloqueado</Button>
+      </div>
+      <div className="grp">
+        <span className="cap">Button — sizes · IconButton</span>
+        <Button variant="primary" size="sm">sm</Button>
+        <Button variant="primary" size="md">md</Button>
+        <Button variant="primary" size="lg">lg</Button>
+        <IconButton icon="plus" variant="primary" round />
+        <IconButton icon="timer" variant="surface" />
+        <IconButton icon="more-horizontal" variant="ghost" />
+      </div>
+      <div className="grp">
+        <span className="cap">Badge · Tag · Avatar</span>
+        <Badge tone="green">Completada</Badge>
+        <Badge tone="orange-solid" icon="flame">Nuevo PR</Badge>
+        <Badge tone="neutral">Calentamiento</Badge>
+        <Tag dot>Pecho</Tag>
+        <Tag selectable selected>Empuje</Tag>
+        <Avatar name="Liana T" size="md" ring />
+      </div>
+    </div>
+  );
+}
+ReactDOM.createRoot(document.getElementById('root')).render(<Demo />);
+setTimeout(() => window.lucide && lucide.createIcons(), 60);
+</script>
+</body>
+</html>

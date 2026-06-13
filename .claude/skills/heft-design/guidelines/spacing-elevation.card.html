@@ -1,0 +1,23 @@
+<!-- @dsCard group="Spacing" viewport="700x200" name="Elevation & glow" subtitle="Dark UI steps by surface lightness; glow signals active/CTA." -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="../styles.css">
+<style>
+  body { padding: 24px; }
+  .row { display: flex; gap: 18px; align-items: center; }
+  .item { display: flex; flex-direction: column; align-items: center; gap: 10px; }
+  .box { width: 120px; height: 80px; border-radius: var(--radius-lg); display: flex; align-items: center; justify-content: center; font: var(--text-data-label); text-transform: uppercase; letter-spacing: var(--ls-wide); }
+  .nm { font: 11px var(--font-mono); color: var(--text-tertiary); letter-spacing: var(--ls-wide); }
+</style>
+</head>
+<body>
+  <div class="row">
+    <div class="item"><div class="box" style="background:var(--surface-card);color:var(--text-tertiary)">card</div><span class="nm">surface-card</span></div>
+    <div class="item"><div class="box" style="background:var(--surface-card-elevated);box-shadow:var(--shadow-md);color:var(--text-tertiary)">elevated</div><span class="nm">shadow-md</span></div>
+    <div class="item"><div class="box" style="background:var(--accent);box-shadow:var(--glow-green);color:var(--text-on-accent)">CTA</div><span class="nm">glow-green</span></div>
+    <div class="item"><div class="box" style="background:var(--intensity);box-shadow:var(--glow-orange);color:var(--text-on-accent)">PR</div><span class="nm">glow-orange</span></div>
+  </div>
+</body>
+</html>

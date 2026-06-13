@@ -1,0 +1,26 @@
+<!-- @dsCard group="Type" viewport="700x200" name="Data — JetBrains Mono" subtitle="Every label, stat, RIR/RPE/AMRAP readout & timestamp." -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="../styles.css">
+<style>
+  body { padding: 24px; font-family: var(--font-mono); }
+  .grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 18px; }
+  .cell .lbl { font: var(--fw-medium) 11px var(--font-mono); text-transform: uppercase; letter-spacing: var(--ls-wider); color: var(--text-tertiary); }
+  .cell .val { font: var(--fw-bold) 26px var(--font-mono); color: var(--text-primary); margin-top: 4px; }
+  .green { color: var(--accent-text); }
+  .orange { color: var(--intensity-text); }
+  .foot { margin-top: 20px; font: 12px var(--font-mono); color: var(--text-tertiary); letter-spacing: var(--ls-wide); }
+</style>
+</head>
+<body>
+  <div class="grid">
+    <div class="cell"><div class="lbl">Volumen</div><div class="val">12 480<span style="font-size:13px;color:var(--text-tertiary)"> KG</span></div></div>
+    <div class="cell"><div class="lbl">RIR medio</div><div class="val green">1.8</div></div>
+    <div class="cell"><div class="lbl">RPE</div><div class="val">8.5</div></div>
+    <div class="cell"><div class="lbl">AMRAP</div><div class="val orange">14</div></div>
+  </div>
+  <div class="foot">PROGRAM_HEFT · 2026-06-12 · 07:42 · SESSION_LOG_0418</div>
+</body>
+</html>

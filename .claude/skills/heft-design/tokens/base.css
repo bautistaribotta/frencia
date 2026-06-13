@@ -1,0 +1,33 @@
+/* ============================================================
+   HEFT · Base
+   Minimal element defaults so specimens & kits inherit the
+   brand background, text color, and font without boilerplate.
+   ============================================================ */
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  background: var(--bg-app);
+  color: var(--text-primary);
+  font: var(--text-body);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+::selection {
+  background: var(--green-500);
+  color: var(--ink-1000);
+}
+
+/* Utility: technical mono label (used everywhere for data captions) */
+.heft-label {
+  font: var(--text-data-label);
+  letter-spacing: var(--ls-wider);
+  text-transform: uppercase;
+  color: var(--text-tertiary);
+}

@@ -1,0 +1,95 @@
+/* ============================================================
+   HEFT · Colors
+   Dark-first athletic palette. Warm-black base, emerald green
+   as the signature, orange as the intensity/effort accent.
+   ============================================================ */
+
+:root {
+  /* ---- Base brand greens (emerald, the signature) ---- */
+  --green-300: #86EFAC;
+  --green-400: #4ADE80;   /* highlight / hover lift */
+  --green-500: #22C55E;   /* PRIMARY — actions, success, completed */
+  --green-600: #16A34A;   /* pressed / deep */
+  --green-700: #15803D;
+  --green-deep: #334635;  /* muted forest — tinted surfaces, borders */
+
+  /* ---- Orange (intensity / effort / PR heat) ---- */
+  --orange-300: #FFB088;
+  --orange-400: #FF8A4C;
+  --orange-500: #FF6D29;  /* SECONDARY — intensity, PRs, alerts */
+  --orange-600: #E85002;  /* pressed / deep */
+  --orange-700: #C2410C;
+
+  /* ---- Warm-dark neutral scale (ink) ---- */
+  --ink-1000: #000000;    /* OLED true black */
+  --ink-950: #0D0B0E;     /* deepest app bg */
+  --ink-900: #161317;     /* BASE background (brand) */
+  --ink-850: #1C181D;     /* raised surface */
+  --ink-800: #221E24;     /* card */
+  --ink-750: #29242B;     /* card elevated */
+  --ink-700: #322C34;     /* hairline-strong / chips */
+  --ink-600: #443D47;     /* border */
+  --ink-500: #5C5460;     /* disabled fill / faint */
+  --ink-400: #7A7280;     /* tertiary text */
+  --ink-300: #9C949F;     /* secondary text */
+  --ink-200: #C4BEC6;     /* muted body */
+  --ink-100: #E8E4E9;     /* primary text (off-white) */
+  --ink-50:  #F4F2F5;
+  --ink-0:   #F9F9F9;     /* pure white (brand) */
+
+  /* ---- Status ---- */
+  --success: var(--green-500);
+  --warning: var(--orange-500);
+  --danger:  #EF4444;
+  --info:    #60A5FA;
+
+  /* ============================================================
+     SEMANTIC ALIASES — reach for these in product code
+     ============================================================ */
+
+  /* Surfaces */
+  --bg-app: var(--ink-900);
+  --bg-app-deep: var(--ink-950);
+  --surface-raised: var(--ink-850);
+  --surface-card: var(--ink-800);
+  --surface-card-elevated: var(--ink-750);
+  --surface-chip: var(--ink-700);
+  --surface-inset: var(--ink-950);
+
+  /* Tinted surfaces (subtle brand wash) */
+  --surface-green-soft: rgba(34, 197, 94, 0.10);
+  --surface-green-line: rgba(34, 197, 94, 0.28);
+  --surface-orange-soft: rgba(255, 109, 41, 0.10);
+  --surface-orange-line: rgba(255, 109, 41, 0.30);
+
+  /* Text */
+  --text-primary: var(--ink-100);
+  --text-secondary: var(--ink-300);
+  --text-tertiary: var(--ink-400);
+  --text-disabled: var(--ink-500);
+  --text-on-accent: var(--ink-1000);   /* black sits on green/orange */
+  --text-inverse: var(--ink-1000);
+
+  /* Borders / dividers */
+  --border-subtle: var(--ink-700);
+  --border-default: var(--ink-600);
+  --border-strong: var(--ink-500);
+  --divider: rgba(255, 255, 255, 0.07);
+
+  /* Accents — primary action */
+  --accent: var(--green-500);
+  --accent-hover: var(--green-400);
+  --accent-press: var(--green-600);
+  --accent-text: var(--green-400);     /* green text on dark */
+
+  /* Accents — intensity */
+  --intensity: var(--orange-500);
+  --intensity-hover: var(--orange-400);
+  --intensity-press: var(--orange-600);
+  --intensity-text: var(--orange-400);
+
+  /* Data viz */
+  --data-volume: var(--green-500);
+  --data-intensity: var(--orange-500);
+  --data-track: var(--ink-700);
+}

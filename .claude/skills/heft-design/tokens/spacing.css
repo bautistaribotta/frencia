@@ -1,0 +1,36 @@
+/* ============================================================
+   HEFT · Spacing
+   8px base grid. iOS-friendly rhythm.
+   ============================================================ */
+
+:root {
+  --space-0: 0;
+  --space-1: 2px;
+  --space-2: 4px;
+  --space-3: 8px;
+  --space-4: 12px;
+  --space-5: 16px;
+  --space-6: 20px;
+  --space-7: 24px;
+  --space-8: 32px;
+  --space-9: 40px;
+  --space-10: 48px;
+  --space-11: 64px;
+  --space-12: 80px;
+
+  /* Semantic */
+  --gap-inline: var(--space-3);     /* between inline siblings */
+  --gap-stack: var(--space-5);      /* between stacked blocks */
+  --gap-section: var(--space-8);    /* between sections */
+  --pad-card: var(--space-6);       /* card interior */
+  --pad-screen: var(--space-6);     /* screen side gutters (iOS 20px) */
+  --pad-control: var(--space-5);    /* control interior x */
+
+  /* Touch / sizing (iOS 44px min hit target) */
+  --hit-min: 44px;
+  --control-h-sm: 36px;
+  --control-h-md: 44px;
+  --control-h-lg: 52px;
+  --tabbar-h: 84px;
+  --navbar-h: 56px;
+}

@@ -1,0 +1,27 @@
+<!-- @dsCard group="Colors" viewport="700x180" name="Emerald — primary" subtitle="The signature. Actions, success, completed sets, progression." -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="../styles.css">
+<style>
+  body { padding: 20px; }
+  .row { display: flex; gap: 10px; }
+  .sw { flex: 1; border-radius: var(--radius-lg); padding: 12px; height: 120px; display: flex; flex-direction: column; justify-content: flex-end; }
+  .name { font: var(--text-data-label); text-transform: uppercase; letter-spacing: var(--ls-wide); }
+  .hex { font: var(--fw-semibold) 13px var(--font-mono); margin-top: 2px; }
+  .dark { color: var(--ink-1000); }
+  .light { color: var(--ink-100); }
+</style>
+</head>
+<body>
+  <div class="row">
+    <div class="sw" style="background:var(--green-300)"><span class="name dark">green-300</span><span class="hex dark">#86EFAC</span></div>
+    <div class="sw" style="background:var(--green-400)"><span class="name dark">green-400</span><span class="hex dark">#4ADE80</span></div>
+    <div class="sw" style="background:var(--green-500);box-shadow:var(--glow-green-soft)"><span class="name dark">green-500 ·</span><span class="hex dark">#22C55E</span></div>
+    <div class="sw" style="background:var(--green-600)"><span class="name light">green-600</span><span class="hex light">#16A34A</span></div>
+    <div class="sw" style="background:var(--green-700)"><span class="name light">green-700</span><span class="hex light">#15803D</span></div>
+    <div class="sw" style="background:var(--green-deep)"><span class="name light">green-deep</span><span class="hex light">#334635</span></div>
+  </div>
+</body>
+</html>

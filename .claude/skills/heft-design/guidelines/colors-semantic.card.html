@@ -1,0 +1,45 @@
+<!-- @dsCard group="Colors" viewport="700x230" name="Semantic roles" subtitle="Surfaces, text, accents, and tinted states in context." -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="../styles.css">
+<style>
+  body { padding: 20px; }
+  .wrap { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .panel { background: var(--surface-card); border: 1px solid var(--border-subtle); border-radius: var(--radius-xl); padding: 16px; }
+  .lbl { font: var(--text-data-label); text-transform: uppercase; letter-spacing: var(--ls-wider); color: var(--text-tertiary); margin-bottom: 10px; }
+  .stack { display: flex; flex-direction: column; gap: 8px; }
+  .t1 { color: var(--text-primary); font: var(--fw-semibold) 16px var(--font-sans); }
+  .t2 { color: var(--text-secondary); font: 14px var(--font-sans); }
+  .t3 { color: var(--text-tertiary); font: 13px var(--font-sans); }
+  .chips { display: flex; gap: 8px; flex-wrap: wrap; }
+  .chip { padding: 6px 12px; border-radius: var(--radius-pill); font: var(--fw-semibold) 13px var(--font-sans); }
+  .green-fill { background: var(--accent); color: var(--text-on-accent); }
+  .orange-fill { background: var(--intensity); color: var(--text-on-accent); }
+  .green-soft { background: var(--surface-green-soft); border: 1px solid var(--surface-green-line); color: var(--accent-text); }
+  .orange-soft { background: var(--surface-orange-soft); border: 1px solid var(--surface-orange-line); color: var(--intensity-text); }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="panel">
+      <div class="lbl">Text on dark</div>
+      <div class="stack">
+        <span class="t1">Primary — Press banca</span>
+        <span class="t2">Secondary — 4 series · 8 reps</span>
+        <span class="t3">Tertiary — Última: hace 3 días</span>
+      </div>
+    </div>
+    <div class="panel">
+      <div class="lbl">Accent states</div>
+      <div class="chips">
+        <span class="chip green-fill">Empezar</span>
+        <span class="chip green-soft">Completada</span>
+        <span class="chip orange-fill">NUEVO PR</span>
+        <span class="chip orange-soft">RIR 1</span>
+      </div>
+    </div>
+  </div>
+</body>
+</html>
