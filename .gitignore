@@ -35,6 +35,7 @@ Thumbs.db
 # Claude local
 .claude/_claude_tmp_fitness/
 .claude/settings.local.json
+CLAUDE.md
 
 # local env files
 .env*.local
