@@ -45,7 +45,6 @@ export default function RegisterScreen({ onNavigateToLogin }: RegisterScreenProp
   const [showPass, setShowPass] = useState(false);
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
-  const [doneMsg, setDoneMsg] = useState('');
 
   const passwordsMatch = password.length >= 6 && password === confirm;
   const canSubmit =
@@ -55,9 +54,8 @@ export default function RegisterScreen({ onNavigateToLogin }: RegisterScreenProp
     if (!canSubmit || loading) return;
     setLoading(true);
     setErrorMsg('');
-    setDoneMsg('');
 
-    const { data, error } = await supabase.auth.signUp({
+    const { error } = await supabase.auth.signUp({
       email: email.trim(),
       password,
       options: {
@@ -73,13 +71,10 @@ export default function RegisterScreen({ onNavigateToLogin }: RegisterScreenProp
       return;
     }
 
-    // Si esta activada la confirmacion por email, todavia no hay sesion.
-    if (!data.session) {
-      setDoneMsg('Revisá tu correo para confirmar la cuenta.');
-      return;
-    }
-
-    setDoneMsg('Cuenta creada.');
+    // Cuenta creada: por ahora cerramos la sesion (si la hubiera) y
+    // volvemos al login. Mas adelante usaremos confirmacion por email.
+    await supabase.auth.signOut();
+    onNavigateToLogin?.();
   }
 
   return (
@@ -185,12 +180,6 @@ export default function RegisterScreen({ onNavigateToLogin }: RegisterScreenProp
             {errorMsg ? (
               <FrenciaText role="bodySm" color={colors.dangerText}>
                 {errorMsg}
-              </FrenciaText>
-            ) : null}
-
-            {doneMsg ? (
-              <FrenciaText role="bodySm" color={colors.accentText}>
-                {doneMsg}
               </FrenciaText>
             ) : null}
 
