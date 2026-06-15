@@ -54,8 +54,8 @@ export const colors = {
   surfaceInset: palette.ink950,
 
   // Tinted surfaces (brand wash)
-  surfaceGreenSoft: 'rgba(34, 197, 94, 0.10)',
-  surfaceGreenLine: 'rgba(34, 197, 94, 0.28)',
+  surfaceGreenSoft: 'rgba(255, 109, 41, 0.10)',
+  surfaceGreenLine: 'rgba(255, 109, 41, 0.28)',
   surfaceOrangeSoft: 'rgba(255, 109, 41, 0.10)',
   surfaceOrangeLine: 'rgba(255, 109, 41, 0.30)',
 
@@ -73,11 +73,11 @@ export const colors = {
   borderStrong: palette.ink500,
   divider: 'rgba(255, 255, 255, 0.07)',
 
-  // Accent — primary action
-  accent: palette.green500,
-  accentHover: palette.green400,
-  accentPress: palette.green600,
-  accentText: palette.green400,
+  // Accent — primary action (preview: naranja)
+  accent: palette.orange500,
+  accentHover: palette.orange400,
+  accentPress: palette.orange600,
+  accentText: palette.orange400,
 
   // Accent — intensity
   intensity: palette.orange500,

@@ -47,7 +47,7 @@ export const shadow = {
   sheet: make('#000', -8, 40, 0.6, 16),
   // Brand glow — neon halo on active CTAs (approximated)
   glowGreen: make('#22C55E', 8, 28, 0.45, 10),
-  glowGreenSoft: make('#22C55E', 6, 24, 0.3, 6),
+  glowGreenSoft: make('#FF6D29', 6, 24, 0.3, 6),
   glowOrange: make('#FF6D29', 8, 28, 0.45, 10),
 } as const;
 
