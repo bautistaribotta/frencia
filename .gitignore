@@ -38,6 +38,7 @@ Thumbs.db
 CLAUDE.md
 
 # local env files
+.env
 .env*.local
 
 # typescript
