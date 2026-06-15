@@ -64,8 +64,8 @@ export const tracking = {
  */
 export const textRole = {
   // Display — Anton, tight
-  hero: { fontFamily: display, fontSize: fontSize.display2xl, lineHeight: 84, letterSpacing: tracking.display },
-  display: { fontFamily: display, fontSize: fontSize.displayLg, lineHeight: 46, letterSpacing: tracking.display },
+  hero: { fontFamily: display, fontSize: fontSize.display2xl, lineHeight: 96, letterSpacing: tracking.display },
+  display: { fontFamily: display, fontSize: fontSize.displayLg, lineHeight: 54, letterSpacing: tracking.display },
 
   // Headings — Archivo
   title: { fontFamily: sans.bold, fontSize: fontSize.titleLg, lineHeight: 29 },
