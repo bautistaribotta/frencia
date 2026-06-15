@@ -23,6 +23,8 @@ export interface ButtonProps extends Omit<PressableProps, 'children' | 'style'> 
   fullWidth?: boolean;
   icon?: string;
   iconRight?: string;
+  /** Nodo custom antes del label (ej. logo de marca SVG). Tiene prioridad sobre `icon`. */
+  leading?: React.ReactNode;
   disabled?: boolean;
   loading?: boolean;
   children?: React.ReactNode;
@@ -56,6 +58,7 @@ export function Button({
   fullWidth = false,
   icon,
   iconRight,
+  leading,
   disabled = false,
   loading = false,
   children,
@@ -86,7 +89,7 @@ export function Button({
         <ActivityIndicator color={labelColor} size="small" />
       ) : (
         <View style={styles.row}>
-          {icon ? <Icon name={icon} size={iconSize} color={labelColor} /> : null}
+          {leading ?? (icon ? <Icon name={icon} size={iconSize} color={labelColor} /> : null)}
           {children != null ? (
             <Text style={[styles.label, { color: labelColor, fontSize: FONT[size] }]} numberOfLines={1}>
               {children}
