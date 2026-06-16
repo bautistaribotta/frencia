@@ -81,7 +81,7 @@ export default function HomeScreen({ userName = 'Marco', onCreateRoutine }: Home
                 Tu sesion de hoy
               </FrenciaText>
               <FrenciaText role="display" style={styles.heroTitle}>
-                EMPIEZA{'\n'}AQUI
+                EMPIEZA AQUI
               </FrenciaText>
               <FrenciaText role="bodySm" color={colors.textSecondary} style={styles.heroPara}>
                 Aun no tienes rutinas. Crea la primera y registra cada serie a tu manera.
