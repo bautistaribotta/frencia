@@ -1,8 +1,9 @@
 /* Frencia · Onboarding — completar el perfil tras el primer login.
    Espeja el login/registro. "Cada serie cuenta." */
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
+  ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -55,18 +56,60 @@ export default function OnboardingScreen({ userName, onComplete, onCancel }: Onb
   const [peso, setPeso] = useState('');
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
+  // Mientras traemos el perfil mostramos un spinner para tapar la demora inicial.
+  const [cargandoPerfil, setCargandoPerfil] = useState(true);
 
-  // Validaciones acordes a las restricciones de la tabla profiles.
+  // Modo edicion: hay un boton para cancelar y volver atras.
+  const isEditing = !!onCancel;
+
+  // Traemos los datos ya guardados para precompletar los inputs al editar.
+  useEffect(() => {
+    let activo = true;
+
+    async function cargarPerfil() {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user) {
+        if (activo) setCargandoPerfil(false);
+        return;
+      }
+
+      const { data } = await supabase
+        .from('profiles')
+        .select('edad, sexo, altura, peso')
+        .eq('id', user.id)
+        .single();
+
+      if (!activo) return;
+
+      if (data) {
+        if (data.edad != null) setEdad(String(data.edad));
+        if (data.sexo != null) setSexo(data.sexo);
+        if (data.altura != null) setAltura(String(data.altura));
+        if (data.peso != null) setPeso(String(data.peso));
+      }
+      setCargandoPerfil(false);
+    }
+
+    cargarPerfil();
+    return () => {
+      activo = false;
+    };
+  }, []);
+
+  // Ningun campo es obligatorio: validamos solo el formato de lo que se completa.
   const edadNum = Number(edad);
   const alturaNum = Number(altura);
   const pesoNum = Number(peso);
 
-  const edadValida = edad.trim() !== '' && Number.isInteger(edadNum) && edadNum >= 0 && edadNum <= 150;
-  const sexoValido = SEXO_OPTIONS.some((o) => o.value === sexo);
-  const alturaValida = altura.trim() !== '' && Number.isFinite(alturaNum) && alturaNum > 0;
-  const pesoValido = peso.trim() !== '' && Number.isFinite(pesoNum) && pesoNum > 0;
+  const edadValida =
+    edad.trim() === '' || (Number.isInteger(edadNum) && edadNum >= 0 && edadNum <= 150);
+  const alturaValida = altura.trim() === '' || (Number.isFinite(alturaNum) && alturaNum > 0);
+  const pesoValida = peso.trim() === '' || (Number.isFinite(pesoNum) && pesoNum > 0);
 
-  const canSubmit = edadValida && sexoValido && alturaValida && pesoValido;
+  // El boton esta siempre disponible salvo que algun dato cargado sea invalido.
+  const canSubmit = edadValida && alturaValida && pesoValida;
 
   async function handleSave() {
     if (!canSubmit || loading) return;
@@ -86,10 +129,10 @@ export default function OnboardingScreen({ userName, onComplete, onCancel }: Onb
     const { error } = await supabase
       .from('profiles')
       .update({
-        edad: edadNum,
-        sexo,
-        altura: alturaNum,
-        peso: pesoNum,
+        edad: edad.trim() === '' ? null : edadNum,
+        sexo: SEXO_OPTIONS.some((o) => o.value === sexo) ? sexo : null,
+        altura: altura.trim() === '' ? null : alturaNum,
+        peso: peso.trim() === '' ? null : pesoNum,
       })
       .eq('id', user.id);
 
@@ -116,6 +159,11 @@ export default function OnboardingScreen({ userName, onComplete, onCancel }: Onb
           <Icon name="chevron-left" size={24} color={colors.textPrimary} />
         </Pressable>
       ) : null}
+      {cargandoPerfil ? (
+        <View style={styles.spinnerWrap}>
+          <ActivityIndicator size="large" color={colors.accent} />
+        </View>
+      ) : (
       <KeyboardAvoidingView
         style={styles.flex}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
@@ -149,12 +197,14 @@ export default function OnboardingScreen({ userName, onComplete, onCancel }: Onb
           {/* Form */}
           <View style={styles.form}>
             <FrenciaText role="title" style={styles.heading}>
-              Completá tu perfil
+              {isEditing ? 'Editar perfil' : 'Completá tu perfil'}
             </FrenciaText>
             <FrenciaText role="bodySm" color={colors.textSecondary}>
-              {userName
-                ? `Unos datos más, ${userName}, y arrancamos a entrenar.`
-                : 'Unos datos más y arrancamos a entrenar.'}
+              {isEditing
+                ? 'Cambiá los datos de los campos para actualizarlos.'
+                : userName
+                  ? `Unos datos más, ${userName}, y arrancamos a entrenar.`
+                  : 'Unos datos más y arrancamos a entrenar.'}
             </FrenciaText>
 
             <View style={styles.fields}>
@@ -215,11 +265,12 @@ export default function OnboardingScreen({ userName, onComplete, onCancel }: Onb
               loading={loading}
               onPress={handleSave}
             >
-              Guardar y continuar
+              Guardar
             </Button>
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
+      )}
     </SafeAreaView>
   );
 }
@@ -258,6 +309,7 @@ const makeStyles = (colors: Palette) =>
   StyleSheet.create({
   safe: { flex: 1, backgroundColor: colors.bgApp },
   flex: { flex: 1 },
+  spinnerWrap: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   backBtn: {
     position: 'absolute',
     top: space[4],
