@@ -23,6 +23,7 @@ export default function TabLayout() {
   const [fontsLoaded, fontError] = useFrenciaFonts();
   const [authView, setAuthView] = useState<AuthView>('login');
   const [userName, setUserName] = useState<string | undefined>(undefined);
+  const [avatarUrl, setAvatarUrl] = useState<string | undefined>(undefined);
 
   // No bloquear para siempre si una fuente falla en cargar (web): renderizar igual.
   if (!fontsLoaded && !fontError) return null;
@@ -43,9 +44,11 @@ export default function TabLayout() {
 
     const { data: profile } = await supabase
       .from('profiles')
-      .select('edad, sexo, altura, peso')
+      .select('edad, sexo, altura, peso, avatar_url')
       .eq('id', user.id)
       .maybeSingle();
+
+    if (profile?.avatar_url) setAvatarUrl(profile.avatar_url);
 
     const incompleto =
       !profile ||
@@ -61,15 +64,21 @@ export default function TabLayout() {
   function renderAuth() {
     if (authView === 'home') {
       return (
-        <HomeScreen userName={userName} onOpenProfile={() => setAuthView('profile')} />
+        <HomeScreen
+          userName={userName}
+          avatarUrl={avatarUrl}
+          onOpenProfile={() => setAuthView('profile')}
+        />
       );
     }
     if (authView === 'profile') {
       return (
         <ProfileScreen
           userName={userName}
+          avatarUrl={avatarUrl}
           onClose={() => setAuthView('home')}
           onEditProfile={() => setAuthView('onboarding')}
+          onAvatarChange={setAvatarUrl}
         />
       );
     }

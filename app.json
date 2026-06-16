@@ -38,7 +38,13 @@
         }
       ],
       "expo-font",
-      "expo-web-browser"
+      "expo-web-browser",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Frencia necesita acceso a tus fotos para elegir tu foto de perfil."
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true,

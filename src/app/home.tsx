@@ -23,6 +23,7 @@ import {
 
 interface HomeScreenProps {
   userName?: string;
+  avatarUrl?: string;
   onCreateRoutine?: () => void;
   onOpenProfile?: () => void;
 }
@@ -47,7 +48,7 @@ const TABS = [
   { value: 'perfil', label: 'Perfil', icon: 'user' },
 ];
 
-export default function HomeScreen({ userName = 'Marco', onCreateRoutine, onOpenProfile }: HomeScreenProps) {
+export default function HomeScreen({ userName = 'Marco', avatarUrl, onCreateRoutine, onOpenProfile }: HomeScreenProps) {
   const first = userName.split(' ')[0];
 
   return (
@@ -64,7 +65,7 @@ export default function HomeScreen({ userName = 'Marco', onCreateRoutine, onOpen
             accessibilityRole="button"
             accessibilityLabel="Abrir perfil"
           >
-            <Avatar name={userName} size="md" ring />
+            <Avatar name={userName} src={avatarUrl} size="md" ring />
             <View>
               <FrenciaText role="subtitle">Hola, {first}</FrenciaText>
               <FrenciaText role="dataLabel" color={colors.textTertiary}>

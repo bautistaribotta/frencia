@@ -1,12 +1,14 @@
 /* Frencia · Perfil — pantalla de perfil y ajustes.
-   Se abre al tocar el encabezado de saludo. Tarjeta de usuario,
-   editar perfil y filas de ajustes (RIR/RPE, tema). Sin persistencia. */
+   Se abre al tocar el encabezado de saludo. Foto de perfil (Storage),
+   editar perfil y ajustes. RIR/RPE y kg/lb se guardan en Supabase;
+   el tema queda local hasta que exista el modo claro. */
 
 import React, { useEffect, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { supabase } from '@/lib/supabase';
+import { pickAndUploadAvatar } from '@/lib/avatar';
 
 import {
   Avatar,
@@ -23,22 +25,31 @@ import {
 
 interface ProfileScreenProps {
   userName?: string;
+  avatarUrl?: string;
   onClose?: () => void;
   onEditProfile?: () => void;
+  // Avisa al contenedor que cambio la foto, para reusarla en toda la app.
+  onAvatarChange?: (url: string) => void;
 }
 
 export default function ProfileScreen({
   userName = 'Marco',
+  avatarUrl,
   onClose,
   onEditProfile,
+  onAvatarChange,
 }: ProfileScreenProps) {
   // RIR/RPE y kg/lb se persisten en Supabase (profiles).
   const [useRpe, setUseRpe] = useState(false);
   const [useLb, setUseLb] = useState(false);
   // El tema queda local por ahora: el modo claro todavia no esta implementado.
   const [darkMode, setDarkMode] = useState(true);
+  // Foto de perfil (se inicializa con la que viene del contenedor).
+  const [photo, setPhoto] = useState<string | undefined>(avatarUrl);
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
+  const [photoError, setPhotoError] = useState('');
 
-  // Carga las preferencias guardadas del usuario al abrir el perfil.
+  // Carga preferencias y foto guardadas del usuario al abrir el perfil.
   useEffect(() => {
     let cancelado = false;
     (async () => {
@@ -48,17 +59,41 @@ export default function ProfileScreen({
       if (!user) return;
       const { data } = await supabase
         .from('profiles')
-        .select('medidor_esfuerzo, unidad_peso')
+        .select('medidor_esfuerzo, unidad_peso, avatar_url')
         .eq('id', user.id)
         .maybeSingle();
       if (cancelado || !data) return;
       setUseRpe(data.medidor_esfuerzo === 'rpe');
       setUseLb(data.unidad_peso === 'lb');
+      if (data.avatar_url) setPhoto(data.avatar_url);
     })();
     return () => {
       cancelado = true;
     };
   }, []);
+
+  // Elige una imagen, la sube a Storage y la fija en el perfil.
+  async function changePhoto() {
+    if (uploadingPhoto) return;
+    setPhotoError('');
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) {
+      setPhotoError('No pudimos identificar tu sesión.');
+      return;
+    }
+    setUploadingPhoto(true);
+    const { url, error, canceled } = await pickAndUploadAvatar(user.id);
+    setUploadingPhoto(false);
+    if (canceled) return;
+    if (error || !url) {
+      setPhotoError(error ?? 'No pudimos actualizar la foto.');
+      return;
+    }
+    setPhoto(url);
+    onAvatarChange?.(url);
+  }
 
   // Guarda una preferencia en profiles sin bloquear la UI (optimista).
   async function persistPref(patch: Record<string, string>) {
@@ -103,12 +138,28 @@ export default function ProfileScreen({
 
         {/* Tarjeta de usuario */}
         <View style={styles.userCard}>
-          <Avatar name={userName} size="lg" ring />
+          <Pressable
+            onPress={changePhoto}
+            disabled={uploadingPhoto}
+            accessibilityRole="button"
+            accessibilityLabel="Cambiar foto de perfil"
+            style={styles.avatarWrap}
+          >
+            <Avatar name={userName} src={photo} size="lg" ring />
+            <View style={styles.avatarBadge}>
+              <Icon name="camera" size={13} color={colors.textOnAccent} />
+            </View>
+          </Pressable>
           <View style={styles.userText}>
             <FrenciaText role="subtitle">{userName}</FrenciaText>
             <FrenciaText role="dataLabel" color={colors.textTertiary}>
-              Tu cuenta
+              {uploadingPhoto ? 'Subiendo foto...' : 'Tocá la foto para cambiarla'}
             </FrenciaText>
+            {photoError ? (
+              <FrenciaText role="bodySm" color={colors.dangerText}>
+                {photoError}
+              </FrenciaText>
+            ) : null}
           </View>
         </View>
 
@@ -223,7 +274,21 @@ const styles = StyleSheet.create({
     borderColor: colors.borderSubtle,
     padding: space[5],
   },
-  userText: { gap: space[1] },
+  avatarWrap: { position: 'relative' },
+  avatarBadge: {
+    position: 'absolute',
+    right: -2,
+    bottom: -2,
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: colors.accent,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 2,
+    borderColor: colors.surfaceCard,
+  },
+  userText: { flex: 1, gap: space[1] },
 
   // Ajustes
   settingsBlock: { gap: space[4] },
