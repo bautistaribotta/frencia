@@ -178,6 +178,9 @@ export default function HomeScreen({ userName = 'Marco', avatarUrl, avatarSeed, 
       <TabBar
         items={TABS}
         value="hoy"
+        onChange={(value) => {
+          if (value === 'perfil') onOpenProfile?.();
+        }}
         fab={{ icon: 'plus', label: 'Crear', onPress: onCreateRoutine }}
       />
     </SafeAreaView>
