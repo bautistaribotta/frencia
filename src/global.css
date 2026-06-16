@@ -7,3 +7,16 @@
   --font-rounded: 'SF Pro Rounded', 'Hiragino Maru Gothic ProN', Meiryo, 'MS PGothic', sans-serif;
   --font-serif: Georgia, 'Times New Roman', serif;
 }
+
+/* Autofill: el navegador pinta los inputs de amarillo. Lo sobreescribimos
+   para respetar la estetica oscura de la app (surfaceCard + textPrimary). */
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus,
+input:-webkit-autofill:active {
+  -webkit-box-shadow: 0 0 0 1000px oklch(0.242 0.013 314) inset;
+  box-shadow: 0 0 0 1000px oklch(0.242 0.013 314) inset;
+  -webkit-text-fill-color: oklch(0.923 0.008 319);
+  caret-color: oklch(0.923 0.008 319);
+  transition: background-color 9999s ease-in-out 0s;
+}
