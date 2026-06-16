@@ -6,7 +6,7 @@
 import React from 'react';
 import { Pressable, StyleSheet, Text, View, type ViewStyle } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { mono, shadow, tracking, type Palette } from '../theme';
+import { mono, tracking, type Palette } from '../theme';
 import { useColors, useThemedStyles } from '../theme-context';
 import { Icon } from '../Icon';
 
@@ -97,6 +97,5 @@ const makeStyles = (colors: Palette) =>
       justifyContent: 'center',
       borderWidth: 3,
       borderColor: colors.bgApp,
-      ...shadow.glowOrange,
     },
   });
