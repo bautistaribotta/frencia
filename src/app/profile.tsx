@@ -107,7 +107,7 @@ export default function ProfileScreen({
             <View style={[styles.settingRow, styles.settingRowDivider]}>
               <View style={styles.settingText}>
                 <FrenciaText role="bodySm" style={styles.settingTitle}>
-                  Unidad de peso
+                  Unidad de peso kg/lb
                 </FrenciaText>
                 <FrenciaText role="bodySm" color={colors.textTertiary} style={styles.settingSub}>
                   {useLb ? 'En libras (lb)' : 'En kilogramos (kg)'}
