@@ -5,14 +5,17 @@ import { useColorScheme } from 'react-native';
 import { AnimatedSplashOverlay } from '@/components/animated-icon';
 import AppTabs from '@/components/app-tabs';
 import { useFrenciaFonts } from '@/design';
+import { supabase } from '@/lib/supabase';
 // PREVIEW TEMPORAL: arranca directo en el flujo de auth para verlo.
 import HomeScreen from './home';
 import LoginScreen from './login';
+import OnboardingScreen from './onboarding';
+import ProfileScreen from './profile';
 import RegisterScreen from './register';
 
 const PREVIEW_AUTH = true;
 
-type AuthView = 'login' | 'register' | 'home';
+type AuthView = 'login' | 'register' | 'onboarding' | 'home' | 'profile';
 
 export default function TabLayout() {
   const colorScheme = useColorScheme();
@@ -23,9 +26,55 @@ export default function TabLayout() {
   // No bloquear para siempre si una fuente falla en cargar (web): renderizar igual.
   if (!fontsLoaded && !fontError) return null;
 
+  // Tras el login decide si faltan datos del perfil (primer ingreso) y
+  // manda al onboarding, o si ya esta completo va directo al home.
+  async function resolveAfterLogin(name?: string) {
+    setUserName(name);
+
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) {
+      setAuthView('home');
+      return;
+    }
+
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('edad, sexo, altura, peso')
+      .eq('id', user.id)
+      .maybeSingle();
+
+    const incompleto =
+      !profile ||
+      profile.edad == null ||
+      profile.sexo == null ||
+      profile.altura == null ||
+      profile.peso == null;
+
+    setAuthView(incompleto ? 'onboarding' : 'home');
+  }
+
   function renderAuth() {
     if (authView === 'home') {
-      return <HomeScreen userName={userName} />;
+      return (
+        <HomeScreen userName={userName} onOpenProfile={() => setAuthView('profile')} />
+      );
+    }
+    if (authView === 'profile') {
+      return (
+        <ProfileScreen
+          userName={userName}
+          onClose={() => setAuthView('home')}
+          onEditProfile={() => setAuthView('onboarding')}
+        />
+      );
+    }
+    if (authView === 'onboarding') {
+      return (
+        <OnboardingScreen userName={userName} onComplete={() => setAuthView('home')} />
+      );
     }
     if (authView === 'register') {
       return <RegisterScreen onNavigateToLogin={() => setAuthView('login')} />;
@@ -33,10 +82,7 @@ export default function TabLayout() {
     return (
       <LoginScreen
         onNavigateToRegister={() => setAuthView('register')}
-        onLoginSuccess={(name) => {
-          setUserName(name);
-          setAuthView('home');
-        }}
+        onLoginSuccess={resolveAfterLogin}
       />
     );
   }

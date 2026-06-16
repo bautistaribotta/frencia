@@ -24,6 +24,7 @@ import {
 interface HomeScreenProps {
   userName?: string;
   onCreateRoutine?: () => void;
+  onOpenProfile?: () => void;
 }
 
 interface Step {
@@ -46,7 +47,7 @@ const TABS = [
   { value: 'perfil', label: 'Perfil', icon: 'user' },
 ];
 
-export default function HomeScreen({ userName = 'Marco', onCreateRoutine }: HomeScreenProps) {
+export default function HomeScreen({ userName = 'Marco', onCreateRoutine, onOpenProfile }: HomeScreenProps) {
   const first = userName.split(' ')[0];
 
   return (
@@ -57,7 +58,12 @@ export default function HomeScreen({ userName = 'Marco', onCreateRoutine }: Home
       >
         {/* Saludo */}
         <View style={styles.greeting}>
-          <View style={styles.greetingLeft}>
+          <Pressable
+            style={styles.greetingLeft}
+            onPress={onOpenProfile}
+            accessibilityRole="button"
+            accessibilityLabel="Abrir perfil"
+          >
             <Avatar name={userName} size="md" ring />
             <View>
               <FrenciaText role="subtitle">Hola, {first}</FrenciaText>
@@ -65,7 +71,7 @@ export default function HomeScreen({ userName = 'Marco', onCreateRoutine }: Home
                 Jueves · 12 jun
               </FrenciaText>
             </View>
-          </View>
+          </Pressable>
           <Badge tone="neutral">Dia 1</Badge>
         </View>
 
