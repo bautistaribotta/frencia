@@ -93,6 +93,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     borderWidth: 3,
     borderColor: colors.bgApp,
-    ...shadow.glowGreen,
+    ...shadow.glowOrange,
   },
 });
