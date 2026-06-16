@@ -15,6 +15,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { supabase } from '@/lib/supabase';
+import { signInWithProvider, type OAuthProvider } from '@/lib/oauth';
 
 import AppleLogo from '@/assets/icons/apple.svg';
 import GoogleLogo from '@/assets/icons/google.svg';
@@ -43,6 +44,7 @@ export default function LoginScreen({ onNavigateToRegister, onLoginSuccess }: Lo
   const [password, setPassword] = useState('');
   const [showPass, setShowPass] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [oauthLoading, setOauthLoading] = useState<OAuthProvider | null>(null);
   const [errorMsg, setErrorMsg] = useState('');
   const [doneMsg, setDoneMsg] = useState('');
 
@@ -68,6 +70,26 @@ export default function LoginScreen({ onNavigateToRegister, onLoginSuccess }: Lo
 
     const name = data.user?.user_metadata?.name as string | undefined;
     setDoneMsg(`Ingresaste. Bienvenido de nuevo${name ? `, ${name}` : ''}.`);
+    onLoginSuccess?.(name);
+  }
+
+  async function handleOAuth(provider: OAuthProvider) {
+    if (oauthLoading) return;
+    setOauthLoading(provider);
+    setErrorMsg('');
+    setDoneMsg('');
+
+    const { error } = await signInWithProvider(provider);
+
+    setOauthLoading(null);
+
+    if (error) {
+      setErrorMsg('No pudimos ingresar con ese proveedor. Proba de nuevo.');
+      return;
+    }
+
+    const { data } = await supabase.auth.getUser();
+    const name = data.user?.user_metadata?.name as string | undefined;
     onLoginSuccess?.(name);
   }
 
@@ -193,6 +215,9 @@ export default function LoginScreen({ onNavigateToRegister, onLoginSuccess }: Lo
                 size="lg"
                 leading={<AppleLogo width={20} height={20} />}
                 style={styles.socialBtn}
+                loading={oauthLoading === 'apple'}
+                disabled={oauthLoading !== null}
+                onPress={() => handleOAuth('apple')}
               >
                 Apple
               </Button>
@@ -201,6 +226,9 @@ export default function LoginScreen({ onNavigateToRegister, onLoginSuccess }: Lo
                 size="lg"
                 leading={<GoogleLogo width={20} height={20} />}
                 style={styles.socialBtn}
+                loading={oauthLoading === 'google'}
+                disabled={oauthLoading !== null}
+                onPress={() => handleOAuth('google')}
               >
                 Google
               </Button>

@@ -20,5 +20,7 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
     persistSession: true,
     // RN no tiene URL de redireccion para detectar la sesion.
     detectSessionInUrl: false,
+    // OAuth por navegador: canjeamos el code manualmente (ver lib/oauth).
+    flowType: 'pkce',
   },
 });
