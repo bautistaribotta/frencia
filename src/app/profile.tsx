@@ -1,10 +1,10 @@
 /* Frencia · Perfil — pantalla de perfil y ajustes.
    Se abre al tocar el encabezado de saludo. Foto de perfil (Storage),
-   editar perfil y ajustes. RIR/RPE y kg/lb se guardan en Supabase;
-   el tema queda local hasta que exista el modo claro. */
+   editar perfil y ajustes. RIR/RPE, kg/lb y el tema (oscuro/claro) se
+   guardan en Supabase; el tema ademas se aplica en vivo via contexto. */
 
 import React, { useEffect, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { Modal, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { supabase } from '@/lib/supabase';
@@ -16,11 +16,14 @@ import {
   FrenciaText,
   Icon,
   Switch,
-  colors,
+  useColors,
+  useTheme,
+  useThemedStyles,
   radius,
   sans,
   space,
   spacing,
+  type Palette,
 } from '@/design';
 
 interface ProfileScreenProps {
@@ -28,28 +31,35 @@ interface ProfileScreenProps {
   avatarUrl?: string;
   onClose?: () => void;
   onEditProfile?: () => void;
-  // Avisa al contenedor que cambio la foto, para reusarla en toda la app.
-  onAvatarChange?: (url: string) => void;
+  avatarSeed?: string;
+  // Avisa al contenedor que cambio el avatar, para reusarlo en toda la app.
+  onAvatarChange?: (next: { url?: string | null; seed?: string | null }) => void;
 }
 
 export default function ProfileScreen({
   userName = 'Marco',
   avatarUrl,
+  avatarSeed,
   onClose,
   onEditProfile,
   onAvatarChange,
 }: ProfileScreenProps) {
+  const colors = useColors();
+  const styles = useThemedStyles(makeStyles);
+  // Tema activo (oscuro/claro): lo maneja el contexto, persiste solo.
+  const { mode, setMode } = useTheme();
+  const isDark = mode === 'dark';
   // RIR/RPE y kg/lb se persisten en Supabase (profiles).
   const [useRpe, setUseRpe] = useState(false);
   const [useLb, setUseLb] = useState(false);
-  // El tema queda local por ahora: el modo claro todavia no esta implementado.
-  const [darkMode, setDarkMode] = useState(true);
-  // Foto de perfil (se inicializa con la que viene del contenedor).
+  // Avatar: foto subida (prioridad) o semilla del avatar generado.
   const [photo, setPhoto] = useState<string | undefined>(avatarUrl);
-  const [uploadingPhoto, setUploadingPhoto] = useState(false);
+  const [seed, setSeed] = useState<string | undefined>(avatarSeed);
+  const [busy, setBusy] = useState(false);
   const [photoError, setPhotoError] = useState('');
+  const [showOptions, setShowOptions] = useState(false);
 
-  // Carga preferencias y foto guardadas del usuario al abrir el perfil.
+  // Carga preferencias y avatar guardados del usuario al abrir el perfil.
   useEffect(() => {
     let cancelado = false;
     (async () => {
@@ -59,22 +69,24 @@ export default function ProfileScreen({
       if (!user) return;
       const { data } = await supabase
         .from('profiles')
-        .select('medidor_esfuerzo, unidad_peso, avatar_url')
+        .select('medidor_esfuerzo, unidad_peso, avatar_url, avatar_seed')
         .eq('id', user.id)
         .maybeSingle();
       if (cancelado || !data) return;
       setUseRpe(data.medidor_esfuerzo === 'rpe');
       setUseLb(data.unidad_peso === 'lb');
       if (data.avatar_url) setPhoto(data.avatar_url);
+      if (data.avatar_seed) setSeed(data.avatar_seed);
     })();
     return () => {
       cancelado = true;
     };
   }, []);
 
-  // Elige una imagen, la sube a Storage y la fija en el perfil.
-  async function changePhoto() {
-    if (uploadingPhoto) return;
+  // Elige una imagen, la sube a Storage y la fija como foto de perfil.
+  async function uploadPhoto() {
+    if (busy) return;
+    setShowOptions(false);
     setPhotoError('');
     const {
       data: { user },
@@ -83,16 +95,76 @@ export default function ProfileScreen({
       setPhotoError('No pudimos identificar tu sesión.');
       return;
     }
-    setUploadingPhoto(true);
+    setBusy(true);
     const { url, error, canceled } = await pickAndUploadAvatar(user.id);
-    setUploadingPhoto(false);
+    setBusy(false);
     if (canceled) return;
     if (error || !url) {
       setPhotoError(error ?? 'No pudimos actualizar la foto.');
       return;
     }
     setPhoto(url);
-    onAvatarChange?.(url);
+    onAvatarChange?.({ url });
+  }
+
+  // Genera un avatar nuevo: nueva semilla que sobreescribe la actual y
+  // limpia la foto subida en Supabase.
+  async function generateAvatar() {
+    if (busy) return;
+    setShowOptions(false);
+    setPhotoError('');
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) {
+      setPhotoError('No pudimos identificar tu sesión.');
+      return;
+    }
+    setBusy(true);
+    const nuevaSeed = `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+    const { error } = await supabase
+      .from('profiles')
+      .update({ avatar_seed: nuevaSeed, avatar_url: null })
+      .eq('id', user.id);
+    setBusy(false);
+    if (error) {
+      setPhotoError('No pudimos generar el avatar.');
+      return;
+    }
+    setPhoto(undefined);
+    setSeed(nuevaSeed);
+    onAvatarChange?.({ url: null, seed: nuevaSeed });
+  }
+
+  // Elimina la foto subida y vuelve al avatar generado por semilla.
+  async function removePhoto() {
+    if (busy) return;
+    setShowOptions(false);
+    setPhotoError('');
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) {
+      setPhotoError('No pudimos identificar tu sesión.');
+      return;
+    }
+    setBusy(true);
+    // Borra el archivo de Storage (no falla si no existe).
+    await supabase.storage.from('avatars').remove([`${user.id}/avatar.jpg`]);
+    // Asegura una semilla para mostrar el avatar generado.
+    const semilla = seed ?? `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+    const { error } = await supabase
+      .from('profiles')
+      .update({ avatar_url: null, avatar_seed: semilla })
+      .eq('id', user.id);
+    setBusy(false);
+    if (error) {
+      setPhotoError('No pudimos eliminar la foto.');
+      return;
+    }
+    setPhoto(undefined);
+    setSeed(semilla);
+    onAvatarChange?.({ url: null, seed: semilla });
   }
 
   // Guarda una preferencia en profiles sin bloquear la UI (optimista).
@@ -139,13 +211,13 @@ export default function ProfileScreen({
         {/* Tarjeta de usuario */}
         <View style={styles.userCard}>
           <Pressable
-            onPress={changePhoto}
-            disabled={uploadingPhoto}
+            onPress={() => setShowOptions(true)}
+            disabled={busy}
             accessibilityRole="button"
             accessibilityLabel="Cambiar foto de perfil"
             style={styles.avatarWrap}
           >
-            <Avatar name={userName} src={photo} size="lg" ring />
+            <Avatar name={seed ?? userName} src={photo} size="lg" ring />
             <View style={styles.avatarBadge}>
               <Icon name="camera" size={13} color={colors.textOnAccent} />
             </View>
@@ -153,7 +225,7 @@ export default function ProfileScreen({
           <View style={styles.userText}>
             <FrenciaText role="subtitle">{userName}</FrenciaText>
             <FrenciaText role="dataLabel" color={colors.textTertiary}>
-              {uploadingPhoto ? 'Subiendo foto...' : 'Tocá la foto para cambiarla'}
+              {busy ? 'Actualizando avatar...' : 'Tocá la foto para cambiarla'}
             </FrenciaText>
             {photoError ? (
               <FrenciaText role="bodySm" color={colors.dangerText}>
@@ -218,10 +290,10 @@ export default function ProfileScreen({
                   Modo oscuro / claro
                 </FrenciaText>
                 <FrenciaText role="bodySm" color={colors.textTertiary} style={styles.settingSub}>
-                  {darkMode ? 'Modo oscuro' : 'Modo claro'}
+                  {isDark ? 'Modo oscuro' : 'Modo claro'}
                 </FrenciaText>
               </View>
-              <Switch checked={darkMode} onChange={setDarkMode} />
+              <Switch checked={isDark} onChange={(next) => setMode(next ? 'dark' : 'light')} />
             </View>
           </View>
         </View>
@@ -237,11 +309,42 @@ export default function ProfileScreen({
           Configuracion
         </Button>
       </ScrollView>
+
+      {/* Opciones de avatar */}
+      <Modal
+        visible={showOptions}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowOptions(false)}
+      >
+        <Pressable style={styles.backdrop} onPress={() => setShowOptions(false)}>
+          <Pressable style={styles.sheet}>
+            <FrenciaText role="subtitle" style={styles.sheetTitle}>
+              Foto de perfil
+            </FrenciaText>
+            <Button variant="primary" size="lg" icon="repeat" fullWidth onPress={generateAvatar}>
+              Generar avatar nuevo
+            </Button>
+            <Button variant="secondary" size="lg" icon="camera" fullWidth onPress={uploadPhoto}>
+              Subir una foto
+            </Button>
+            {photo ? (
+              <Button variant="ghost" size="lg" icon="x" fullWidth onPress={removePhoto}>
+                Eliminar foto
+              </Button>
+            ) : null}
+            <Button variant="ghost" size="md" fullWidth onPress={() => setShowOptions(false)}>
+              Cancelar
+            </Button>
+          </Pressable>
+        </Pressable>
+      </Modal>
     </SafeAreaView>
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (colors: Palette) =>
+  StyleSheet.create({
   safe: { flex: 1, backgroundColor: colors.bgApp },
   scroll: {
     paddingHorizontal: spacing.padScreen,
@@ -249,6 +352,24 @@ const styles = StyleSheet.create({
     paddingBottom: space[12],
     gap: space[7],
   },
+
+  // Modal de opciones de avatar
+  backdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    justifyContent: 'flex-end',
+  },
+  sheet: {
+    backgroundColor: colors.surfaceRaised,
+    borderTopLeftRadius: radius.xl,
+    borderTopRightRadius: radius.xl,
+    borderWidth: 1,
+    borderColor: colors.borderSubtle,
+    padding: space[5],
+    paddingBottom: space[8],
+    gap: space[3],
+  },
+  sheetTitle: { marginBottom: space[1] },
 
   // Encabezado
   header: {

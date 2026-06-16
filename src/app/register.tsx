@@ -23,7 +23,8 @@ import {
   Button,
   FrenciaText,
   Icon,
-  colors,
+  useColors,
+  useThemedStyles,
   radius,
   sans,
   shadow,
@@ -31,6 +32,7 @@ import {
   space,
   spacing,
   tracking,
+  type Palette,
 } from '@/design';
 
 interface RegisterScreenProps {
@@ -38,6 +40,8 @@ interface RegisterScreenProps {
 }
 
 export default function RegisterScreen({ onNavigateToLogin }: RegisterScreenProps) {
+  const colors = useColors();
+  const styles = useThemedStyles(makeStyles);
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -248,6 +252,8 @@ interface FieldProps extends TextInputProps {
 }
 
 function Field({ icon, trailing, ...rest }: FieldProps) {
+  const colors = useColors();
+  const styles = useThemedStyles(makeStyles);
   const [focused, setFocused] = useState(false);
   return (
     <View
@@ -269,7 +275,8 @@ function Field({ icon, trailing, ...rest }: FieldProps) {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (colors: Palette) =>
+  StyleSheet.create({
   safe: { flex: 1, backgroundColor: colors.bgApp },
   flex: { flex: 1 },
   scroll: {

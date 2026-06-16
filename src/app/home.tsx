@@ -13,17 +13,20 @@ import {
   FrenciaText,
   Icon,
   TabBar,
-  colors,
+  useColors,
+  useThemedStyles,
   mono,
   radius,
   sans,
   space,
   spacing,
+  type Palette,
 } from '@/design';
 
 interface HomeScreenProps {
   userName?: string;
   avatarUrl?: string;
+  avatarSeed?: string;
   onCreateRoutine?: () => void;
   onOpenProfile?: () => void;
 }
@@ -48,7 +51,9 @@ const TABS = [
   { value: 'perfil', label: 'Perfil', icon: 'user' },
 ];
 
-export default function HomeScreen({ userName = 'Marco', avatarUrl, onCreateRoutine, onOpenProfile }: HomeScreenProps) {
+export default function HomeScreen({ userName = 'Marco', avatarUrl, avatarSeed, onCreateRoutine, onOpenProfile }: HomeScreenProps) {
+  const colors = useColors();
+  const styles = useThemedStyles(makeStyles);
   const first = userName.split(' ')[0];
 
   return (
@@ -65,7 +70,7 @@ export default function HomeScreen({ userName = 'Marco', avatarUrl, onCreateRout
             accessibilityRole="button"
             accessibilityLabel="Abrir perfil"
           >
-            <Avatar name={userName} src={avatarUrl} size="md" ring />
+            <Avatar name={avatarSeed ?? userName} src={avatarUrl} size="md" ring />
             <View>
               <FrenciaText role="subtitle">Hola, {first}</FrenciaText>
               <FrenciaText role="dataLabel" color={colors.textTertiary}>
@@ -179,7 +184,8 @@ export default function HomeScreen({ userName = 'Marco', avatarUrl, onCreateRout
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (colors: Palette) =>
+  StyleSheet.create({
   safe: { flex: 1, backgroundColor: colors.bgApp },
   scroll: {
     paddingHorizontal: spacing.padScreen,

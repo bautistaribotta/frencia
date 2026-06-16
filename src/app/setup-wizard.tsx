@@ -20,12 +20,14 @@ import {
   FrenciaText,
   Icon,
   SegmentedControl,
-  colors,
+  useColors,
+  useThemedStyles,
   radius,
   sans,
   sizing,
   space,
   spacing,
+  type Palette,
 } from '@/design';
 
 interface SetupWizardScreenProps {
@@ -60,6 +62,8 @@ const STEPS: StepDef[] = [
 ];
 
 export default function SetupWizardScreen({ userName, onComplete }: SetupWizardScreenProps) {
+  const colors = useColors();
+  const styles = useThemedStyles(makeStyles);
   const [index, setIndex] = useState(0);
   const [values, setValues] = useState<Record<StepKey, string>>({
     edad: '',
@@ -258,7 +262,8 @@ export default function SetupWizardScreen({ userName, onComplete }: SetupWizardS
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (colors: Palette) =>
+  StyleSheet.create({
   safe: { flex: 1, backgroundColor: colors.bgApp },
   flex: { flex: 1, paddingHorizontal: spacing.padScreen, paddingVertical: space[5] },
 

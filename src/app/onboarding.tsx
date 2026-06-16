@@ -21,13 +21,15 @@ import {
   FrenciaText,
   Icon,
   SegmentedControl,
-  colors,
+  useColors,
+  useThemedStyles,
   radius,
   sans,
   shadow,
   sizing,
   space,
   spacing,
+  type Palette,
 } from '@/design';
 
 interface OnboardingScreenProps {
@@ -45,6 +47,8 @@ const SEXO_OPTIONS = [
 ];
 
 export default function OnboardingScreen({ userName, onComplete, onCancel }: OnboardingScreenProps) {
+  const colors = useColors();
+  const styles = useThemedStyles(makeStyles);
   const [edad, setEdad] = useState('');
   const [sexo, setSexo] = useState('');
   const [altura, setAltura] = useState('');
@@ -227,6 +231,8 @@ interface FieldProps extends TextInputProps {
 }
 
 function Field({ icon, trailing, ...rest }: FieldProps) {
+  const colors = useColors();
+  const styles = useThemedStyles(makeStyles);
   const [focused, setFocused] = useState(false);
   return (
     <View
@@ -248,7 +254,8 @@ function Field({ icon, trailing, ...rest }: FieldProps) {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (colors: Palette) =>
+  StyleSheet.create({
   safe: { flex: 1, backgroundColor: colors.bgApp },
   flex: { flex: 1 },
   backBtn: {

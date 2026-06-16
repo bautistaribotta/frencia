@@ -4,7 +4,7 @@ import { useColorScheme } from 'react-native';
 
 import { AnimatedSplashOverlay } from '@/components/animated-icon';
 import AppTabs from '@/components/app-tabs';
-import { useFrenciaFonts } from '@/design';
+import { FrenciaThemeProvider, useFrenciaFonts } from '@/design';
 import { supabase } from '@/lib/supabase';
 // PREVIEW TEMPORAL: arranca directo en el flujo de auth para verlo.
 import HomeScreen from './home';
@@ -24,6 +24,7 @@ export default function TabLayout() {
   const [authView, setAuthView] = useState<AuthView>('login');
   const [userName, setUserName] = useState<string | undefined>(undefined);
   const [avatarUrl, setAvatarUrl] = useState<string | undefined>(undefined);
+  const [avatarSeed, setAvatarSeed] = useState<string | undefined>(undefined);
 
   // No bloquear para siempre si una fuente falla en cargar (web): renderizar igual.
   if (!fontsLoaded && !fontError) return null;
@@ -44,11 +45,12 @@ export default function TabLayout() {
 
     const { data: profile } = await supabase
       .from('profiles')
-      .select('edad, sexo, altura, peso, avatar_url')
+      .select('edad, sexo, altura, peso, avatar_url, avatar_seed')
       .eq('id', user.id)
       .maybeSingle();
 
     if (profile?.avatar_url) setAvatarUrl(profile.avatar_url);
+    if (profile?.avatar_seed) setAvatarSeed(profile.avatar_seed);
 
     const incompleto =
       !profile ||
@@ -67,6 +69,7 @@ export default function TabLayout() {
         <HomeScreen
           userName={userName}
           avatarUrl={avatarUrl}
+          avatarSeed={avatarSeed}
           onOpenProfile={() => setAuthView('profile')}
         />
       );
@@ -76,9 +79,13 @@ export default function TabLayout() {
         <ProfileScreen
           userName={userName}
           avatarUrl={avatarUrl}
+          avatarSeed={avatarSeed}
           onClose={() => setAuthView('home')}
           onEditProfile={() => setAuthView('onboarding')}
-          onAvatarChange={setAvatarUrl}
+          onAvatarChange={({ url, seed }) => {
+            if (url !== undefined) setAvatarUrl(url ?? undefined);
+            if (seed !== undefined) setAvatarSeed(seed ?? undefined);
+          }}
         />
       );
     }
@@ -109,9 +116,11 @@ export default function TabLayout() {
   }
 
   return (
-    <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-      <AnimatedSplashOverlay />
-      {PREVIEW_AUTH ? renderAuth() : <AppTabs />}
-    </ThemeProvider>
+    <FrenciaThemeProvider>
+      <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
+        <AnimatedSplashOverlay />
+        {PREVIEW_AUTH ? renderAuth() : <AppTabs />}
+      </ThemeProvider>
+    </FrenciaThemeProvider>
   );
 }
