@@ -41,6 +41,9 @@ CLAUDE.md
 .env
 .env*.local
 
+# config local de herramientas
+.mcp.json
+
 # typescript
 *.tsbuildinfo
 
