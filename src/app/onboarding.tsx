@@ -5,6 +5,7 @@ import React, { useState } from 'react';
 import {
   KeyboardAvoidingView,
   Platform,
+  Pressable,
   ScrollView,
   StyleSheet,
   TextInput,
@@ -32,6 +33,8 @@ import {
 interface OnboardingScreenProps {
   userName?: string;
   onComplete?: () => void;
+  // Si se provee, muestra un boton para cancelar la edicion y volver atras.
+  onCancel?: () => void;
 }
 
 // Opciones de sexo: el value coincide con los permitidos en la tabla profiles.
@@ -41,7 +44,7 @@ const SEXO_OPTIONS = [
   { value: 'otro', label: 'Otro' },
 ];
 
-export default function OnboardingScreen({ userName, onComplete }: OnboardingScreenProps) {
+export default function OnboardingScreen({ userName, onComplete, onCancel }: OnboardingScreenProps) {
   const [edad, setEdad] = useState('');
   const [sexo, setSexo] = useState('');
   const [altura, setAltura] = useState('');
@@ -98,6 +101,17 @@ export default function OnboardingScreen({ userName, onComplete }: OnboardingScr
 
   return (
     <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
+      {onCancel ? (
+        <Pressable
+          hitSlop={10}
+          onPress={onCancel}
+          accessibilityRole="button"
+          accessibilityLabel="Cancelar edicion"
+          style={styles.backBtn}
+        >
+          <Icon name="chevron-left" size={24} color={colors.textPrimary} />
+        </Pressable>
+      ) : null}
       <KeyboardAvoidingView
         style={styles.flex}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
@@ -237,6 +251,16 @@ function Field({ icon, trailing, ...rest }: FieldProps) {
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: colors.bgApp },
   flex: { flex: 1 },
+  backBtn: {
+    position: 'absolute',
+    top: space[4],
+    left: space[4],
+    zIndex: 10,
+    width: 40,
+    height: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   scroll: {
     flexGrow: 1,
     paddingHorizontal: spacing.padScreen,

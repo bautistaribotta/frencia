@@ -12,10 +12,11 @@ import LoginScreen from './login';
 import OnboardingScreen from './onboarding';
 import ProfileScreen from './profile';
 import RegisterScreen from './register';
+import SetupWizardScreen from './setup-wizard';
 
 const PREVIEW_AUTH = true;
 
-type AuthView = 'login' | 'register' | 'onboarding' | 'home' | 'profile';
+type AuthView = 'login' | 'register' | 'setup' | 'onboarding' | 'home' | 'profile';
 
 export default function TabLayout() {
   const colorScheme = useColorScheme();
@@ -53,7 +54,8 @@ export default function TabLayout() {
       profile.altura == null ||
       profile.peso == null;
 
-    setAuthView(incompleto ? 'onboarding' : 'home');
+    // Primer ingreso con datos faltantes: wizard paso a paso.
+    setAuthView(incompleto ? 'setup' : 'home');
   }
 
   function renderAuth() {
@@ -71,9 +73,19 @@ export default function TabLayout() {
         />
       );
     }
-    if (authView === 'onboarding') {
+    if (authView === 'setup') {
       return (
-        <OnboardingScreen userName={userName} onComplete={() => setAuthView('home')} />
+        <SetupWizardScreen userName={userName} onComplete={() => setAuthView('home')} />
+      );
+    }
+    if (authView === 'onboarding') {
+      // Edicion del perfil: vuelve a la vista de perfil al guardar o cancelar.
+      return (
+        <OnboardingScreen
+          userName={userName}
+          onComplete={() => setAuthView('profile')}
+          onCancel={() => setAuthView('profile')}
+        />
       );
     }
     if (authView === 'register') {
