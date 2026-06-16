@@ -1,7 +1,7 @@
 /* Frencia · Button — RN port of components/core/Button.jsx
    Black label rides the accent fill. Primary carries a green glow. */
 
-import React from 'react';
+import React, { useMemo } from 'react';
 import {
   ActivityIndicator,
   Pressable,
@@ -11,7 +11,8 @@ import {
   View,
   type ViewStyle,
 } from 'react-native';
-import { colors, radius, sans, shadow, sizing, space, motion } from '../theme';
+import { radius, sans, shadow, sizing, space, motion, type Palette } from '../theme';
+import { useColors } from '../theme-context';
 import { Icon } from '../Icon';
 
 type Variant = 'primary' | 'intensity' | 'secondary' | 'ghost';
@@ -39,18 +40,18 @@ const HEIGHT: Record<Size, number> = {
 const PAD_X: Record<Size, number> = { sm: 16, md: 22, lg: 28 };
 const FONT: Record<Size, number> = { sm: 14, md: 16, lg: 17 };
 
-const FILL: Record<Variant, ViewStyle> = {
+const makeFill = (colors: Palette): Record<Variant, ViewStyle> => ({
   primary: { backgroundColor: colors.accent, ...shadow.glowGreenSoft },
   intensity: { backgroundColor: colors.intensity },
   secondary: { backgroundColor: colors.surfaceCard, borderColor: colors.borderDefault, borderWidth: 1 },
   ghost: { backgroundColor: 'transparent' },
-};
-const LABEL_COLOR: Record<Variant, string> = {
+});
+const makeLabelColor = (colors: Palette): Record<Variant, string> => ({
   primary: colors.textOnAccent,
   intensity: colors.textOnAccent,
   secondary: colors.textPrimary,
   ghost: colors.textSecondary,
-};
+});
 
 export function Button({
   variant = 'primary',
@@ -65,6 +66,9 @@ export function Button({
   style,
   ...rest
 }: ButtonProps) {
+  const colors = useColors();
+  const FILL = useMemo(() => makeFill(colors), [colors]);
+  const LABEL_COLOR = useMemo(() => makeLabelColor(colors), [colors]);
   const isDisabled = disabled || loading;
   const labelColor = LABEL_COLOR[variant];
   const iconSize = FONT[size] * 1.15;

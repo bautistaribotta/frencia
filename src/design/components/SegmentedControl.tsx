@@ -3,7 +3,8 @@
 
 import React from 'react';
 import { Pressable, StyleSheet, Text, View, type ViewStyle } from 'react-native';
-import { colors, radius, sans, shadow } from '../theme';
+import { radius, sans, shadow, type Palette } from '../theme';
+import { useColors, useThemedStyles } from '../theme-context';
 import { Icon } from '../Icon';
 
 export type SegOption = string | { value: string; label: string; icon?: string };
@@ -28,6 +29,8 @@ export function SegmentedControl({
   accent = false,
   style,
 }: SegmentedControlProps) {
+  const colors = useColors();
+  const styles = useThemedStyles(makeStyles);
   return (
     <View style={[styles.base, fullWidth && styles.full, style]}>
       {options.map((opt) => {
@@ -54,29 +57,30 @@ export function SegmentedControl({
   );
 }
 
-const styles = StyleSheet.create({
-  base: {
-    flexDirection: 'row',
-    padding: 4,
-    gap: 4,
-    backgroundColor: colors.surfaceInset,
-    borderRadius: radius.md,
-    borderWidth: 1,
-    borderColor: colors.borderSubtle,
-    alignSelf: 'flex-start',
-  },
-  full: { alignSelf: 'stretch' },
-  opt: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 6,
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-    borderRadius: radius.sm,
-  },
-  optActive: { backgroundColor: colors.surfaceCardElevated, ...shadow.sm },
-  optActiveAccent: { backgroundColor: colors.accent },
-  label: { fontFamily: sans.semibold, fontSize: 14 },
-});
+const makeStyles = (colors: Palette) =>
+  StyleSheet.create({
+    base: {
+      flexDirection: 'row',
+      padding: 4,
+      gap: 4,
+      backgroundColor: colors.surfaceInset,
+      borderRadius: radius.md,
+      borderWidth: 1,
+      borderColor: colors.borderSubtle,
+      alignSelf: 'flex-start',
+    },
+    full: { alignSelf: 'stretch' },
+    opt: {
+      flex: 1,
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: 6,
+      paddingVertical: 8,
+      paddingHorizontal: 16,
+      borderRadius: radius.sm,
+    },
+    optActive: { backgroundColor: colors.surfaceCardElevated, ...shadow.sm },
+    optActiveAccent: { backgroundColor: colors.accent },
+    label: { fontFamily: sans.semibold, fontSize: 14 },
+  });

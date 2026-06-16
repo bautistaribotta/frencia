@@ -6,7 +6,8 @@
 import React from 'react';
 import { Pressable, StyleSheet, Text, View, type ViewStyle } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { colors, mono, shadow, tracking } from '../theme';
+import { mono, shadow, tracking, type Palette } from '../theme';
+import { useColors, useThemedStyles } from '../theme-context';
 import { Icon } from '../Icon';
 
 export interface TabItem {
@@ -29,6 +30,8 @@ export interface TabBarProps {
 }
 
 export function TabBar({ items, value, onChange, fab, style }: TabBarProps) {
+  const colors = useColors();
+  const styles = useThemedStyles(makeStyles);
   const insets = useSafeAreaInsets();
   const mid = Math.ceil(items.length / 2);
   const left = fab ? items.slice(0, mid) : items;
@@ -65,34 +68,35 @@ export function TabBar({ items, value, onChange, fab, style }: TabBarProps) {
   );
 }
 
-const styles = StyleSheet.create({
-  bar: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    justifyContent: 'space-around',
-    backgroundColor: colors.bgApp,
-    borderTopWidth: 1,
-    borderTopColor: colors.divider,
-    paddingHorizontal: 8,
-    paddingTop: 10,
-  },
-  tab: { flex: 1, alignItems: 'center', gap: 4, paddingVertical: 4 },
-  tabLabel: {
-    fontFamily: mono.medium,
-    fontSize: 9,
-    letterSpacing: tracking.wide,
-    textTransform: 'uppercase',
-  },
-  fabSlot: { flexGrow: 0, marginTop: -28, alignItems: 'center', justifyContent: 'flex-start' },
-  fab: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: colors.accent,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 3,
-    borderColor: colors.bgApp,
-    ...shadow.glowOrange,
-  },
-});
+const makeStyles = (colors: Palette) =>
+  StyleSheet.create({
+    bar: {
+      flexDirection: 'row',
+      alignItems: 'flex-start',
+      justifyContent: 'space-around',
+      backgroundColor: colors.bgApp,
+      borderTopWidth: 1,
+      borderTopColor: colors.divider,
+      paddingHorizontal: 8,
+      paddingTop: 10,
+    },
+    tab: { flex: 1, alignItems: 'center', gap: 4, paddingVertical: 4 },
+    tabLabel: {
+      fontFamily: mono.medium,
+      fontSize: 9,
+      letterSpacing: tracking.wide,
+      textTransform: 'uppercase',
+    },
+    fabSlot: { flexGrow: 0, marginTop: -28, alignItems: 'center', justifyContent: 'flex-start' },
+    fab: {
+      width: 56,
+      height: 56,
+      borderRadius: 28,
+      backgroundColor: colors.accent,
+      alignItems: 'center',
+      justifyContent: 'center',
+      borderWidth: 3,
+      borderColor: colors.bgApp,
+      ...shadow.glowOrange,
+    },
+  });

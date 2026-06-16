@@ -1,9 +1,10 @@
 /* Frencia · IconButton — RN port of components/core/IconButton.jsx
    Square/round icon-only button. */
 
-import React from 'react';
+import React, { useMemo } from 'react';
 import { Pressable, type PressableProps, StyleSheet, type ViewStyle } from 'react-native';
-import { colors, radius, shadow, motion } from '../theme';
+import { radius, shadow, motion, type Palette } from '../theme';
+import { useColors } from '../theme-context';
 import { Icon } from '../Icon';
 
 type Variant = 'primary' | 'surface' | 'ghost';
@@ -21,16 +22,16 @@ export interface IconButtonProps extends Omit<PressableProps, 'children' | 'styl
 const BOX: Record<Size, number> = { sm: 36, md: 44, lg: 52 };
 const GLYPH: Record<Size, number> = { sm: 18, md: 22, lg: 26 };
 
-const FILL: Record<Variant, ViewStyle> = {
+const makeFill = (colors: Palette): Record<Variant, ViewStyle> => ({
   primary: { backgroundColor: colors.accent, ...shadow.glowGreenSoft },
   surface: { backgroundColor: colors.surfaceChip, borderColor: colors.borderSubtle, borderWidth: 1 },
   ghost: { backgroundColor: 'transparent' },
-};
-const GLYPH_COLOR: Record<Variant, string> = {
+});
+const makeGlyphColor = (colors: Palette): Record<Variant, string> => ({
   primary: colors.textOnAccent,
   surface: colors.textPrimary,
   ghost: colors.textSecondary,
-};
+});
 
 export function IconButton({
   icon,
@@ -41,6 +42,9 @@ export function IconButton({
   style,
   ...rest
 }: IconButtonProps) {
+  const colors = useColors();
+  const FILL = useMemo(() => makeFill(colors), [colors]);
+  const GLYPH_COLOR = useMemo(() => makeGlyphColor(colors), [colors]);
   const box = BOX[size];
   return (
     <Pressable

@@ -47,7 +47,7 @@ import {
   Zap,
   type LucideIcon,
 } from 'lucide-react-native';
-import { colors } from './tokens/colors';
+import { useColors } from './theme-context';
 
 const REGISTRY: Record<string, LucideIcon> = {
   activity: Activity,
@@ -99,11 +99,12 @@ export interface IconProps {
 }
 
 /** Renders a Lucide icon by kebab name. Unknown names render nothing. */
-export function Icon({ name, size = 20, color = colors.textPrimary, strokeWidth = 2 }: IconProps) {
+export function Icon({ name, size = 20, color, strokeWidth = 2 }: IconProps) {
+  const colors = useColors();
   const Cmp = REGISTRY[name];
   if (!Cmp) {
     if (__DEV__) console.warn(`[Frencia] Icon "${name}" not in registry — add it to Icon.tsx`);
     return null;
   }
-  return <Cmp size={size} color={color} strokeWidth={strokeWidth} />;
+  return <Cmp size={size} color={color ?? colors.textPrimary} strokeWidth={strokeWidth} />;
 }

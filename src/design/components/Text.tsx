@@ -4,7 +4,8 @@
 
 import React from 'react';
 import { Text as RNText, type TextProps as RNTextProps } from 'react-native';
-import { colors, textRole } from '../theme';
+import { textRole } from '../theme';
+import { useColors } from '../theme-context';
 
 type Role = keyof typeof textRole;
 
@@ -13,6 +14,7 @@ export interface FrenciaTextProps extends Omit<RNTextProps, 'role'> {
   color?: string;
 }
 
-export function FrenciaText({ role = 'body', color = colors.textPrimary, style, ...rest }: FrenciaTextProps) {
-  return <RNText style={[textRole[role], { color }, style]} {...rest} />;
+export function FrenciaText({ role = 'body', color, style, ...rest }: FrenciaTextProps) {
+  const colors = useColors();
+  return <RNText style={[textRole[role], { color: color ?? colors.textPrimary }, style]} {...rest} />;
 }

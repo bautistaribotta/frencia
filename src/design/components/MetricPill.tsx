@@ -1,9 +1,10 @@
 /* Frencia · MetricPill — RN port of components/data/MetricPill.jsx
    Inline metric chip — icon + label + value (rest timer, RIR, pace). */
 
-import React from 'react';
+import React, { useMemo } from 'react';
 import { StyleSheet, Text, View, type ViewStyle } from 'react-native';
-import { colors, mono, radius, tracking } from '../theme';
+import { mono, radius, tracking, type Palette } from '../theme';
+import { useColors, useThemedStyles } from '../theme-context';
 import { Icon } from '../Icon';
 
 type Tone = 'neutral' | 'green' | 'orange';
@@ -18,23 +19,28 @@ export interface MetricPillProps {
   style?: ViewStyle;
 }
 
-const FILL: Record<Tone, ViewStyle> = {
+const makeFill = (colors: Palette): Record<Tone, ViewStyle> => ({
   neutral: { backgroundColor: colors.surfaceChip },
   green: { backgroundColor: colors.surfaceGreenSoft, borderColor: colors.surfaceGreenLine, borderWidth: 1 },
   orange: { backgroundColor: colors.surfaceOrangeSoft, borderColor: colors.surfaceOrangeLine, borderWidth: 1 },
-};
-const VALUE_COLOR: Record<Tone, string> = {
+});
+const makeValueColor = (colors: Palette): Record<Tone, string> => ({
   neutral: colors.textPrimary,
   green: colors.accentText,
   orange: colors.intensityText,
-};
-const ICON_COLOR: Record<Tone, string> = {
+});
+const makeIconColor = (colors: Palette): Record<Tone, string> => ({
   neutral: colors.textTertiary,
   green: colors.accentText,
   orange: colors.intensityText,
-};
+});
 
 export function MetricPill({ icon, label, value, tone = 'neutral', layout = 'stack', style }: MetricPillProps) {
+  const colors = useColors();
+  const styles = useThemedStyles(makeStyles);
+  const FILL = useMemo(() => makeFill(colors), [colors]);
+  const VALUE_COLOR = useMemo(() => makeValueColor(colors), [colors]);
+  const ICON_COLOR = useMemo(() => makeIconColor(colors), [colors]);
   const inline = layout === 'inline';
   return (
     <View style={[styles.base, inline && styles.baseInline, FILL[tone], style]}>
@@ -47,27 +53,28 @@ export function MetricPill({ icon, label, value, tone = 'neutral', layout = 'sta
   );
 }
 
-const styles = StyleSheet.create({
-  base: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    paddingVertical: 8,
-    paddingHorizontal: 14,
-    borderRadius: radius.lg,
-    borderWidth: 1,
-    borderColor: 'transparent',
-    alignSelf: 'flex-start',
-  },
-  baseInline: { paddingVertical: 6, paddingHorizontal: 12 },
-  body: { flexDirection: 'column' },
-  bodyInline: { flexDirection: 'row', alignItems: 'baseline', gap: 6 },
-  label: {
-    fontFamily: mono.medium,
-    fontSize: 9,
-    letterSpacing: tracking.wider,
-    textTransform: 'uppercase',
-    color: colors.textTertiary,
-  },
-  value: { fontFamily: mono.bold, fontSize: 15 },
-});
+const makeStyles = (colors: Palette) =>
+  StyleSheet.create({
+    base: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
+      paddingVertical: 8,
+      paddingHorizontal: 14,
+      borderRadius: radius.lg,
+      borderWidth: 1,
+      borderColor: 'transparent',
+      alignSelf: 'flex-start',
+    },
+    baseInline: { paddingVertical: 6, paddingHorizontal: 12 },
+    body: { flexDirection: 'column' },
+    bodyInline: { flexDirection: 'row', alignItems: 'baseline', gap: 6 },
+    label: {
+      fontFamily: mono.medium,
+      fontSize: 9,
+      letterSpacing: tracking.wider,
+      textTransform: 'uppercase',
+      color: colors.textTertiary,
+    },
+    value: { fontFamily: mono.bold, fontSize: 15 },
+  });

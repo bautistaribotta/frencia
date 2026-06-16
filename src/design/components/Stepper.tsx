@@ -3,7 +3,8 @@
 
 import React from 'react';
 import { Pressable, StyleSheet, Text, View, type ViewStyle } from 'react-native';
-import { colors, mono, radius, tracking } from '../theme';
+import { mono, radius, tracking, type Palette } from '../theme';
+import { useColors, useThemedStyles } from '../theme-context';
 import { Icon } from '../Icon';
 
 type Size = 'md' | 'lg';
@@ -33,6 +34,8 @@ export function Stepper({
   precision = 0,
   style,
 }: StepperProps) {
+  const colors = useColors();
+  const styles = useThemedStyles(makeStyles);
   const lg = size === 'lg';
   const set = (next: number) => {
     const clamped = Math.max(min, Math.min(max, next));
@@ -75,31 +78,32 @@ export function Stepper({
   );
 }
 
-const styles = StyleSheet.create({
-  base: { gap: 6, alignSelf: 'flex-start' },
-  label: {
-    fontFamily: mono.medium,
-    fontSize: 11,
-    letterSpacing: tracking.wider,
-    textTransform: 'uppercase',
-    color: colors.textTertiary,
-  },
-  row: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.surfaceInset,
-    borderWidth: 1,
-    borderColor: colors.borderSubtle,
-    borderRadius: radius.md,
-    overflow: 'hidden',
-  },
-  btn: { alignItems: 'center', justifyContent: 'center' },
-  btnPressed: { backgroundColor: colors.surfaceCardElevated },
-  btnDisabled: { opacity: 0.35 },
-  val: {
-    textAlign: 'center',
-    fontFamily: mono.bold,
-    color: colors.textPrimary,
-  },
-  unit: { fontFamily: mono.medium, fontSize: 12, color: colors.textTertiary },
-});
+const makeStyles = (colors: Palette) =>
+  StyleSheet.create({
+    base: { gap: 6, alignSelf: 'flex-start' },
+    label: {
+      fontFamily: mono.medium,
+      fontSize: 11,
+      letterSpacing: tracking.wider,
+      textTransform: 'uppercase',
+      color: colors.textTertiary,
+    },
+    row: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: colors.surfaceInset,
+      borderWidth: 1,
+      borderColor: colors.borderSubtle,
+      borderRadius: radius.md,
+      overflow: 'hidden',
+    },
+    btn: { alignItems: 'center', justifyContent: 'center' },
+    btnPressed: { backgroundColor: colors.surfaceCardElevated },
+    btnDisabled: { opacity: 0.35 },
+    val: {
+      textAlign: 'center',
+      fontFamily: mono.bold,
+      color: colors.textPrimary,
+    },
+    unit: { fontFamily: mono.medium, fontSize: 12, color: colors.textTertiary },
+  });

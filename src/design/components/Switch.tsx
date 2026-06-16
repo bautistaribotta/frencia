@@ -3,7 +3,8 @@
 
 import React, { useEffect, useRef } from 'react';
 import { Animated, Pressable, StyleSheet, type ViewStyle } from 'react-native';
-import { colors, palette, radius, motion } from '../theme';
+import { radius, motion } from '../theme';
+import { useColors } from '../theme-context';
 
 export interface SwitchProps {
   checked?: boolean;
@@ -13,6 +14,7 @@ export interface SwitchProps {
 }
 
 export function Switch({ checked = false, onChange, disabled = false, style }: SwitchProps) {
+  const colors = useColors();
   const t = useRef(new Animated.Value(checked ? 1 : 0)).current;
 
   useEffect(() => {
@@ -34,7 +36,7 @@ export function Switch({ checked = false, onChange, disabled = false, style }: S
   });
   const thumbColor = t.interpolate({
     inputRange: [0, 1],
-    outputRange: [palette.ink100, palette.ink1000],
+    outputRange: [colors.switchThumb, colors.switchThumbActive],
   });
 
   return (

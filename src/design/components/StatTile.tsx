@@ -1,9 +1,10 @@
 /* Frencia · StatTile — RN port of components/data/StatTile.jsx
    Signature big-number metric. Anton numerals + mono caption. */
 
-import React from 'react';
+import React, { useMemo } from 'react';
 import { StyleSheet, Text, View, type ViewStyle } from 'react-native';
-import { colors, display, mono, tracking } from '../theme';
+import { display, mono, tracking, type Palette } from '../theme';
+import { useColors, useThemedStyles } from '../theme-context';
 import { Icon } from '../Icon';
 
 type Size = 'sm' | 'md' | 'lg' | 'xl';
@@ -22,11 +23,11 @@ export interface StatTileProps {
 
 const VALUE_SIZE: Record<Size, number> = { sm: 32, md: 48, lg: 72, xl: 92 };
 const UNIT_SIZE: Record<Size, number> = { sm: 13, md: 16, lg: 20, xl: 24 };
-const TONE_COLOR: Record<Tone, string> = {
+const makeToneColor = (colors: Palette): Record<Tone, string> => ({
   default: colors.textPrimary,
   green: colors.accent,
   orange: colors.intensity,
-};
+});
 
 export function StatTile({
   label,
@@ -38,6 +39,9 @@ export function StatTile({
   tone = 'default',
   style,
 }: StatTileProps) {
+  const colors = useColors();
+  const styles = useThemedStyles(makeStyles);
+  const TONE_COLOR = useMemo(() => makeToneColor(colors), [colors]);
   const valueColor = TONE_COLOR[tone];
   const down = deltaDir === 'down';
   return (
@@ -66,18 +70,19 @@ export function StatTile({
   );
 }
 
-const styles = StyleSheet.create({
-  base: { gap: 6 },
-  label: {
-    fontFamily: mono.medium,
-    fontSize: 11,
-    letterSpacing: tracking.wider,
-    textTransform: 'uppercase',
-    color: colors.textTertiary,
-  },
-  valueRow: { flexDirection: 'row', alignItems: 'flex-end', gap: 6 },
-  value: { fontFamily: display, color: colors.textPrimary },
-  unit: { fontFamily: mono.medium, color: colors.textTertiary },
-  delta: { flexDirection: 'row', alignItems: 'center', gap: 3, paddingBottom: 4 },
-  deltaText: { fontFamily: mono.semibold, fontSize: 13 },
-});
+const makeStyles = (colors: Palette) =>
+  StyleSheet.create({
+    base: { gap: 6 },
+    label: {
+      fontFamily: mono.medium,
+      fontSize: 11,
+      letterSpacing: tracking.wider,
+      textTransform: 'uppercase',
+      color: colors.textTertiary,
+    },
+    valueRow: { flexDirection: 'row', alignItems: 'flex-end', gap: 6 },
+    value: { fontFamily: display, color: colors.textPrimary },
+    unit: { fontFamily: mono.medium, color: colors.textTertiary },
+    delta: { flexDirection: 'row', alignItems: 'center', gap: 3, paddingBottom: 4 },
+    deltaText: { fontFamily: mono.semibold, fontSize: 13 },
+  });

@@ -5,7 +5,8 @@
 import React from 'react';
 import { Image, StyleSheet, View, type ViewStyle } from 'react-native';
 import BoringAvatar from 'react-native-boring-avatars';
-import { colors, palette } from '../theme';
+import { palette, type Palette } from '../theme';
+import { useColors, useThemedStyles } from '../theme-context';
 
 type Size = 'xs' | 'sm' | 'md' | 'lg';
 
@@ -29,6 +30,8 @@ const AVATAR_COLORS = [
 ];
 
 export function Avatar({ src, name = '', size = 'md', ring = false, style }: AvatarProps) {
+  const colors = useColors();
+  const styles = useThemedStyles(makeStyles);
   const dim = DIM[size];
   return (
     <View
@@ -48,13 +51,14 @@ export function Avatar({ src, name = '', size = 'md', ring = false, style }: Ava
   );
 }
 
-const styles = StyleSheet.create({
-  base: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    overflow: 'hidden',
-    backgroundColor: colors.surfaceChip,
-    borderWidth: 1,
-    borderColor: colors.borderSubtle,
-  },
-});
+const makeStyles = (colors: Palette) =>
+  StyleSheet.create({
+    base: {
+      alignItems: 'center',
+      justifyContent: 'center',
+      overflow: 'hidden',
+      backgroundColor: colors.surfaceChip,
+      borderWidth: 1,
+      borderColor: colors.borderSubtle,
+    },
+  });

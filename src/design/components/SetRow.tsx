@@ -3,7 +3,8 @@
 
 import React from 'react';
 import { Pressable, StyleSheet, Text, View, type ViewStyle } from 'react-native';
-import { colors, mono, radius, tracking, motion } from '../theme';
+import { mono, radius, tracking, motion, type Palette } from '../theme';
+import { useColors, useThemedStyles } from '../theme-context';
 import { Icon } from '../Icon';
 
 type State = 'pending' | 'active' | 'done';
@@ -29,6 +30,8 @@ export function SetRow({
   onToggle,
   style,
 }: SetRowProps) {
+  const colors = useColors();
+  const styles = useThemedStyles(makeStyles);
   const active = state === 'active';
   const done = state === 'done';
 
@@ -90,55 +93,56 @@ export function SetRow({
   );
 }
 
-const styles = StyleSheet.create({
-  base: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    paddingVertical: 12,
-    paddingHorizontal: 14,
-    borderRadius: radius.lg,
-    backgroundColor: colors.surfaceCard,
-    borderWidth: 1,
-    borderColor: 'transparent',
-  },
-  idx: {
-    width: 30,
-    height: 30,
-    borderRadius: radius.sm,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: colors.surfaceInset,
-  },
-  idxText: { fontFamily: mono.bold, fontSize: 13, color: colors.textTertiary },
-  main: { flex: 1, flexDirection: 'row', alignItems: 'baseline', gap: 8 },
-  load: { fontFamily: mono.bold, fontSize: 19, color: colors.textPrimary },
-  reps: { fontFamily: mono.bold, fontSize: 19, color: colors.textPrimary },
-  x: { fontFamily: mono.regular, fontSize: 14, color: colors.textTertiary },
-  unit: { fontFamily: mono.regular, fontSize: 11, color: colors.textTertiary },
-  meta: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  rir: {
-    fontFamily: mono.semibold,
-    fontSize: 11,
-    letterSpacing: tracking.wide,
-    textTransform: 'uppercase',
-    paddingVertical: 3,
-    paddingHorizontal: 8,
-    borderRadius: radius.sm,
-    backgroundColor: colors.surfaceOrangeSoft,
-    color: colors.intensityText,
-    borderWidth: 1,
-    borderColor: colors.surfaceOrangeLine,
-    overflow: 'hidden',
-  },
-  check: {
-    width: 36,
-    height: 36,
-    borderRadius: radius.md,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1.5,
-    borderColor: colors.borderDefault,
-    backgroundColor: 'transparent',
-  },
-});
+const makeStyles = (colors: Palette) =>
+  StyleSheet.create({
+    base: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 12,
+      paddingVertical: 12,
+      paddingHorizontal: 14,
+      borderRadius: radius.lg,
+      backgroundColor: colors.surfaceCard,
+      borderWidth: 1,
+      borderColor: 'transparent',
+    },
+    idx: {
+      width: 30,
+      height: 30,
+      borderRadius: radius.sm,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: colors.surfaceInset,
+    },
+    idxText: { fontFamily: mono.bold, fontSize: 13, color: colors.textTertiary },
+    main: { flex: 1, flexDirection: 'row', alignItems: 'baseline', gap: 8 },
+    load: { fontFamily: mono.bold, fontSize: 19, color: colors.textPrimary },
+    reps: { fontFamily: mono.bold, fontSize: 19, color: colors.textPrimary },
+    x: { fontFamily: mono.regular, fontSize: 14, color: colors.textTertiary },
+    unit: { fontFamily: mono.regular, fontSize: 11, color: colors.textTertiary },
+    meta: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+    rir: {
+      fontFamily: mono.semibold,
+      fontSize: 11,
+      letterSpacing: tracking.wide,
+      textTransform: 'uppercase',
+      paddingVertical: 3,
+      paddingHorizontal: 8,
+      borderRadius: radius.sm,
+      backgroundColor: colors.surfaceOrangeSoft,
+      color: colors.intensityText,
+      borderWidth: 1,
+      borderColor: colors.surfaceOrangeLine,
+      overflow: 'hidden',
+    },
+    check: {
+      width: 36,
+      height: 36,
+      borderRadius: radius.md,
+      alignItems: 'center',
+      justifyContent: 'center',
+      borderWidth: 1.5,
+      borderColor: colors.borderDefault,
+      backgroundColor: 'transparent',
+    },
+  });

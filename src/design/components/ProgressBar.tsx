@@ -3,7 +3,8 @@
 
 import React from 'react';
 import { StyleSheet, Text, View, type ViewStyle } from 'react-native';
-import { colors, mono, radius, tracking } from '../theme';
+import { mono, radius, tracking, type Palette } from '../theme';
+import { useColors, useThemedStyles } from '../theme-context';
 
 type Tone = 'green' | 'orange';
 type Size = 'sm' | 'md' | 'lg';
@@ -31,6 +32,8 @@ export function ProgressBar({
   segments,
   style,
 }: ProgressBarProps) {
+  const colors = useColors();
+  const styles = useThemedStyles(makeStyles);
   const pct = Math.max(0, Math.min(100, (value / max) * 100));
   const h = H[size];
   const fillColor = tone === 'orange' ? colors.intensity : colors.accent;
@@ -67,19 +70,20 @@ export function ProgressBar({
   );
 }
 
-const styles = StyleSheet.create({
-  base: { gap: 8 },
-  head: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline' },
-  label: {
-    fontFamily: mono.medium,
-    fontSize: 11,
-    letterSpacing: tracking.wider,
-    textTransform: 'uppercase',
-    color: colors.textTertiary,
-  },
-  val: { fontFamily: mono.semibold, fontSize: 12, color: colors.textSecondary },
-  track: { backgroundColor: colors.dataTrack, borderRadius: radius.pill, overflow: 'hidden' },
-  fill: { height: '100%', borderRadius: radius.pill },
-  segRow: { flexDirection: 'row', gap: 4 },
-  seg: { flex: 1, height: '100%', borderRadius: radius.sm },
-});
+const makeStyles = (colors: Palette) =>
+  StyleSheet.create({
+    base: { gap: 8 },
+    head: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline' },
+    label: {
+      fontFamily: mono.medium,
+      fontSize: 11,
+      letterSpacing: tracking.wider,
+      textTransform: 'uppercase',
+      color: colors.textTertiary,
+    },
+    val: { fontFamily: mono.semibold, fontSize: 12, color: colors.textSecondary },
+    track: { backgroundColor: colors.dataTrack, borderRadius: radius.pill, overflow: 'hidden' },
+    fill: { height: '100%', borderRadius: radius.pill },
+    segRow: { flexDirection: 'row', gap: 4 },
+    seg: { flex: 1, height: '100%', borderRadius: radius.sm },
+  });

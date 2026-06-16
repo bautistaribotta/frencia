@@ -1,9 +1,10 @@
 /* Frencia · Card — RN port of components/core/Card.jsx
    Surface container, the base building block for grouped content. */
 
-import React from 'react';
+import React, { useMemo } from 'react';
 import { Pressable, type PressableProps, StyleSheet, View, type ViewProps, type ViewStyle } from 'react-native';
-import { colors, radius, shadow, spacing } from '../theme';
+import { radius, shadow, spacing, type Palette } from '../theme';
+import { useColors } from '../theme-context';
 
 type Variant = 'default' | 'raised' | 'elevated' | 'inset' | 'green' | 'orange';
 
@@ -16,14 +17,14 @@ export interface CardProps extends ViewProps {
   children?: React.ReactNode;
 }
 
-const VARIANT: Record<Variant, ViewStyle> = {
+const makeVariant = (colors: Palette): Record<Variant, ViewStyle> => ({
   default: { backgroundColor: colors.surfaceCard },
   raised: { backgroundColor: colors.surfaceRaised },
   elevated: { backgroundColor: colors.surfaceCardElevated, ...shadow.md },
   inset: { backgroundColor: colors.surfaceInset },
   green: { backgroundColor: colors.surfaceGreenSoft, borderColor: colors.surfaceGreenLine, borderWidth: 1 },
   orange: { backgroundColor: colors.surfaceOrangeSoft, borderColor: colors.surfaceOrangeLine, borderWidth: 1 },
-};
+});
 
 export function Card({
   variant = 'default',
@@ -34,6 +35,8 @@ export function Card({
   children,
   ...rest
 }: CardProps) {
+  const colors = useColors();
+  const VARIANT = useMemo(() => makeVariant(colors), [colors]);
   const base: ViewStyle[] = [
     styles.base,
     VARIANT[variant],

@@ -3,7 +3,8 @@
 
 import React from 'react';
 import { Pressable, StyleSheet, Text, View, type ViewStyle } from 'react-native';
-import { colors, radius, sans } from '../theme';
+import { radius, sans, type Palette } from '../theme';
+import { useColors, useThemedStyles } from '../theme-context';
 
 export interface TagProps {
   selected?: boolean;
@@ -15,6 +16,8 @@ export interface TagProps {
 }
 
 export function Tag({ selected = false, selectable = false, dot = false, onPress, children, style }: TagProps) {
+  const colors = useColors();
+  const styles = useThemedStyles(makeStyles);
   const fg = selected ? colors.accentText : colors.textSecondary;
   const content = (
     <>
@@ -38,19 +41,20 @@ export function Tag({ selected = false, selectable = false, dot = false, onPress
   return <View style={boxStyle}>{content}</View>;
 }
 
-const styles = StyleSheet.create({
-  base: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 7,
-    paddingVertical: 7,
-    paddingHorizontal: 14,
-    borderRadius: radius.pill,
-    backgroundColor: colors.surfaceChip,
-    borderWidth: 1,
-    borderColor: 'transparent',
-    alignSelf: 'flex-start',
-  },
-  text: { fontFamily: sans.medium, fontSize: 13 },
-  dot: { width: 7, height: 7, borderRadius: 3.5, opacity: 0.9 },
-});
+const makeStyles = (colors: Palette) =>
+  StyleSheet.create({
+    base: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 7,
+      paddingVertical: 7,
+      paddingHorizontal: 14,
+      borderRadius: radius.pill,
+      backgroundColor: colors.surfaceChip,
+      borderWidth: 1,
+      borderColor: 'transparent',
+      alignSelf: 'flex-start',
+    },
+    text: { fontFamily: sans.medium, fontSize: 13 },
+    dot: { width: 7, height: 7, borderRadius: 3.5, opacity: 0.9 },
+  });
