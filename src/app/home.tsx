@@ -216,9 +216,10 @@ const styles = StyleSheet.create({
   heroText: { alignItems: 'center', gap: space[3] },
   heroTitle: {
     fontSize: 38,
-    lineHeight: 37,
+    lineHeight: 44,
     textAlign: 'center',
     textTransform: 'uppercase',
+    includeFontPadding: false,
   },
   heroPara: { textAlign: 'center', maxWidth: 260, marginTop: space[1] },
   heroBtn: { marginTop: space[2] },
