@@ -13,11 +13,20 @@ if (!supabaseUrl || !supabaseAnonKey) {
   );
 }
 
+// En el prerender de web (Node) no existe `window`; AsyncStorage (build web)
+// lo necesita. Usamos un storage en memoria para no romper el SSR.
+const isServer = typeof window === 'undefined';
+const memoryStorage = {
+  getItem: async () => null,
+  setItem: async () => {},
+  removeItem: async () => {},
+};
+
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
-    storage: AsyncStorage,
-    autoRefreshToken: true,
-    persistSession: true,
+    storage: isServer ? memoryStorage : AsyncStorage,
+    autoRefreshToken: !isServer,
+    persistSession: !isServer,
     // RN no tiene URL de redireccion para detectar la sesion.
     detectSessionInUrl: false,
     // OAuth por navegador: canjeamos el code manualmente (ver lib/oauth).
