@@ -2,9 +2,11 @@
    Se abre al tocar el encabezado de saludo. Tarjeta de usuario,
    editar perfil y filas de ajustes (RIR/RPE, tema). Sin persistencia. */
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+
+import { supabase } from '@/lib/supabase';
 
 import {
   Avatar,
@@ -30,10 +32,52 @@ export default function ProfileScreen({
   onClose,
   onEditProfile,
 }: ProfileScreenProps) {
-  // Estado local visual, sin persistencia ni tema real conectado.
+  // RIR/RPE y kg/lb se persisten en Supabase (profiles).
   const [useRpe, setUseRpe] = useState(false);
   const [useLb, setUseLb] = useState(false);
+  // El tema queda local por ahora: el modo claro todavia no esta implementado.
   const [darkMode, setDarkMode] = useState(true);
+
+  // Carga las preferencias guardadas del usuario al abrir el perfil.
+  useEffect(() => {
+    let cancelado = false;
+    (async () => {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user) return;
+      const { data } = await supabase
+        .from('profiles')
+        .select('medidor_esfuerzo, unidad_peso')
+        .eq('id', user.id)
+        .maybeSingle();
+      if (cancelado || !data) return;
+      setUseRpe(data.medidor_esfuerzo === 'rpe');
+      setUseLb(data.unidad_peso === 'lb');
+    })();
+    return () => {
+      cancelado = true;
+    };
+  }, []);
+
+  // Guarda una preferencia en profiles sin bloquear la UI (optimista).
+  async function persistPref(patch: Record<string, string>) {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) return;
+    await supabase.from('profiles').update(patch).eq('id', user.id);
+  }
+
+  function toggleRpe(next: boolean) {
+    setUseRpe(next);
+    persistPref({ medidor_esfuerzo: next ? 'rpe' : 'rir' });
+  }
+
+  function toggleLb(next: boolean) {
+    setUseLb(next);
+    persistPref({ unidad_peso: next ? 'lb' : 'kg' });
+  }
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
@@ -100,7 +144,7 @@ export default function ProfileScreen({
                   {useRpe ? 'Midiendo con RPE' : 'Midiendo con RIR'}
                 </FrenciaText>
               </View>
-              <Switch checked={useRpe} onChange={setUseRpe} />
+              <Switch checked={useRpe} onChange={toggleRpe} />
             </View>
 
             {/* Fila: unidad de peso */}
@@ -113,7 +157,7 @@ export default function ProfileScreen({
                   {useLb ? 'En libras (lb)' : 'En kilogramos (kg)'}
                 </FrenciaText>
               </View>
-              <Switch checked={useLb} onChange={setUseLb} />
+              <Switch checked={useLb} onChange={toggleLb} />
             </View>
 
             {/* Fila: tema */}
