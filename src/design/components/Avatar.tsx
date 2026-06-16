@@ -8,7 +8,7 @@ import BoringAvatar from 'react-native-boring-avatars';
 import { palette, type Palette } from '../theme';
 import { useColors, useThemedStyles } from '../theme-context';
 
-type Size = 'xs' | 'sm' | 'md' | 'lg';
+type Size = 'xs' | 'sm' | 'md' | 'lg' | 'xl';
 
 export interface AvatarProps {
   src?: string;
@@ -18,7 +18,7 @@ export interface AvatarProps {
   style?: ViewStyle;
 }
 
-const DIM: Record<Size, number> = { xs: 28, sm: 36, md: 44, lg: 64 };
+const DIM: Record<Size, number> = { xs: 28, sm: 36, md: 44, lg: 64, xl: 120 };
 
 // Solo colores de la app: naranja (acento) + grises calidos (ink).
 const AVATAR_COLORS = [

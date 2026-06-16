@@ -111,7 +111,6 @@ export default function ProfileScreen({
   // limpia la foto subida en Supabase.
   async function generateAvatar() {
     if (busy) return;
-    setShowOptions(false);
     setPhotoError('');
     const {
       data: { user },
@@ -139,7 +138,6 @@ export default function ProfileScreen({
   // Elimina la foto subida y vuelve al avatar generado por semilla.
   async function removePhoto() {
     if (busy) return;
-    setShowOptions(false);
     setPhotoError('');
     const {
       data: { user },
@@ -298,16 +296,18 @@ export default function ProfileScreen({
           </View>
         </View>
 
-        {/* Configuracion (sin accion por ahora) */}
-        <Button
-          variant="ghost"
-          size="lg"
-          icon="settings"
-          fullWidth
-          onPress={() => {}}
-        >
-          Configuracion
-        </Button>
+        {/* Configuracion: recuadro propio, una sola fila (sin accion por ahora) */}
+        <Pressable style={styles.settingsList} onPress={() => {}}>
+          <View style={styles.settingRow}>
+            <View style={styles.configLeft}>
+              <Icon name="settings" size={20} color={colors.textSecondary} />
+              <FrenciaText role="bodySm" style={styles.settingTitle}>
+                Configuracion
+              </FrenciaText>
+            </View>
+            <Icon name="chevron-right" size={18} color={colors.textTertiary} />
+          </View>
+        </Pressable>
       </ScrollView>
 
       {/* Opciones de avatar */}
@@ -319,6 +319,10 @@ export default function ProfileScreen({
       >
         <Pressable style={styles.backdrop} onPress={() => setShowOptions(false)}>
           <Pressable style={styles.sheet}>
+            {/* Vista previa grande del avatar actual, refleja los cambios en vivo */}
+            <View style={styles.preview}>
+              <Avatar name={seed ?? userName} src={photo} size="xl" ring />
+            </View>
             <FrenciaText role="subtitle" style={styles.sheetTitle}>
               Foto de perfil
             </FrenciaText>
@@ -334,7 +338,7 @@ export default function ProfileScreen({
               </Button>
             ) : null}
             <Button variant="ghost" size="md" fullWidth onPress={() => setShowOptions(false)}>
-              Cancelar
+              Volver atras
             </Button>
           </Pressable>
         </Pressable>
@@ -369,6 +373,7 @@ const makeStyles = (colors: Palette) =>
     paddingBottom: space[8],
     gap: space[3],
   },
+  preview: { alignItems: 'center', marginBottom: space[2] },
   sheetTitle: { marginBottom: space[1] },
 
   // Encabezado
@@ -430,6 +435,7 @@ const makeStyles = (colors: Palette) =>
   },
   settingRowDivider: { borderTopWidth: 1, borderTopColor: colors.divider },
   settingText: { flex: 1, gap: space[1] },
+  configLeft: { flexDirection: 'row', alignItems: 'center', gap: space[4] },
   settingTitle: { fontFamily: sans.semibold, color: colors.textPrimary },
   settingSub: { fontSize: 12.5, lineHeight: 17 },
 });
