@@ -8,6 +8,7 @@ import {
   Modal,
   type NativeScrollEvent,
   type NativeSyntheticEvent,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -56,6 +57,10 @@ export default function ProfileScreen() {
   const [busy, setBusy] = useState(false);
   const [photoError, setPhotoError] = useState('');
   const [showOptions, setShowOptions] = useState(false);
+  // En iOS hay que esperar a que el sheet termine de cerrarse antes de abrir
+  // el image picker: presentar un modal nativo mientras otro se cierra deja
+  // el picker sin aparecer y la promesa colgada.
+  const [pendingPick, setPendingPick] = useState(false);
 
   function closeProfile() {
     if (router.canGoBack()) router.back();
@@ -103,10 +108,20 @@ export default function ProfileScreen() {
     };
   }, []);
 
+  // Cierra el sheet y deja el picker pendiente. En iOS el picker se abre
+  // recien en onDismiss del Modal; en Android se puede abrir directo.
+  function requestUploadPhoto() {
+    setShowOptions(false);
+    if (Platform.OS === 'ios') {
+      setPendingPick(true);
+    } else {
+      uploadPhoto();
+    }
+  }
+
   // Elige una imagen, la sube a Storage y la fija como foto de perfil.
   async function uploadPhoto() {
     if (busy) return;
-    setShowOptions(false);
     setPhotoError('');
     const {
       data: { user },
@@ -363,6 +378,12 @@ export default function ProfileScreen() {
         transparent
         animationType="fade"
         onRequestClose={() => setShowOptions(false)}
+        onDismiss={() => {
+          if (pendingPick) {
+            setPendingPick(false);
+            uploadPhoto();
+          }
+        }}
       >
         <Pressable style={styles.backdrop} onPress={() => setShowOptions(false)}>
           <Pressable style={styles.sheet}>
@@ -376,7 +397,7 @@ export default function ProfileScreen() {
             <Button variant="primary" size="lg" icon="repeat" fullWidth onPress={generateAvatar}>
               Generar avatar nuevo
             </Button>
-            <Button variant="secondary" size="lg" icon="camera" fullWidth onPress={uploadPhoto}>
+            <Button variant="secondary" size="lg" icon="camera" fullWidth onPress={requestUploadPhoto}>
               Subir una foto
             </Button>
             {photo ? (
