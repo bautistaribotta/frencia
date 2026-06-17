@@ -61,10 +61,25 @@ function RootNavigator() {
         <Stack.Screen name="(auth)" />
         <Stack.Screen name="(main)" />
         <Stack.Screen name="setup" />
-        {/* Card con entrada desde abajo (no modal nativo) para que el toast
-            del root quede por encima y siga sin bloquear la interaccion. */}
-        <Stack.Screen name="profile" options={{ animation: 'slide_from_bottom' }} />
-        <Stack.Screen name="edit-profile" options={{ animation: 'slide_from_bottom' }} />
+        {/* Card (no modal nativo) para que el toast del root quede por encima
+            sin bloquear la interaccion. edit-profile entra desde la derecha y
+            permite volver con swipe horizontal en toda la pantalla. */}
+        <Stack.Screen
+          name="profile"
+          options={{
+            animation: 'slide_from_right',
+            gestureEnabled: true,
+            fullScreenGestureEnabled: true,
+          }}
+        />
+        <Stack.Screen
+          name="edit-profile"
+          options={{
+            animation: 'slide_from_right',
+            gestureEnabled: true,
+            fullScreenGestureEnabled: true,
+          }}
+        />
       </Stack>
     </>
   );

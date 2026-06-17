@@ -4,8 +4,18 @@
    guardan en Supabase; el tema ademas se aplica en vivo via contexto. */
 
 import React, { useEffect, useState } from 'react';
-import { Modal, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import {
+  Modal,
+  type NativeScrollEvent,
+  type NativeSyntheticEvent,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  View,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { Gesture, GestureDetector } from 'react-native-gesture-handler';
+import { runOnJS } from 'react-native-reanimated';
 import { useRouter } from 'expo-router';
 
 import { supabase } from '@/lib/supabase';
@@ -51,6 +61,23 @@ export default function ProfileScreen() {
     if (router.canGoBack()) router.back();
     else router.replace('/home');
   }
+
+  // Gesto vertical para volver: solo activo con el scroll arriba del todo,
+  // asi no compite con el desplazamiento del contenido. El swipe horizontal
+  // (izquierda a derecha) lo maneja el gesto nativo del Stack.
+  const [atTop, setAtTop] = useState(true);
+
+  function onScroll(e: NativeSyntheticEvent<NativeScrollEvent>) {
+    setAtTop(e.nativeEvent.contentOffset.y <= 0);
+  }
+
+  const swipeDownGesture = Gesture.Pan()
+    .enabled(atTop)
+    .activeOffsetY(20)
+    .failOffsetX([-20, 20])
+    .onEnd((e) => {
+      if (e.translationY > 120) runOnJS(closeProfile)();
+    });
 
   // Carga preferencias y avatar guardados del usuario al abrir el perfil.
   useEffect(() => {
@@ -185,9 +212,12 @@ export default function ProfileScreen() {
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
+      <GestureDetector gesture={swipeDownGesture}>
       <ScrollView
         contentContainerStyle={styles.scroll}
         showsVerticalScrollIndicator={false}
+        onScroll={onScroll}
+        scrollEventThrottle={16}
       >
         {/* Encabezado con cierre */}
         <View style={styles.header}>
@@ -325,6 +355,7 @@ export default function ProfileScreen() {
           </View>
         </Pressable>
       </ScrollView>
+      </GestureDetector>
 
       {/* Opciones de avatar */}
       <Modal

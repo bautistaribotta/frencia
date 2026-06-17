@@ -157,10 +157,13 @@ export default function EditProfileScreen() {
         hitSlop={10}
         onPress={goBack}
         accessibilityRole="button"
-        accessibilityLabel="Cancelar edicion"
+        accessibilityLabel="Volver atras"
         style={styles.backBtn}
       >
         <Icon name="chevron-left" size={24} color={colors.textPrimary} />
+        <FrenciaText role="bodySm" color={colors.textPrimary} style={styles.backLabel}>
+          Volver atras
+        </FrenciaText>
       </Pressable>
       {cargandoPerfil ? (
         <View style={styles.spinnerWrap}>
@@ -310,15 +313,15 @@ const makeStyles = (colors: Palette) =>
   flex: { flex: 1 },
   spinnerWrap: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   backBtn: {
-    position: 'absolute',
-    top: space[4],
-    left: space[4],
-    zIndex: 10,
-    width: 40,
-    height: 40,
+    flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
+    gap: space[1],
+    alignSelf: 'flex-start',
+    paddingHorizontal: spacing.padScreen,
+    paddingTop: space[2],
+    paddingBottom: space[2],
   },
+  backLabel: { fontFamily: sans.semibold },
   scroll: {
     flexGrow: 1,
     paddingHorizontal: spacing.padScreen,
