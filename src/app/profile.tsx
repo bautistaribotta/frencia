@@ -344,8 +344,13 @@ export default function ProfileScreen() {
           </View>
         </View>
 
-        {/* Configuracion: recuadro propio, una sola fila (sin accion por ahora) */}
-        <Pressable style={styles.settingsList} onPress={() => {}}>
+        {/* Configuracion: abre los filtros de daltonismo */}
+        <Pressable
+          style={styles.settingsList}
+          onPress={() => router.push('/colorblind')}
+          accessibilityRole="button"
+          accessibilityLabel="Configuracion"
+        >
           <View style={styles.settingRow}>
             <View style={styles.configLeft}>
               <Icon name="settings" size={20} color={colors.textSecondary} />

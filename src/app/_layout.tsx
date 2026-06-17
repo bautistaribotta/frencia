@@ -80,6 +80,14 @@ function RootNavigator() {
             fullScreenGestureEnabled: true,
           }}
         />
+        <Stack.Screen
+          name="colorblind"
+          options={{
+            animation: 'slide_from_right',
+            gestureEnabled: true,
+            fullScreenGestureEnabled: true,
+          }}
+        />
       </Stack>
     </>
   );
