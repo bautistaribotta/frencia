@@ -177,6 +177,12 @@ export default function ProfileScreen() {
     persistPref({ unidad_peso: next ? 'lb' : 'kg' });
   }
 
+  // Cierra la sesion. El cambio lo detecta SessionProvider y el gate del
+  // layout raiz redirige al login automaticamente.
+  async function handleSignOut() {
+    await supabase.auth.signOut();
+  }
+
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
       <ScrollView
@@ -299,6 +305,23 @@ export default function ProfileScreen() {
               </FrenciaText>
             </View>
             <Icon name="chevron-right" size={18} color={colors.textTertiary} />
+          </View>
+        </Pressable>
+
+        {/* Cerrar sesion: recuadro propio, accion destructiva */}
+        <Pressable
+          style={styles.settingsList}
+          onPress={handleSignOut}
+          accessibilityRole="button"
+          accessibilityLabel="Cerrar sesion"
+        >
+          <View style={styles.settingRow}>
+            <View style={styles.configLeft}>
+              <Icon name="log-out" size={20} color={colors.dangerText} />
+              <FrenciaText role="bodySm" style={styles.signOutTitle}>
+                Cerrar sesion
+              </FrenciaText>
+            </View>
           </View>
         </Pressable>
       </ScrollView>
@@ -431,4 +454,5 @@ const makeStyles = (colors: Palette) =>
   configLeft: { flexDirection: 'row', alignItems: 'center', gap: space[4] },
   settingTitle: { fontFamily: sans.semibold, color: colors.textPrimary },
   settingSub: { fontSize: 12.5, lineHeight: 17 },
+  signOutTitle: { fontFamily: sans.semibold, color: colors.dangerText },
 });
