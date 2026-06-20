@@ -6,6 +6,7 @@
 
 import React, { useEffect, useRef } from 'react';
 import {
+  Platform,
   StyleSheet,
   type NativeScrollEvent,
   type NativeSyntheticEvent,
@@ -14,11 +15,19 @@ import {
 import Animated, {
   Extrapolation,
   interpolate,
+  runOnJS,
   useAnimatedScrollHandler,
   useAnimatedStyle,
   useSharedValue,
   type SharedValue,
 } from 'react-native-reanimated';
+import * as Haptics from 'expo-haptics';
+
+// Tic suave cada vez que un numero pasa por el centro de la rueda.
+function tick() {
+  if (Platform.OS === 'web') return;
+  Haptics.selectionAsync().catch(() => {});
+}
 
 import { mono, type Palette } from '../theme';
 import { useThemedStyles } from '../theme-context';
@@ -47,6 +56,7 @@ export function WheelPicker({
   const styles = useThemedStyles(makeStyles);
   const scrollRef = useRef<React.ElementRef<typeof Animated.ScrollView>>(null);
   const scrollY = useSharedValue(index * itemHeight);
+  const centered = useSharedValue(index);
   const inited = useRef(false);
 
   const height = itemHeight * visibleCount;
@@ -55,6 +65,12 @@ export function WheelPicker({
   const onScroll = useAnimatedScrollHandler({
     onScroll: (e) => {
       scrollY.value = e.contentOffset.y;
+      // Vibra al cambiar el numero centrado, no en cada frame.
+      const i = Math.round(e.contentOffset.y / itemHeight);
+      if (i !== centered.value) {
+        centered.value = i;
+        runOnJS(tick)();
+      }
     },
   });
 
