@@ -126,6 +126,11 @@ export function MeasurePicker({ kind, initial, onChange }: MeasurePickerProps) {
           { value: 'imperial', label: 'lbs' },
         ];
 
+  // Unidad mostrada al costado (metrico y peso). En altura imperial las
+  // unidades van entre las ruedas (ft / in), por eso no hay unidad lateral.
+  const sideUnit =
+    kind === 'height' ? (unit === 'metric' ? 'cm' : null) : unit === 'metric' ? 'kg' : 'lbs';
+
   return (
     <View style={styles.wrap}>
       <SegmentedControl accent options={unitOptions} value={unit} onChange={switchUnit} style={styles.toggle} />
@@ -134,23 +139,19 @@ export function MeasurePicker({ kind, initial, onChange }: MeasurePickerProps) {
         {/* Barra de seleccion centrada, detras de las ruedas */}
         <View pointerEvents="none" style={styles.highlight} />
 
-        <View style={styles.row}>
+        {/* El valor queda centrado en pantalla para que no lo tape la mano */}
+        <View style={styles.numeric}>
           {kind === 'height' && unit === 'metric' ? (
-            <>
-              <WheelPicker values={HEIGHT_CM} index={i1} onIndexChange={changeI1} itemHeight={ITEM_H} visibleCount={VISIBLE} width={120} align="right" />
-              <FrenciaText role="data" color={colors.textSecondary} style={styles.unit}>
-                cm
-              </FrenciaText>
-            </>
+            <WheelPicker values={HEIGHT_CM} index={i1} onIndexChange={changeI1} itemHeight={ITEM_H} visibleCount={VISIBLE} width={96} align="center" />
           ) : null}
 
           {kind === 'height' && unit === 'imperial' ? (
             <>
-              <WheelPicker values={FEET} index={i1} onIndexChange={changeI1} itemHeight={ITEM_H} visibleCount={VISIBLE} width={72} align="right" />
+              <WheelPicker values={FEET} index={i1} onIndexChange={changeI1} itemHeight={ITEM_H} visibleCount={VISIBLE} width={64} align="right" />
               <FrenciaText role="data" color={colors.textSecondary} style={styles.unit}>
                 ft
               </FrenciaText>
-              <WheelPicker values={INCH} index={i2} onIndexChange={changeI2} itemHeight={ITEM_H} visibleCount={VISIBLE} width={72} align="right" />
+              <WheelPicker values={INCH} index={i2} onIndexChange={changeI2} itemHeight={ITEM_H} visibleCount={VISIBLE} width={64} align="right" />
               <FrenciaText role="data" color={colors.textSecondary} style={styles.unit}>
                 in
               </FrenciaText>
@@ -165,19 +166,25 @@ export function MeasurePicker({ kind, initial, onChange }: MeasurePickerProps) {
                 onIndexChange={changeI1}
                 itemHeight={ITEM_H}
                 visibleCount={VISIBLE}
-                width={120}
+                width={112}
                 align="right"
               />
               <FrenciaText role="data" color={colors.textPrimary} style={styles.dot}>
                 .
               </FrenciaText>
-              <WheelPicker values={DEC} index={i2} onIndexChange={changeI2} itemHeight={ITEM_H} visibleCount={VISIBLE} width={56} align="left" />
-              <FrenciaText role="data" color={colors.textSecondary} style={styles.unit}>
-                {unit === 'metric' ? 'kg' : 'lbs'}
-              </FrenciaText>
+              <WheelPicker values={DEC} index={i2} onIndexChange={changeI2} itemHeight={ITEM_H} visibleCount={VISIBLE} width={52} align="left" />
             </>
           ) : null}
         </View>
+
+        {/* Unidad fija al costado: no desplaza el valor centrado */}
+        {sideUnit ? (
+          <View pointerEvents="none" style={styles.unitSide}>
+            <FrenciaText role="data" color={colors.textSecondary} style={styles.unit}>
+              {sideUnit}
+            </FrenciaText>
+          </View>
+        ) : null}
       </View>
     </View>
   );
@@ -203,11 +210,19 @@ const makeStyles = (colors: Palette) =>
       borderWidth: 1,
       borderColor: colors.borderSubtle,
     },
-    row: {
+    numeric: {
+      ...StyleSheet.absoluteFillObject,
       flexDirection: 'row',
       alignItems: 'center',
       justifyContent: 'center',
-      gap: space[3],
+      gap: space[2],
+    },
+    unitSide: {
+      position: 'absolute',
+      right: space[7],
+      top: 0,
+      bottom: 0,
+      justifyContent: 'center',
     },
     unit: { fontSize: 18 },
     dot: {

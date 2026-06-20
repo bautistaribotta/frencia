@@ -305,7 +305,7 @@ const makeStyles = (colors: Palette) =>
     borderColor: colors.surfaceOrangeLine,
   },
   titleBlock: { gap: space[3] },
-  title: { fontSize: 40, lineHeight: 46, includeFontPadding: false },
+  title: { fontSize: 40, lineHeight: 52 },
   hint: { maxWidth: 320 },
 
   field: {
