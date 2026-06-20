@@ -7,8 +7,10 @@
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import {
+  Keyboard,
   KeyboardAvoidingView,
   Platform,
+  Pressable,
   StyleSheet,
   TextInput,
   View,
@@ -125,8 +127,9 @@ export default function CreateRoutineScreen() {
           <View style={styles.headerSpacer} />
         </View>
 
-        {/* Cuerpo: un unico dato ocupando la pantalla */}
-        <View style={styles.body}>
+        {/* Cuerpo: un unico dato ocupando la pantalla.
+           Tocar fuera del input cierra el teclado. */}
+        <Pressable style={styles.body} onPress={Keyboard.dismiss} accessible={false}>
           <View style={styles.iconWrap}>
             <Icon name={step.icon} size={32} color={colors.accentText} />
           </View>
@@ -153,7 +156,6 @@ export default function CreateRoutineScreen() {
                 value={nombre}
                 onChangeText={setNombre}
                 maxLength={step.maxLength}
-                autoFocus
                 returnKeyType="next"
                 onSubmitEditing={() => {
                   if (currentValid) goNext();
@@ -172,7 +174,7 @@ export default function CreateRoutineScreen() {
               />
             </View>
           )}
-        </View>
+        </Pressable>
 
         {/* Navegacion: sin opcion de saltar, los datos son esenciales */}
         <View style={styles.nav}>
@@ -205,8 +207,8 @@ const makeStyles = (colors: Palette) =>
     dotIdle: { width: 6, backgroundColor: colors.surfaceChip },
     headerSpacer: { width: 72 },
 
-    // Cuerpo
-    body: { flex: 1, justifyContent: 'center', gap: space[6] },
+    // Cuerpo: arranca arriba, debajo del header
+    body: { marginTop: space[8], gap: space[6] },
     iconWrap: {
       width: 64,
       height: 64,
@@ -218,7 +220,7 @@ const makeStyles = (colors: Palette) =>
       borderColor: colors.surfaceOrangeLine,
     },
     titleBlock: { gap: space[3] },
-    title: { fontSize: 40, lineHeight: 46, includeFontPadding: false },
+    title: { fontSize: 40, lineHeight: 52, includeFontPadding: false },
     hint: { maxWidth: 320 },
 
     field: {
@@ -242,5 +244,5 @@ const makeStyles = (colors: Palette) =>
     stepperWrap: { alignItems: 'center' },
 
     // Navegacion
-    nav: { gap: space[2] },
+    nav: { gap: space[2], marginTop: space[10] },
   });
