@@ -64,11 +64,22 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
       return;
     }
 
-    const { data } = await supabase
-      .from('profiles')
-      .select('name, username, edad, sexo, altura, peso, avatar_url, avatar_seed, onboarding_completed')
-      .eq('id', current.id)
-      .maybeSingle();
+    // Recien creada la cuenta, la fila del profile la inserta un trigger. Si la
+    // leemos demasiado pronto puede no estar todavia: reintentamos unas veces
+    // para no asumir por error que el usuario ya hizo el onboarding.
+    let data = null;
+    for (let intento = 0; intento < 3; intento++) {
+      const res = await supabase
+        .from('profiles')
+        .select('name, username, edad, sexo, altura, peso, avatar_url, avatar_seed, onboarding_completed')
+        .eq('id', current.id)
+        .maybeSingle();
+      if (res.data) {
+        data = res.data;
+        break;
+      }
+      await new Promise((r) => setTimeout(r, 400));
+    }
 
     setProfile(
       data
@@ -122,7 +133,9 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
         profile,
         loading,
         displayName,
-        needsOnboarding: profile ? !profile.onboardingCompleted : false,
+        // Con sesion pero sin fila legible lo tratamos como primer ingreso:
+        // mejor mandar al setup que saltarlo por una lectura fallida.
+        needsOnboarding: profile ? !profile.onboardingCompleted : true,
         refresh,
         applyAvatar,
       }}
