@@ -211,8 +211,10 @@ export default function EditProfileScreen() {
 
             <View style={styles.fields}>
               <Field
+                label="Edad"
+                unit="años"
                 icon="calendar"
-                placeholder="Edad"
+                placeholder="24"
                 value={edad}
                 onChangeText={setEdad}
                 keyboardType="numeric"
@@ -233,8 +235,10 @@ export default function EditProfileScreen() {
               </View>
 
               <Field
+                label="Altura"
+                unit="cm"
                 icon="trending-up"
-                placeholder="Altura (cm)"
+                placeholder="185"
                 value={altura}
                 onChangeText={setAltura}
                 keyboardType="numeric"
@@ -242,8 +246,10 @@ export default function EditProfileScreen() {
                 maxLength={3}
               />
               <Field
+                label="Peso"
+                unit="kg"
                 icon="target"
-                placeholder="Peso (kg)"
+                placeholder="78"
                 value={peso}
                 onChangeText={setPeso}
                 keyboardType="numeric"
@@ -280,29 +286,45 @@ export default function EditProfileScreen() {
 /* ── Campo de texto con icono, focus de acento ───────────────── */
 interface FieldProps extends TextInputProps {
   icon: string;
+  // Nombre del campo, se muestra arriba del input.
+  label?: string;
+  // Unidad de medida, se muestra como sufijo dentro del input.
+  unit?: string;
   trailing?: React.ReactNode;
 }
 
-function Field({ icon, trailing, ...rest }: FieldProps) {
+function Field({ icon, label, unit, trailing, ...rest }: FieldProps) {
   const colors = useColors();
   const styles = useThemedStyles(makeStyles);
   const [focused, setFocused] = useState(false);
   return (
-    <View
-      style={[
-        styles.field,
-        focused && styles.fieldFocused,
-      ]}
-    >
-      <Icon name={icon} size={20} color={focused ? colors.accent : colors.textTertiary} />
-      <TextInput
-        style={styles.input}
-        placeholderTextColor={colors.textTertiary}
-        onFocus={() => setFocused(true)}
-        onBlur={() => setFocused(false)}
-        {...rest}
-      />
-      {trailing}
+    <View style={styles.fieldGroup}>
+      {label ? (
+        <FrenciaText role="dataLabel" color={colors.textTertiary}>
+          {label}
+        </FrenciaText>
+      ) : null}
+      <View
+        style={[
+          styles.field,
+          focused && styles.fieldFocused,
+        ]}
+      >
+        <Icon name={icon} size={20} color={focused ? colors.accent : colors.textTertiary} />
+        <TextInput
+          style={styles.input}
+          placeholderTextColor={colors.textTertiary}
+          onFocus={() => setFocused(true)}
+          onBlur={() => setFocused(false)}
+          {...rest}
+        />
+        {unit ? (
+          <FrenciaText role="bodySm" color={colors.textSecondary}>
+            {unit}
+          </FrenciaText>
+        ) : null}
+        {trailing}
+      </View>
     </View>
   );
 }
@@ -355,6 +377,7 @@ const makeStyles = (colors: Palette) =>
   heading: { marginBottom: -space[3] },
   fields: { gap: space[4], marginTop: space[2] },
   segGroup: { gap: space[2] },
+  fieldGroup: { gap: space[2] },
   field: {
     flexDirection: 'row',
     alignItems: 'center',
