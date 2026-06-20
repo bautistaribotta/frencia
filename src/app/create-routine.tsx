@@ -1,12 +1,11 @@
 /* Frencia · Crear rutina — wizard.
-   Arma una ficha de rutina de a un dato por pantalla, con un preview en vivo.
-   Tres pasos esenciales:
+   Una rutina es un "dia": una lista de ejercicios con nombre libre. El doble
+   turno (entrenar dos veces el mismo dia) se resuelve creando rutinas separadas
+   ("Martes manana" / "Martes tarde"). El wizard arma la ficha en dos pasos:
      1. nombre
-     2. cantidad de dias por semana (stepper)
-     3. que dias de la semana entrena (se eligen exactamente esa cantidad;
-        un dia elegido se puede tocar de nuevo para marcar doble turno x2,
-        pensado para quienes entrenan dos veces el mismo dia).
-   No se saltan pasos pero si se vuelve atras. Solo front: no persiste nada. */
+     2. que dias de la semana entrena (opcional, se puede repetir en varios).
+   Al terminar persiste la rutina y sus dias en Supabase. Los ejercicios se
+   agregan despues, desde el detalle de la rutina. */
 
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
@@ -21,6 +20,9 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { supabase } from '@/lib/supabase';
+import { useToast } from '@/contexts/toast';
+
 import {
   Button,
   FrenciaText,
@@ -31,20 +33,19 @@ import {
   sizing,
   space,
   spacing,
-  Stepper,
   tracking,
   useColors,
   useThemedStyles,
   type Palette,
 } from '@/design';
 
-type StepKey = 'nombre' | 'cantidad' | 'dias';
-type StepType = 'text' | 'stepper' | 'weekdays';
+type StepKey = 'nombre' | 'dias';
+type StepType = 'text' | 'weekdays';
 
 interface StepDef {
   key: StepKey;
   type: StepType;
-  // Etiqueta corta del paso para el eyebrow (PASO 1 DE 3 · NOMBRE).
+  // Etiqueta corta del paso para el eyebrow (PASO 1 DE 2 · NOMBRE).
   tag: string;
   prompt: string;
   hint: string;
@@ -58,96 +59,54 @@ const STEPS: StepDef[] = [
     type: 'text',
     tag: 'Nombre',
     prompt: '¿Cómo se llama tu rutina?',
-    hint: 'Elegi un nombre para reconocerla.',
+    hint: 'Por ejemplo "Push" o "Martes por la mañana".',
     placeholder: 'Push Pull Legs',
     maxLength: 40,
-  },
-  {
-    key: 'cantidad',
-    type: 'stepper',
-    tag: 'Frecuencia',
-    prompt: '¿Cuántos días por semana?',
-    hint: 'Cantidad de días de entrenamiento.',
   },
   {
     key: 'dias',
     type: 'weekdays',
     tag: 'Días',
-    prompt: '¿Qué días entrenás?',
-    hint: 'Tocá un día para elegirlo. Tocalo de nuevo para doble turno (x2).',
+    prompt: '¿Qué días la entrenás?',
+    hint: 'Opcional. Tocá los días que quieras; podés elegir varios.',
   },
 ];
 
-const DIAS_MIN = 1;
-const DIAS_MAX = 7;
-
-// Iniciales de la semana (X para miercoles, asi no se confunde con martes).
+// Iniciales e indices de la semana (0 = lunes ... 6 = domingo, igual que el
+// rango del check de routine_weekdays.weekday).
 const SEMANA = ['L', 'M', 'X', 'J', 'V', 'S', 'D'];
+const SEMANA_NOMBRES = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
 
 export default function CreateRoutineScreen() {
   const colors = useColors();
   const styles = useThemedStyles(makeStyles);
   const router = useRouter();
+  const { showToast } = useToast();
   const [index, setIndex] = useState(0);
   const [nombre, setNombre] = useState('');
-  const [dias, setDias] = useState(3);
-  // Sesiones por dia de la semana: 0 = no entrena, 1 = una, 2 = doble turno.
-  const [sesiones, setSesiones] = useState<number[]>(() => Array(7).fill(0));
+  // Dias seleccionados: bandera por dia de la semana (lunes a domingo).
+  const [diasSel, setDiasSel] = useState<boolean[]>(() => Array(7).fill(false));
+  const [saving, setSaving] = useState(false);
 
   const step = STEPS[index];
   const isLast = index === STEPS.length - 1;
+  const nombreLimpio = nombre.trim();
+  const diasElegidos = diasSel.filter(Boolean).length;
 
-  const diasElegidos = sesiones.filter((s) => s > 0).length;
-  const totalSesiones = sesiones.reduce((a, b) => a + b, 0);
+  // El nombre es obligatorio; los dias son opcionales.
+  const currentValid = step.key === 'nombre' ? nombreLimpio !== '' : true;
 
-  // Validacion por paso: nombre obligatorio, cantidad siempre ok, y en el
-  // ultimo paso hay que elegir exactamente la cantidad de dias indicada.
-  const currentValid =
-    step.key === 'nombre'
-      ? nombre.trim() !== ''
-      : step.key === 'dias'
-        ? diasElegidos === dias
-        : true;
-
-  // Cambiar la cantidad recorta dias sobrantes para no quedar en estado invalido.
-  function cambiarCantidad(n: number) {
-    setDias(n);
-    setSesiones((prev) => {
-      let count = prev.filter((s) => s > 0).length;
-      if (count <= n) return prev;
-      const next = [...prev];
-      for (let i = next.length - 1; i >= 0 && count > n; i--) {
-        if (next[i] > 0) {
-          next[i] = 0;
-          count -= 1;
-        }
-      }
-      return next;
-    });
-  }
-
-  // Ciclo por dia: libre -> 1 sesion -> doble turno -> libre. No deja superar
-  // la cantidad elegida al sumar dias nuevos.
   function alternarDia(i: number) {
-    setSesiones((prev) => {
+    setDiasSel((prev) => {
       const next = [...prev];
-      const actual = next[i];
-      if (actual === 0) {
-        const count = prev.filter((s) => s > 0).length;
-        if (count >= dias) return prev;
-        next[i] = 1;
-      } else if (actual === 1) {
-        next[i] = 2;
-      } else {
-        next[i] = 0;
-      }
+      next[i] = !next[i];
       return next;
     });
   }
 
   function goNext() {
     if (isLast) {
-      finish();
+      handleCreate();
       return;
     }
     setIndex((i) => i + 1);
@@ -155,6 +114,7 @@ export default function CreateRoutineScreen() {
 
   // En el primer paso, volver sale del wizard. En los demas retrocede uno.
   function goBack() {
+    if (saving) return;
     if (index === 0) {
       if (router.canGoBack()) router.back();
       else router.replace('/home');
@@ -163,27 +123,63 @@ export default function CreateRoutineScreen() {
     setIndex((i) => i - 1);
   }
 
-  // Sin backend todavia: cerramos el wizard y volvemos a la app.
   function finish() {
     if (router.canGoBack()) router.back();
     else router.replace('/home');
   }
 
-  const nombreLimpio = nombre.trim();
+  async function handleCreate() {
+    if (!currentValid || saving) return;
+    setSaving(true);
 
-  // Mensaje guia del paso de dias segun cuanto falta elegir.
-  let ayudaDias = step.hint;
-  if (step.key === 'dias') {
-    const faltan = dias - diasElegidos;
-    if (faltan > 0) {
-      ayudaDias = `Elegí ${faltan} día${faltan === 1 ? '' : 's'} más.`;
-    } else if (faltan < 0) {
-      const sobran = -faltan;
-      ayudaDias = `Quitá ${sobran} día${sobran === 1 ? '' : 's'}.`;
-    } else {
-      ayudaDias = 'Listo. Tocá un día otra vez para doble turno (x2).';
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) {
+      setSaving(false);
+      showToast({ message: 'No pudimos identificar tu sesión. Volvé a ingresar.', type: 'error' });
+      return;
     }
+
+    // La nueva rutina se agrega al final del orden actual.
+    const { count } = await supabase
+      .from('routines')
+      .select('id', { count: 'exact', head: true })
+      .eq('user_id', user.id);
+
+    const { data: routine, error } = await supabase
+      .from('routines')
+      .insert({ user_id: user.id, name: nombreLimpio, position: count ?? 0 })
+      .select('id')
+      .single();
+
+    if (error || !routine) {
+      setSaving(false);
+      showToast({ message: 'No pudimos crear la rutina. Proba de nuevo.', type: 'error' });
+      return;
+    }
+
+    // Dias asignados (opcional): una fila por dia elegido.
+    const weekdays = diasSel
+      .map((on, i) => (on ? i : -1))
+      .filter((i) => i >= 0)
+      .map((weekday) => ({ routine_id: routine.id, weekday }));
+
+    if (weekdays.length > 0) {
+      await supabase.from('routine_weekdays').insert(weekdays);
+    }
+
+    setSaving(false);
+    showToast({ message: 'Rutina creada', type: 'success' });
+    finish();
   }
+
+  // Resumen de dias en el preview.
+  const resumenDias =
+    diasElegidos === 0
+      ? 'Sin días asignados'
+      : `${diasElegidos} ${diasElegidos === 1 ? 'día' : 'días'} por semana`;
 
   return (
     <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
@@ -193,7 +189,7 @@ export default function CreateRoutineScreen() {
       >
         {/* Header: salir + barra de progreso por segmentos */}
         <View style={styles.header}>
-          <Button variant="ghost" size="sm" icon="chevron-left" onPress={goBack}>
+          <Button variant="ghost" size="sm" icon="chevron-left" onPress={goBack} disabled={saving}>
             {index === 0 ? 'Salir' : 'Atrás'}
           </Button>
           <View style={styles.progress}>
@@ -228,10 +224,10 @@ export default function CreateRoutineScreen() {
               {nombreLimpio || 'Sin nombre'}
             </FrenciaText>
 
-            {/* Tira de semana: refleja los dias elegidos y el doble turno */}
+            {/* Tira de semana: refleja los dias asignados */}
             <View style={styles.weekRow}>
               {SEMANA.map((d, i) => {
-                const on = sesiones[i] > 0;
+                const on = diasSel[i];
                 return (
                   <View
                     key={d}
@@ -244,25 +240,13 @@ export default function CreateRoutineScreen() {
                     >
                       {d}
                     </FrenciaText>
-                    {sesiones[i] === 2 ? (
-                      <FrenciaText
-                        role="dataLabel"
-                        color={colors.textOnAccent}
-                        style={styles.weekDouble}
-                      >
-                        x2
-                      </FrenciaText>
-                    ) : null}
                   </View>
                 );
               })}
             </View>
 
             <FrenciaText role="bodySm" color={colors.textSecondary}>
-              {dias} {dias === 1 ? 'día' : 'días'} por semana
-              {totalSesiones > diasElegidos && diasElegidos > 0
-                ? ` · ${totalSesiones} sesiones`
-                : ''}
+              {resumenDias}
             </FrenciaText>
           </View>
 
@@ -273,7 +257,7 @@ export default function CreateRoutineScreen() {
             </FrenciaText>
             <FrenciaText role="subtitle">{step.prompt}</FrenciaText>
             <FrenciaText role="bodySm" color={colors.textSecondary} style={styles.hint}>
-              {ayudaDias}
+              {step.hint}
             </FrenciaText>
 
             {step.type === 'text' ? (
@@ -292,28 +276,17 @@ export default function CreateRoutineScreen() {
                   }}
                 />
               </View>
-            ) : step.type === 'stepper' ? (
-              <View style={styles.stepperWrap}>
-                <Stepper
-                  value={dias}
-                  onChange={cambiarCantidad}
-                  min={DIAS_MIN}
-                  max={DIAS_MAX}
-                  size="lg"
-                  unit={dias === 1 ? ' día' : ' días'}
-                />
-              </View>
             ) : (
               <View style={styles.pickerRow}>
                 {SEMANA.map((d, i) => {
-                  const s = sesiones[i];
-                  const on = s > 0;
+                  const on = diasSel[i];
                   return (
                     <Pressable
                       key={d}
                       onPress={() => alternarDia(i)}
                       accessibilityRole="button"
-                      accessibilityLabel={`${d}${s === 2 ? ' doble turno' : on ? ' elegido' : ''}`}
+                      accessibilityState={{ selected: on }}
+                      accessibilityLabel={SEMANA_NOMBRES[i]}
                       style={({ pressed }) => [
                         styles.pickerCell,
                         on ? styles.pickerCellOn : styles.pickerCellOff,
@@ -326,15 +299,6 @@ export default function CreateRoutineScreen() {
                       >
                         {d}
                       </FrenciaText>
-                      {s === 2 ? (
-                        <FrenciaText
-                          role="dataLabel"
-                          color={colors.textOnAccent}
-                          style={styles.pickerDouble}
-                        >
-                          x2
-                        </FrenciaText>
-                      ) : null}
                     </Pressable>
                   );
                 })}
@@ -351,6 +315,7 @@ export default function CreateRoutineScreen() {
             fullWidth
             iconRight={isLast ? undefined : 'arrow-right'}
             disabled={!currentValid}
+            loading={saving}
             onPress={goNext}
           >
             {isLast ? 'Crear rutina' : 'Siguiente'}
@@ -404,7 +369,6 @@ const makeStyles = (colors: Palette) =>
     weekCellOn: { backgroundColor: colors.accent },
     weekCellOff: { backgroundColor: colors.surfaceInset, borderWidth: 1, borderColor: colors.borderSubtle },
     weekLetter: { lineHeight: 14 },
-    weekDouble: { fontSize: 8, lineHeight: 10, marginTop: 2 },
 
     // Control del paso
     control: { gap: space[3] },
@@ -428,7 +392,6 @@ const makeStyles = (colors: Palette) =>
       fontSize: 18,
       padding: 0,
     },
-    stepperWrap: { alignItems: 'center', marginTop: space[2] },
 
     // Selector de dias de la semana
     pickerRow: { flexDirection: 'row', gap: space[2], marginTop: space[2] },
@@ -438,13 +401,11 @@ const makeStyles = (colors: Palette) =>
       borderRadius: radius.md,
       alignItems: 'center',
       justifyContent: 'center',
-      gap: 2,
     },
     pickerCellOn: { backgroundColor: colors.accent },
     pickerCellOff: { backgroundColor: colors.surfaceCard, borderWidth: 1, borderColor: colors.borderSubtle },
     pickerCellPressed: { opacity: 0.7 },
     pickerLetter: { fontFamily: sans.bold, fontSize: 17 },
-    pickerDouble: { fontSize: 9, lineHeight: 11 },
 
     // Navegacion: fija debajo del scroll, nunca tapa el input
     nav: { gap: space[2], paddingTop: space[4] },
