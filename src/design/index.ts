@@ -45,6 +45,8 @@ export { ProgressBar } from './components/ProgressBar';
 export type { ProgressBarProps } from './components/ProgressBar';
 export { Stepper } from './components/Stepper';
 export type { StepperProps } from './components/Stepper';
+export { WheelPicker } from './components/WheelPicker';
+export type { WheelPickerProps } from './components/WheelPicker';
 export { SetRow } from './components/SetRow';
 export type { SetRowProps } from './components/SetRow';
 

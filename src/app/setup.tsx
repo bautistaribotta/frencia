@@ -16,6 +16,7 @@ import { useRouter } from 'expo-router';
 
 import { supabase } from '@/lib/supabase';
 import { useProfile } from '@/contexts/profile';
+import { MeasurePicker } from '@/components/MeasurePicker';
 
 import {
   Button,
@@ -54,8 +55,8 @@ interface StepDef {
 const STEPS: StepDef[] = [
   { key: 'edad', type: 'number', icon: 'calendar', title: '¿Cuántos años tenés?', hint: 'Lo usamos para ajustar tus referencias.', placeholder: 'Edad', maxLength: 3 },
   { key: 'sexo', type: 'segment', icon: 'user', title: '¿Con qué sexo te identificás?', hint: 'Afina los cálculos de progreso.' },
-  { key: 'altura', type: 'number', icon: 'trending-up', title: '¿Cuánto medís?', hint: 'En centímetros.', placeholder: 'Altura (cm)', maxLength: 3 },
-  { key: 'peso', type: 'number', icon: 'target', title: '¿Cuánto pesás?', hint: 'En kilogramos. Lo vas a poder actualizar.', placeholder: 'Peso (kg)', maxLength: 6 },
+  { key: 'altura', type: 'number', icon: 'trending-up', title: '¿Cuál es tu altura?', hint: 'Deslizá la rueda para elegirla.' },
+  { key: 'peso', type: 'number', icon: 'target', title: '¿Cuál es tu peso?', hint: 'Deslizá la rueda para elegirlo.' },
 ];
 
 export default function SetupWizardScreen() {
@@ -64,11 +65,13 @@ export default function SetupWizardScreen() {
   const router = useRouter();
   const { displayName, refresh } = useProfile();
   const [index, setIndex] = useState(0);
+  // Altura y peso arrancan en un valor por defecto: la rueda siempre muestra
+  // algo seleccionado. Si el usuario salta el dato, se limpia (ver skip).
   const [values, setValues] = useState<Record<StepKey, string>>({
     edad: '',
     sexo: '',
-    altura: '',
-    peso: '',
+    altura: '170',
+    peso: '70',
   });
   const [saving, setSaving] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
@@ -103,8 +106,10 @@ export default function SetupWizardScreen() {
     setValues((prev) => ({ ...prev, [step.key]: raw }));
   }
 
-  // Arma el payload con solo los datos validos cargados.
-  async function finish() {
+  // Arma el payload con solo los datos validos cargados. Recibe los valores de
+  // forma explicita porque skip() limpia el ultimo dato justo antes de cerrar y
+  // el estado todavia no esta actualizado en ese tick.
+  async function finish(vals: Record<StepKey, string> = values) {
     if (saving) return;
     setSaving(true);
     setErrorMsg('');
@@ -114,10 +119,10 @@ export default function SetupWizardScreen() {
     const payload: Record<string, number | string | boolean> = {
       onboarding_completed: true,
     };
-    if (isValid('edad', values.edad)) payload.edad = Number(values.edad);
-    if (isValid('sexo', values.sexo)) payload.sexo = values.sexo;
-    if (isValid('altura', values.altura)) payload.altura = Number(values.altura);
-    if (isValid('peso', values.peso)) payload.peso = Number(values.peso);
+    if (isValid('edad', vals.edad)) payload.edad = Number(vals.edad);
+    if (isValid('sexo', vals.sexo)) payload.sexo = vals.sexo;
+    if (isValid('altura', vals.altura)) payload.altura = Number(vals.altura);
+    if (isValid('peso', vals.peso)) payload.peso = Number(vals.peso);
 
     const {
       data: { user },
@@ -156,13 +161,16 @@ export default function SetupWizardScreen() {
     setIndex((i) => i - 1);
   }
 
-  // Saltar deja el dato vacio y avanza (o termina si es el ultimo).
+  // Saltar limpia el dato del paso (incluye los que arrancan con default) y
+  // avanza, o termina si es el ultimo.
   function skip() {
+    const cleared = { ...values, [step.key]: '' };
+    setValues(cleared);
+    setErrorMsg('');
     if (isLast) {
-      finish();
+      finish(cleared);
       return;
     }
-    setErrorMsg('');
     setIndex((i) => i + 1);
   }
 
@@ -218,6 +226,12 @@ export default function SetupWizardScreen() {
               options={SEXO_OPTIONS}
               value={current}
               onChange={setCurrent}
+            />
+          ) : step.key === 'altura' || step.key === 'peso' ? (
+            <MeasurePicker
+              kind={step.key === 'altura' ? 'height' : 'weight'}
+              initial={Number(current) || 0}
+              onChange={(n) => setCurrent(String(n))}
             />
           ) : (
             <View style={styles.field}>

@@ -7,6 +7,7 @@ import React, { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   KeyboardAvoidingView,
+  Modal,
   Platform,
   Pressable,
   ScrollView,
@@ -21,6 +22,7 @@ import { useRouter } from 'expo-router';
 import { supabase } from '@/lib/supabase';
 import { useProfile } from '@/contexts/profile';
 import { useToast } from '@/contexts/toast';
+import { MeasurePicker } from '@/components/MeasurePicker';
 
 import {
   Button,
@@ -58,6 +60,21 @@ export default function EditProfileScreen() {
   const [errorMsg, setErrorMsg] = useState('');
   // Mientras traemos el perfil mostramos un spinner para tapar la demora inicial.
   const [cargandoPerfil, setCargandoPerfil] = useState(true);
+  // Rueda de altura/peso: misma experiencia que el setup inicial. `draft`
+  // guarda el valor canonico (cm o kg) mientras la rueda esta abierta.
+  const [picker, setPicker] = useState<null | 'height' | 'weight'>(null);
+  const [draft, setDraft] = useState(0);
+
+  function openPicker(kind: 'height' | 'weight') {
+    setDraft(Number(kind === 'height' ? altura : peso) || 0);
+    setPicker(kind);
+  }
+
+  function confirmPicker() {
+    if (picker === 'height') setAltura(String(draft));
+    else if (picker === 'weight') setPeso(String(draft));
+    setPicker(null);
+  }
 
   function goBack() {
     if (router.canGoBack()) router.back();
@@ -234,27 +251,19 @@ export default function EditProfileScreen() {
                 />
               </View>
 
-              <Field
+              <SelectField
                 label="Altura"
-                unit="cm"
                 icon="trending-up"
-                placeholder="185"
-                value={altura}
-                onChangeText={setAltura}
-                keyboardType="numeric"
-                inputMode="numeric"
-                maxLength={3}
+                value={altura ? `${altura} cm` : ''}
+                placeholder="Elegí tu altura"
+                onPress={() => openPicker('height')}
               />
-              <Field
+              <SelectField
                 label="Peso"
-                unit="kg"
                 icon="target"
-                placeholder="78"
-                value={peso}
-                onChangeText={setPeso}
-                keyboardType="numeric"
-                inputMode="numeric"
-                maxLength={6}
+                value={peso ? `${peso} kg` : ''}
+                placeholder="Elegí tu peso"
+                onPress={() => openPicker('weight')}
               />
             </View>
 
@@ -279,6 +288,31 @@ export default function EditProfileScreen() {
         </ScrollView>
       </KeyboardAvoidingView>
       )}
+
+      {/* Rueda de altura/peso, reciclando la del setup inicial */}
+      <Modal
+        visible={picker !== null}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setPicker(null)}
+      >
+        <Pressable style={styles.modalBackdrop} onPress={() => setPicker(null)} />
+        <View style={styles.sheet}>
+          <FrenciaText role="title" style={styles.sheetTitle}>
+            {picker === 'height' ? 'Tu altura' : 'Tu peso'}
+          </FrenciaText>
+          {picker !== null ? (
+            <MeasurePicker
+              kind={picker}
+              initial={draft}
+              onChange={setDraft}
+            />
+          ) : null}
+          <Button variant="primary" size="lg" fullWidth onPress={confirmPicker}>
+            Listo
+          </Button>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -325,6 +359,43 @@ function Field({ icon, label, unit, trailing, ...rest }: FieldProps) {
         ) : null}
         {trailing}
       </View>
+    </View>
+  );
+}
+
+/* ── Campo de seleccion: abre la rueda en vez de teclado ─────── */
+interface SelectFieldProps {
+  icon: string;
+  label: string;
+  value: string;
+  placeholder: string;
+  onPress: () => void;
+}
+
+function SelectField({ icon, label, value, placeholder, onPress }: SelectFieldProps) {
+  const colors = useColors();
+  const styles = useThemedStyles(makeStyles);
+  return (
+    <View style={styles.fieldGroup}>
+      <FrenciaText role="dataLabel" color={colors.textTertiary}>
+        {label}
+      </FrenciaText>
+      <Pressable
+        style={styles.field}
+        onPress={onPress}
+        accessibilityRole="button"
+        accessibilityLabel={`${label}: ${value || placeholder}`}
+      >
+        <Icon name={icon} size={20} color={colors.textTertiary} />
+        <FrenciaText
+          role="bodySm"
+          color={value ? colors.textPrimary : colors.textTertiary}
+          style={styles.selectValue}
+        >
+          {value || placeholder}
+        </FrenciaText>
+        <Icon name="chevron-right" size={20} color={colors.textTertiary} />
+      </Pressable>
     </View>
   );
 }
@@ -400,4 +471,18 @@ const makeStyles = (colors: Palette) =>
     fontSize: 16,
     padding: 0,
   },
+  selectValue: { flex: 1 },
+
+  // Sheet de la rueda
+  modalBackdrop: { flex: 1, backgroundColor: 'rgba(0, 0, 0, 0.6)' },
+  sheet: {
+    backgroundColor: colors.surfaceRaised,
+    borderTopLeftRadius: radius['2xl'],
+    borderTopRightRadius: radius['2xl'],
+    paddingHorizontal: spacing.padScreen,
+    paddingTop: space[6],
+    paddingBottom: space[10],
+    gap: space[6],
+  },
+  sheetTitle: { textAlign: 'center' },
 });
