@@ -1,42 +1,42 @@
 /* Frencia · Perfil — pantalla de perfil y ajustes.
    Se abre al tocar el encabezado de saludo. Foto de perfil (Storage),
-   editar perfil y ajustes. RIR/RPE, kg/lb y el tema (oscuro/claro) se
-   guardan en Supabase; el tema ademas se aplica en vivo via contexto. */
+   editar perfil y ajustes. RIR/RPE, kg/lb, cm/ft y el tema (oscuro/claro)
+   se guardan en Supabase; el tema ademas se aplica en vivo via contexto. */
 
+import { useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import {
   Modal,
-  type NativeScrollEvent,
-  type NativeSyntheticEvent,
   Platform,
   Pressable,
   ScrollView,
   StyleSheet,
   View,
+  type NativeScrollEvent,
+  type NativeSyntheticEvent,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import { runOnJS } from 'react-native-reanimated';
-import { useRouter } from 'expo-router';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { supabase } from '@/lib/supabase';
-import { pickAndUploadAvatar } from '@/lib/avatar';
 import { useProfile } from '@/contexts/profile';
 import { useToast } from '@/contexts/toast';
+import { pickAndUploadAvatar } from '@/lib/avatar';
+import { supabase } from '@/lib/supabase';
 
 import {
   Avatar,
   Button,
   FrenciaText,
   Icon,
-  Switch,
-  useColors,
-  useTheme,
-  useThemedStyles,
   radius,
   sans,
   space,
   spacing,
+  Switch,
+  useColors,
+  useTheme,
+  useThemedStyles,
   type Palette,
 } from '@/design';
 
@@ -53,7 +53,7 @@ export default function ProfileScreen() {
   // RIR/RPE y kg/lb se persisten en Supabase (profiles).
   const [useRpe, setUseRpe] = useState(false);
   const [useLb, setUseLb] = useState(false);
-  // Unidad de medida corporal (altura): por ahora solo front, no persiste.
+  // Unidad de medida corporal (altura): se persiste en profiles (cm/ft).
   const [useFeet, setUseFeet] = useState(false);
   // Avatar: foto subida (prioridad) o semilla del avatar generado.
   const [photo, setPhoto] = useState<string | undefined>(profile?.avatarUrl ?? undefined);
@@ -98,12 +98,13 @@ export default function ProfileScreen() {
       if (!user) return;
       const { data } = await supabase
         .from('profiles')
-        .select('medidor_esfuerzo, unidad_peso, avatar_url, avatar_seed')
+        .select('medidor_esfuerzo, unidad_peso, unidad_altura, avatar_url, avatar_seed')
         .eq('id', user.id)
         .maybeSingle();
       if (cancelado || !data) return;
       setUseRpe(data.medidor_esfuerzo === 'rpe');
       setUseLb(data.unidad_peso === 'lb');
+      setUseFeet(data.unidad_altura === 'ft');
       if (data.avatar_url) setPhoto(data.avatar_url);
       if (data.avatar_seed) setSeed(data.avatar_seed);
     })();
@@ -222,6 +223,11 @@ export default function ProfileScreen() {
   function toggleLb(next: boolean) {
     setUseLb(next);
     persistPref({ unidad_peso: next ? 'lb' : 'kg' });
+  }
+
+  function toggleFeet(next: boolean) {
+    setUseFeet(next);
+    persistPref({ unidad_altura: next ? 'ft' : 'cm' });
   }
 
   // Cierra la sesion. El cambio lo detecta SessionProvider y el gate del
@@ -345,7 +351,7 @@ export default function ProfileScreen() {
                   {useFeet ? 'En pies y pulgadas' : 'En centímetros (cm)'}
                 </FrenciaText>
               </View>
-              <Switch checked={useFeet} onChange={setUseFeet} />
+              <Switch checked={useFeet} onChange={toggleFeet} />
             </View>
 
             {/* Fila: tema */}

@@ -8,7 +8,6 @@ import {
   KeyboardAvoidingView,
   Platform,
   StyleSheet,
-  TextInput,
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -26,8 +25,6 @@ import {
   useColors,
   useThemedStyles,
   radius,
-  sans,
-  sizing,
   space,
   spacing,
   type Palette,
@@ -53,8 +50,8 @@ interface StepDef {
 }
 
 const STEPS: StepDef[] = [
-  { key: 'edad', type: 'number', icon: 'calendar', title: '¿Cuántos años tenés?', hint: 'Lo usamos para ajustar tus referencias.', placeholder: 'Edad', maxLength: 3 },
   { key: 'sexo', type: 'segment', icon: 'user', title: '¿Con qué sexo te identificás?', hint: 'Afina los cálculos de progreso.' },
+  { key: 'edad', type: 'number', icon: 'calendar', title: '¿Cuántos años tenés?', hint: 'Lo usamos para ajustar tus referencias.', placeholder: 'Edad', maxLength: 3 },
   { key: 'altura', type: 'number', icon: 'trending-up', title: '¿Cuál es tu altura?', hint: 'Deslizá la rueda para elegirla.' },
   { key: 'peso', type: 'number', icon: 'target', title: '¿Cuál es tu peso?', hint: 'Deslizá la rueda para elegirlo.' },
 ];
@@ -63,16 +60,20 @@ export default function SetupWizardScreen() {
   const colors = useColors();
   const styles = useThemedStyles(makeStyles);
   const router = useRouter();
-  const { displayName, refresh } = useProfile();
+  const { refresh } = useProfile();
   const [index, setIndex] = useState(0);
   // Altura y peso arrancan en un valor por defecto: la rueda siempre muestra
   // algo seleccionado. Si el usuario salta el dato, se limpia (ver skip).
   const [values, setValues] = useState<Record<StepKey, string>>({
-    edad: '',
+    edad: '25',
     sexo: '',
     altura: '170',
     peso: '70',
   });
+  // Sistema de medicion elegido en los pasos de altura y peso. Se guarda como
+  // preferencia (el valor del dato se persiste siempre en metrico).
+  const [unitHeight, setUnitHeight] = useState<'metric' | 'imperial'>('metric');
+  const [unitWeight, setUnitWeight] = useState<'metric' | 'imperial'>('metric');
   const [saving, setSaving] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
 
@@ -118,6 +119,9 @@ export default function SetupWizardScreen() {
     // asi el wizard no vuelve a aparecer en los proximos ingresos.
     const payload: Record<string, number | string | boolean> = {
       onboarding_completed: true,
+      // Preferencias de unidad: se guardan siempre, aunque se salte el dato.
+      unidad_altura: unitHeight === 'imperial' ? 'ft' : 'cm',
+      unidad_peso: unitWeight === 'imperial' ? 'lb' : 'kg',
     };
     if (isValid('edad', vals.edad)) payload.edad = Number(vals.edad);
     if (isValid('sexo', vals.sexo)) payload.sexo = vals.sexo;
@@ -210,7 +214,7 @@ export default function SetupWizardScreen() {
 
           <View style={styles.titleBlock}>
             <FrenciaText role="dataLabel" color={colors.textTertiary}>
-              {displayName ? `${displayName}, paso ${index + 1} de ${STEPS.length}` : `Paso ${index + 1} de ${STEPS.length}`}
+              Paso {index + 1} de {STEPS.length}
             </FrenciaText>
             <FrenciaText role="display" style={styles.title}>
               {step.title}
@@ -227,27 +231,16 @@ export default function SetupWizardScreen() {
               value={current}
               onChange={setCurrent}
             />
-          ) : step.key === 'altura' || step.key === 'peso' ? (
+          ) : (
             <MeasurePicker
-              kind={step.key === 'altura' ? 'height' : 'weight'}
+              kind={step.key === 'edad' ? 'age' : step.key === 'altura' ? 'height' : 'weight'}
               initial={Number(current) || 0}
               onChange={(n) => setCurrent(String(n))}
+              initialUnit={step.key === 'altura' ? unitHeight : step.key === 'peso' ? unitWeight : 'metric'}
+              onUnitChange={
+                step.key === 'altura' ? setUnitHeight : step.key === 'peso' ? setUnitWeight : undefined
+              }
             />
-          ) : (
-            <View style={styles.field}>
-              <Icon name={step.icon} size={20} color={colors.accent} />
-              <TextInput
-                style={styles.input}
-                placeholder={step.placeholder}
-                placeholderTextColor={colors.textTertiary}
-                value={current}
-                onChangeText={setCurrent}
-                keyboardType="numeric"
-                inputMode="numeric"
-                maxLength={step.maxLength}
-                autoFocus
-              />
-            </View>
           )}
 
           {errorMsg ? (
@@ -307,25 +300,6 @@ const makeStyles = (colors: Palette) =>
   titleBlock: { gap: space[3] },
   title: { fontSize: 40, lineHeight: 52 },
   hint: { maxWidth: 320 },
-
-  field: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: space[4],
-    height: sizing.controlHLg,
-    paddingHorizontal: spacing.padControl,
-    borderRadius: radius.md,
-    backgroundColor: colors.surfaceCard,
-    borderWidth: 1,
-    borderColor: colors.surfaceGreenLine,
-  },
-  input: {
-    flex: 1,
-    color: colors.textPrimary,
-    fontFamily: sans.regular,
-    fontSize: 18,
-    padding: 0,
-  },
 
   // Navegacion
   nav: { gap: space[2] },

@@ -61,9 +61,12 @@ export default function EditProfileScreen() {
   // Mientras traemos el perfil mostramos un spinner para tapar la demora inicial.
   const [cargandoPerfil, setCargandoPerfil] = useState(true);
   // Rueda de altura/peso: misma experiencia que el setup inicial. `draft`
-  // guarda el valor canonico (cm o kg) mientras la rueda esta abierta.
+  // guarda el valor canonico (cm o kg) mientras la rueda esta abierta. Las
+  // unidades se precargan del perfil para abrir en el sistema elegido.
   const [picker, setPicker] = useState<null | 'height' | 'weight'>(null);
   const [draft, setDraft] = useState(0);
+  const [unitHeight, setUnitHeight] = useState<'metric' | 'imperial'>('metric');
+  const [unitWeight, setUnitWeight] = useState<'metric' | 'imperial'>('metric');
 
   function openPicker(kind: 'height' | 'weight') {
     setDraft(Number(kind === 'height' ? altura : peso) || 0);
@@ -96,7 +99,7 @@ export default function EditProfileScreen() {
 
       const { data } = await supabase
         .from('profiles')
-        .select('edad, sexo, altura, peso')
+        .select('edad, sexo, altura, peso, unidad_altura, unidad_peso')
         .eq('id', user.id)
         .single();
 
@@ -107,6 +110,8 @@ export default function EditProfileScreen() {
         if (data.sexo != null) setSexo(data.sexo);
         if (data.altura != null) setAltura(String(data.altura));
         if (data.peso != null) setPeso(String(data.peso));
+        if (data.unidad_altura === 'ft') setUnitHeight('imperial');
+        if (data.unidad_peso === 'lb') setUnitWeight('imperial');
       }
       setCargandoPerfil(false);
     }
@@ -306,6 +311,7 @@ export default function EditProfileScreen() {
               kind={picker}
               initial={draft}
               onChange={setDraft}
+              initialUnit={picker === 'height' ? unitHeight : unitWeight}
             />
           ) : null}
           <Button variant="primary" size="lg" fullWidth onPress={confirmPicker}>
