@@ -3,7 +3,7 @@
    cada dato, avanzar al siguiente y volver al anterior. Al terminar
    guarda en profiles solo lo que se haya completado. */
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   KeyboardAvoidingView,
   Platform,
@@ -60,7 +60,7 @@ export default function SetupWizardScreen() {
   const colors = useColors();
   const styles = useThemedStyles(makeStyles);
   const router = useRouter();
-  const { refresh } = useProfile();
+  const { refresh, profile } = useProfile();
   const [index, setIndex] = useState(0);
   // Altura y peso arrancan en un valor por defecto: la rueda siempre muestra
   // algo seleccionado. Si el usuario salta el dato, se limpia (ver skip).
@@ -70,6 +70,19 @@ export default function SetupWizardScreen() {
     altura: '170',
     peso: '70',
   });
+
+  // Si el usuario ya tenia datos cargados (volvio a entrar al setup), los
+  // precargamos para no mostrar los defaults ni pisar lo guardado con ellos.
+  // Mantenemos el default donde el perfil no tiene dato.
+  useEffect(() => {
+    if (!profile) return;
+    setValues((prev) => ({
+      edad: profile.edad != null ? String(profile.edad) : prev.edad,
+      sexo: profile.sexo ?? prev.sexo,
+      altura: profile.altura != null ? String(profile.altura) : prev.altura,
+      peso: profile.peso != null ? String(profile.peso) : prev.peso,
+    }));
+  }, [profile]);
   // Sistema de medicion elegido en los pasos de altura y peso. Se guarda como
   // preferencia (el valor del dato se persiste siempre en metrico).
   const [unitHeight, setUnitHeight] = useState<'metric' | 'imperial'>('metric');
@@ -138,11 +151,19 @@ export default function SetupWizardScreen() {
       return;
     }
 
-    const { error } = await supabase.from('profiles').update(payload).eq('id', user.id);
+    // Upsert por id en vez de update: garantiza que la fila exista y, con
+    // .select(), confirma que se escribio. Un update sin select que matchea 0
+    // filas devuelve exito silencioso y dejaba el onboarding sin marcar (el
+    // wizard reaparecia en cada ingreso y no se guardaba ningun dato).
+    const { data, error } = await supabase
+      .from('profiles')
+      .upsert({ id: user.id, ...payload }, { onConflict: 'id' })
+      .select('id')
+      .maybeSingle();
 
     setSaving(false);
 
-    if (error) {
+    if (error || !data) {
       setErrorMsg('No pudimos guardar tus datos. Proba de nuevo.');
       return;
     }
