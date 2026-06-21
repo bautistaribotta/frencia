@@ -54,8 +54,7 @@ export default function HomeScreen() {
   const first = displayName.split(' ')[0];
 
   const openProfile = () => router.push('/profile');
-  // Sin ruta de creacion de rutina todavia.
-  const onCreateRoutine = undefined;
+  const onCreateRoutine = () => router.push('/create-routine');
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>

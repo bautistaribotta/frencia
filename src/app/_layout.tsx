@@ -88,6 +88,15 @@ function RootNavigator() {
             fullScreenGestureEnabled: true,
           }}
         />
+        {/* Wizard de creacion de rutina. Sin gesto de volver: los pasos
+            manejan el retroceso con su propio boton para no perder datos. */}
+        <Stack.Screen
+          name="create-routine"
+          options={{
+            animation: 'slide_from_right',
+            gestureEnabled: false,
+          }}
+        />
       </Stack>
     </>
   );
