@@ -345,7 +345,7 @@ export default function ProfileScreen() {
             <View style={[styles.settingRow, styles.settingRowDivider]}>
               <View style={styles.settingText}>
                 <FrenciaText role="bodySm" style={styles.settingTitle}>
-                  Unidad de medida corporal
+                  Unidad de medida cm/in
                 </FrenciaText>
                 <FrenciaText role="bodySm" color={colors.textTertiary} style={styles.settingSub}>
                   {useFeet ? 'En pies y pulgadas' : 'En centímetros (cm)'}
