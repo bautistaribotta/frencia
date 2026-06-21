@@ -26,6 +26,8 @@ export interface ProfileData {
   avatarUrl: string | null;
   avatarSeed: string | null;
   onboardingCompleted: boolean;
+  // Medidor de esfuerzo preferido. Decide la escala al cargar ejercicios.
+  medidorEsfuerzo: 'rir' | 'rpe';
 }
 
 interface ProfileContextValue {
@@ -71,7 +73,7 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
     for (let intento = 0; intento < 3; intento++) {
       const res = await supabase
         .from('profiles')
-        .select('name, username, edad, sexo, altura, peso, avatar_url, avatar_seed, onboarding_completed')
+        .select('name, username, edad, sexo, altura, peso, avatar_url, avatar_seed, onboarding_completed, medidor_esfuerzo')
         .eq('id', current.id)
         .maybeSingle();
       if (res.data) {
@@ -93,6 +95,7 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
             avatarUrl: data.avatar_url,
             avatarSeed: data.avatar_seed,
             onboardingCompleted: data.onboarding_completed ?? false,
+            medidorEsfuerzo: data.medidor_esfuerzo === 'rpe' ? 'rpe' : 'rir',
           }
         : null,
     );
