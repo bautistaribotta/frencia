@@ -12,9 +12,7 @@ import {
   Pressable,
   ScrollView,
   StyleSheet,
-  TextInput,
   View,
-  type TextInputProps,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
@@ -63,18 +61,20 @@ export default function EditProfileScreen() {
   // Rueda de altura/peso: misma experiencia que el setup inicial. `draft`
   // guarda el valor canonico (cm o kg) mientras la rueda esta abierta. Las
   // unidades se precargan del perfil para abrir en el sistema elegido.
-  const [picker, setPicker] = useState<null | 'height' | 'weight'>(null);
+  const [picker, setPicker] = useState<null | 'age' | 'height' | 'weight'>(null);
   const [draft, setDraft] = useState(0);
   const [unitHeight, setUnitHeight] = useState<'metric' | 'imperial'>('metric');
   const [unitWeight, setUnitWeight] = useState<'metric' | 'imperial'>('metric');
 
-  function openPicker(kind: 'height' | 'weight') {
-    setDraft(Number(kind === 'height' ? altura : peso) || 0);
+  function openPicker(kind: 'age' | 'height' | 'weight') {
+    const source = kind === 'age' ? edad : kind === 'height' ? altura : peso;
+    setDraft(Number(source) || 0);
     setPicker(kind);
   }
 
   function confirmPicker() {
-    if (picker === 'height') setAltura(String(draft));
+    if (picker === 'age') setEdad(String(draft));
+    else if (picker === 'height') setAltura(String(draft));
     else if (picker === 'weight') setPeso(String(draft));
     setPicker(null);
   }
@@ -232,18 +232,6 @@ export default function EditProfileScreen() {
             </FrenciaText>
 
             <View style={styles.fields}>
-              <Field
-                label="Edad"
-                unit="años"
-                icon="calendar"
-                placeholder="24"
-                value={edad}
-                onChangeText={setEdad}
-                keyboardType="numeric"
-                inputMode="numeric"
-                maxLength={3}
-              />
-
               <View style={styles.segGroup}>
                 <FrenciaText role="dataLabel" color={colors.textTertiary}>
                   Sexo
@@ -255,6 +243,14 @@ export default function EditProfileScreen() {
                   onChange={setSexo}
                 />
               </View>
+
+              <SelectField
+                label="Edad"
+                icon="calendar"
+                value={edad ? `${edad} años` : ''}
+                placeholder="Elegí tu edad"
+                onPress={() => openPicker('age')}
+              />
 
               <SelectField
                 label="Altura"
@@ -304,14 +300,14 @@ export default function EditProfileScreen() {
         <Pressable style={styles.modalBackdrop} onPress={() => setPicker(null)} />
         <View style={styles.sheet}>
           <FrenciaText role="title" style={styles.sheetTitle}>
-            {picker === 'height' ? 'Tu altura' : 'Tu peso'}
+            {picker === 'age' ? 'Tu edad' : picker === 'height' ? 'Tu altura' : 'Tu peso'}
           </FrenciaText>
           {picker !== null ? (
             <MeasurePicker
               kind={picker}
               initial={draft}
               onChange={setDraft}
-              initialUnit={picker === 'height' ? unitHeight : unitWeight}
+              initialUnit={picker === 'height' ? unitHeight : picker === 'weight' ? unitWeight : 'metric'}
             />
           ) : null}
           <Button variant="primary" size="lg" fullWidth onPress={confirmPicker}>
@@ -320,52 +316,6 @@ export default function EditProfileScreen() {
         </View>
       </Modal>
     </SafeAreaView>
-  );
-}
-
-/* ── Campo de texto con icono, focus de acento ───────────────── */
-interface FieldProps extends TextInputProps {
-  icon: string;
-  // Nombre del campo, se muestra arriba del input.
-  label?: string;
-  // Unidad de medida, se muestra como sufijo dentro del input.
-  unit?: string;
-  trailing?: React.ReactNode;
-}
-
-function Field({ icon, label, unit, trailing, ...rest }: FieldProps) {
-  const colors = useColors();
-  const styles = useThemedStyles(makeStyles);
-  const [focused, setFocused] = useState(false);
-  return (
-    <View style={styles.fieldGroup}>
-      {label ? (
-        <FrenciaText role="dataLabel" color={colors.textTertiary}>
-          {label}
-        </FrenciaText>
-      ) : null}
-      <View
-        style={[
-          styles.field,
-          focused && styles.fieldFocused,
-        ]}
-      >
-        <Icon name={icon} size={20} color={focused ? colors.accent : colors.textTertiary} />
-        <TextInput
-          style={styles.input}
-          placeholderTextColor={colors.textTertiary}
-          onFocus={() => setFocused(true)}
-          onBlur={() => setFocused(false)}
-          {...rest}
-        />
-        {unit ? (
-          <FrenciaText role="bodySm" color={colors.textSecondary}>
-            {unit}
-          </FrenciaText>
-        ) : null}
-        {trailing}
-      </View>
-    </View>
   );
 }
 
@@ -465,17 +415,6 @@ const makeStyles = (colors: Palette) =>
     backgroundColor: colors.surfaceCard,
     borderWidth: 1,
     borderColor: colors.borderSubtle,
-  },
-  fieldFocused: {
-    borderColor: colors.surfaceGreenLine,
-    backgroundColor: colors.surfaceCardElevated,
-  },
-  input: {
-    flex: 1,
-    color: colors.textPrimary,
-    fontFamily: sans.regular,
-    fontSize: 16,
-    padding: 0,
   },
   selectValue: { flex: 1 },
 
