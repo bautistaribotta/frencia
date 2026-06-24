@@ -1,9 +1,8 @@
-/* Frencia · MeasurePicker — eleccion de edad, altura o peso con ruedas tipo dial.
-   Para altura y peso suma el toggle de unidad (cm/ft, kg/lbs) y la conversion,
-   guardando siempre el valor canonico en metrico (cm o kg). La edad no tiene
-   unidad: es una sola rueda en años, sin toggle. La barra de seleccion va
-   centrada. Se usa tanto en el setup inicial como al editar el perfil, para que
-   el dato se actualice igual que cuando se definio. */
+/* Frencia · MeasurePicker (fallback no-iOS) — altura o peso con ruedas tipo dial.
+   La app se publica solo en iOS, donde se usa la rueda nativa de
+   MeasurePicker.ios.tsx. Esta version reutiliza el WheelPicker propio para que
+   el bundle de web/Android no se rompa. Suma el toggle de unidad (cm/ft, kg/lbs)
+   y la conversion, guardando siempre el valor canonico en metrico (cm o kg). */
 
 import React, { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
@@ -19,7 +18,7 @@ import {
   type Palette,
 } from '@/design';
 
-type Kind = 'age' | 'height' | 'weight';
+type Kind = 'height' | 'weight';
 type Unit = 'metric' | 'imperial';
 
 export interface MeasurePickerProps {
@@ -27,7 +26,7 @@ export interface MeasurePickerProps {
   // Valor canonico inicial (cm para altura, kg para peso).
   initial: number;
   onChange: (canonical: number) => void;
-  // Unidad de ingreso inicial. Para edad se ignora (no tiene unidad).
+  // Unidad de ingreso inicial (cm/ft para altura, kg/lb para peso).
   initialUnit?: Unit;
   // Avisa cuando el usuario cambia el sistema de medicion, para persistirlo.
   onUnitChange?: (unit: Unit) => void;
@@ -44,7 +43,6 @@ const range = (a: number, b: number) => Array.from({ length: b - a + 1 }, (_, i)
 const clamp = (n: number, a: number, b: number) => Math.max(a, Math.min(b, n));
 
 // Rangos de cada rueda.
-const AGE = range(13, 99);
 const HEIGHT_CM = range(120, 220);
 const FEET = range(4, 7);
 const INCH = range(0, 11);
@@ -53,11 +51,10 @@ const LB_INT = range(66, 440);
 const DEC = range(0, 9);
 
 // Defaults razonables si no hay dato previo.
-const DEFAULT = { age: 25, height: 170, weight: 70 };
+const DEFAULT = { height: 170, weight: 70 };
 
 // canonico -> indices de rueda segun unidad.
 function toIndices(kind: Kind, unit: Unit, value: number): [number, number] {
-  if (kind === 'age') return [clamp(Math.round(value), 13, 99) - 13, 0];
   if (kind === 'height') {
     if (unit === 'metric') return [clamp(Math.round(value), 120, 220) - 120, 0];
     const totalIn = Math.round(value / CM_PER_IN);
@@ -76,9 +73,8 @@ function toIndices(kind: Kind, unit: Unit, value: number): [number, number] {
   return [int - 66, dec];
 }
 
-// indices de rueda -> canonico (años, cm o kg).
+// indices de rueda -> canonico (cm o kg).
 function compose(kind: Kind, unit: Unit, i1: number, i2: number): number {
-  if (kind === 'age') return AGE[i1];
   if (kind === 'height') {
     if (unit === 'metric') return HEIGHT_CM[i1];
     const cm = (FEET[i1] * 12 + INCH[i2]) * CM_PER_IN;
@@ -143,22 +139,17 @@ export function MeasurePicker({
   // Unidad mostrada al costado. En altura imperial las unidades van entre las
   // ruedas (ft / in), por eso no hay unidad lateral.
   const sideUnit =
-    kind === 'age'
-      ? 'años'
-      : kind === 'height'
-        ? unit === 'metric'
-          ? 'cm'
-          : null
-        : unit === 'metric'
-          ? 'kg'
-          : 'lbs';
+    kind === 'height'
+      ? unit === 'metric'
+        ? 'cm'
+        : null
+      : unit === 'metric'
+        ? 'kg'
+        : 'lbs';
 
   return (
     <View style={styles.wrap}>
-      {/* La edad no tiene unidad, asi que no lleva toggle */}
-      {kind !== 'age' ? (
-        <SegmentedControl accent options={unitOptions} value={unit} onChange={switchUnit} style={styles.toggle} />
-      ) : null}
+      <SegmentedControl accent options={unitOptions} value={unit} onChange={switchUnit} style={styles.toggle} />
 
       <View style={styles.stage}>
         {/* Barra de seleccion centrada, detras de las ruedas */}
@@ -166,10 +157,6 @@ export function MeasurePicker({
 
         {/* El valor queda centrado en pantalla para que no lo tape la mano */}
         <View style={styles.numeric}>
-          {kind === 'age' ? (
-            <WheelPicker values={AGE} index={i1} onIndexChange={changeI1} itemHeight={ITEM_H} visibleCount={VISIBLE} width={96} align="center" />
-          ) : null}
-
           {kind === 'height' && unit === 'metric' ? (
             <WheelPicker values={HEIGHT_CM} index={i1} onIndexChange={changeI1} itemHeight={ITEM_H} visibleCount={VISIBLE} width={96} align="center" />
           ) : null}
@@ -206,8 +193,7 @@ export function MeasurePicker({
           ) : null}
         </View>
 
-        {/* Unidad fija al costado: no desplaza el valor centrado. Usa la
-           tipografia sans (Archivo) porque la mono no renderiza la ñ de "años". */}
+        {/* Unidad fija al costado: no desplaza el valor centrado. */}
         {sideUnit ? (
           <View pointerEvents="none" style={styles.unitSide}>
             <FrenciaText role="bodySm" color={colors.textSecondary} style={styles.unit}>

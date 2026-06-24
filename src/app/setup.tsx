@@ -16,6 +16,14 @@ import { useRouter } from 'expo-router';
 import { supabase } from '@/lib/supabase';
 import { useProfile } from '@/contexts/profile';
 import { MeasurePicker } from '@/components/MeasurePicker';
+import { BirthDatePicker } from '@/components/BirthDatePicker';
+import {
+  MAX_BIRTHDATE,
+  MIN_BIRTHDATE,
+  defaultBirthdate,
+  fromIsoDate,
+  toIsoDate,
+} from '@/lib/birthdate';
 
 import {
   Button,
@@ -36,8 +44,8 @@ const SEXO_OPTIONS = [
   { value: 'otro', label: 'Otro' },
 ];
 
-type StepKey = 'edad' | 'sexo' | 'altura' | 'peso';
-type StepType = 'number' | 'segment';
+type StepKey = 'nacimiento' | 'sexo' | 'altura' | 'peso';
+type StepType = 'number' | 'segment' | 'date';
 
 interface StepDef {
   key: StepKey;
@@ -51,7 +59,7 @@ interface StepDef {
 
 const STEPS: StepDef[] = [
   { key: 'sexo', type: 'segment', icon: 'user', title: '¿Con qué sexo te identificás?', hint: 'Afina los cálculos de progreso.' },
-  { key: 'edad', type: 'number', icon: 'calendar', title: '¿Cuántos años tenés?', hint: 'Lo usamos para ajustar tus referencias.', placeholder: 'Edad', maxLength: 3 },
+  { key: 'nacimiento', type: 'date', icon: 'calendar', title: '¿Cuál es tu fecha de nacimiento?', hint: 'Deslizá las ruedas para elegirla.' },
   { key: 'altura', type: 'number', icon: 'trending-up', title: '¿Cuál es tu altura?', hint: 'Deslizá la rueda para elegirla.' },
   { key: 'peso', type: 'number', icon: 'target', title: '¿Cuál es tu peso?', hint: 'Deslizá la rueda para elegirlo.' },
 ];
@@ -65,7 +73,7 @@ export default function SetupWizardScreen() {
   // Altura y peso arrancan en un valor por defecto: la rueda siempre muestra
   // algo seleccionado. Si el usuario salta el dato, se limpia (ver skip).
   const [values, setValues] = useState<Record<StepKey, string>>({
-    edad: '25',
+    nacimiento: toIsoDate(defaultBirthdate()),
     sexo: '',
     altura: '170',
     peso: '70',
@@ -77,7 +85,7 @@ export default function SetupWizardScreen() {
   useEffect(() => {
     if (!profile) return;
     setValues((prev) => ({
-      edad: profile.edad != null ? String(profile.edad) : prev.edad,
+      nacimiento: profile.fechaNacimiento ?? prev.nacimiento,
       sexo: profile.sexo ?? prev.sexo,
       altura: profile.altura != null ? String(profile.altura) : prev.altura,
       peso: profile.peso != null ? String(profile.peso) : prev.peso,
@@ -106,9 +114,10 @@ export default function SetupWizardScreen() {
     const v = raw.trim();
     if (v === '') return false;
     if (key === 'sexo') return SEXO_OPTIONS.some((o) => o.value === v);
-    if (key === 'edad') {
-      const n = Number(v);
-      return Number.isInteger(n) && n >= 0 && n <= 150;
+    if (key === 'nacimiento') {
+      const d = fromIsoDate(v);
+      if (Number.isNaN(d.getTime())) return false;
+      return d >= MIN_BIRTHDATE && d <= MAX_BIRTHDATE;
     }
     const n = Number(v);
     return Number.isFinite(n) && n > 0;
@@ -136,7 +145,7 @@ export default function SetupWizardScreen() {
       unidad_altura: unitHeight === 'imperial' ? 'ft' : 'cm',
       unidad_peso: unitWeight === 'imperial' ? 'lb' : 'kg',
     };
-    if (isValid('edad', vals.edad)) payload.edad = Number(vals.edad);
+    if (isValid('nacimiento', vals.nacimiento)) payload.fecha_nacimiento = vals.nacimiento;
     if (isValid('sexo', vals.sexo)) payload.sexo = vals.sexo;
     if (isValid('altura', vals.altura)) payload.altura = Number(vals.altura);
     if (isValid('peso', vals.peso)) payload.peso = Number(vals.peso);
@@ -252,15 +261,18 @@ export default function SetupWizardScreen() {
               value={current}
               onChange={setCurrent}
             />
+          ) : step.type === 'date' ? (
+            <BirthDatePicker
+              value={current ? fromIsoDate(current) : defaultBirthdate()}
+              onChange={(d) => setCurrent(toIsoDate(d))}
+            />
           ) : (
             <MeasurePicker
-              kind={step.key === 'edad' ? 'age' : step.key === 'altura' ? 'height' : 'weight'}
+              kind={step.key === 'altura' ? 'height' : 'weight'}
               initial={Number(current) || 0}
               onChange={(n) => setCurrent(String(n))}
-              initialUnit={step.key === 'altura' ? unitHeight : step.key === 'peso' ? unitWeight : 'metric'}
-              onUnitChange={
-                step.key === 'altura' ? setUnitHeight : step.key === 'peso' ? setUnitWeight : undefined
-              }
+              initialUnit={step.key === 'altura' ? unitHeight : unitWeight}
+              onUnitChange={step.key === 'altura' ? setUnitHeight : setUnitWeight}
             />
           )}
 

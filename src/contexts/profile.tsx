@@ -14,11 +14,15 @@ import React, {
 } from 'react';
 
 import { supabase } from '@/lib/supabase';
+import { calcularEdad } from '@/lib/birthdate';
 import { useSession } from './session';
 
 export interface ProfileData {
   name: string | null;
   username: string | null;
+  // Fuente de verdad. La edad se deriva de aca, no se persiste.
+  fechaNacimiento: string | null;
+  // Edad cumplida, calculada a partir de fechaNacimiento (null si no hay fecha).
   edad: number | null;
   sexo: string | null;
   altura: number | null;
@@ -73,7 +77,7 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
     for (let intento = 0; intento < 3; intento++) {
       const res = await supabase
         .from('profiles')
-        .select('name, username, edad, sexo, altura, peso, avatar_url, avatar_seed, onboarding_completed, medidor_esfuerzo')
+        .select('name, username, fecha_nacimiento, sexo, altura, peso, avatar_url, avatar_seed, onboarding_completed, medidor_esfuerzo')
         .eq('id', current.id)
         .maybeSingle();
       if (res.data) {
@@ -88,7 +92,8 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
         ? {
             name: data.name,
             username: data.username,
-            edad: data.edad,
+            fechaNacimiento: data.fecha_nacimiento,
+            edad: data.fecha_nacimiento ? calcularEdad(data.fecha_nacimiento) : null,
             sexo: data.sexo,
             altura: data.altura,
             peso: data.peso,

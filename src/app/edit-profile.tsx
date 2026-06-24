@@ -21,6 +21,16 @@ import { supabase } from '@/lib/supabase';
 import { useProfile } from '@/contexts/profile';
 import { useToast } from '@/contexts/toast';
 import { MeasurePicker } from '@/components/MeasurePicker';
+import { BirthDatePicker } from '@/components/BirthDatePicker';
+import {
+  MAX_BIRTHDATE,
+  MIN_BIRTHDATE,
+  calcularEdad,
+  defaultBirthdate,
+  formatearFecha,
+  fromIsoDate,
+  toIsoDate,
+} from '@/lib/birthdate';
 
 import {
   Button,
@@ -50,7 +60,7 @@ export default function EditProfileScreen() {
   const router = useRouter();
   const { refresh } = useProfile();
   const { showToast } = useToast();
-  const [edad, setEdad] = useState('');
+  const [fechaNacimiento, setFechaNacimiento] = useState('');
   const [sexo, setSexo] = useState('');
   const [altura, setAltura] = useState('');
   const [peso, setPeso] = useState('');
@@ -61,19 +71,24 @@ export default function EditProfileScreen() {
   // Rueda de altura/peso: misma experiencia que el setup inicial. `draft`
   // guarda el valor canonico (cm o kg) mientras la rueda esta abierta. Las
   // unidades se precargan del perfil para abrir en el sistema elegido.
-  const [picker, setPicker] = useState<null | 'age' | 'height' | 'weight'>(null);
+  const [picker, setPicker] = useState<null | 'birthdate' | 'height' | 'weight'>(null);
   const [draft, setDraft] = useState(0);
+  // Borrador aparte para la fecha de nacimiento (la rueda trabaja con Date).
+  const [draftDate, setDraftDate] = useState<Date>(() => defaultBirthdate());
   const [unitHeight, setUnitHeight] = useState<'metric' | 'imperial'>('metric');
   const [unitWeight, setUnitWeight] = useState<'metric' | 'imperial'>('metric');
 
-  function openPicker(kind: 'age' | 'height' | 'weight') {
-    const source = kind === 'age' ? edad : kind === 'height' ? altura : peso;
-    setDraft(Number(source) || 0);
+  function openPicker(kind: 'birthdate' | 'height' | 'weight') {
+    if (kind === 'birthdate') {
+      setDraftDate(fechaNacimiento ? fromIsoDate(fechaNacimiento) : defaultBirthdate());
+    } else {
+      setDraft(Number(kind === 'height' ? altura : peso) || 0);
+    }
     setPicker(kind);
   }
 
   function confirmPicker() {
-    if (picker === 'age') setEdad(String(draft));
+    if (picker === 'birthdate') setFechaNacimiento(toIsoDate(draftDate));
     else if (picker === 'height') setAltura(String(draft));
     else if (picker === 'weight') setPeso(String(draft));
     setPicker(null);
@@ -99,14 +114,14 @@ export default function EditProfileScreen() {
 
       const { data } = await supabase
         .from('profiles')
-        .select('edad, sexo, altura, peso, unidad_altura, unidad_peso')
+        .select('fecha_nacimiento, sexo, altura, peso, unidad_altura, unidad_peso')
         .eq('id', user.id)
         .single();
 
       if (!activo) return;
 
       if (data) {
-        if (data.edad != null) setEdad(String(data.edad));
+        if (data.fecha_nacimiento != null) setFechaNacimiento(data.fecha_nacimiento);
         if (data.sexo != null) setSexo(data.sexo);
         if (data.altura != null) setAltura(String(data.altura));
         if (data.peso != null) setPeso(String(data.peso));
@@ -123,17 +138,18 @@ export default function EditProfileScreen() {
   }, []);
 
   // Ningun campo es obligatorio: validamos solo el formato de lo que se completa.
-  const edadNum = Number(edad);
   const alturaNum = Number(altura);
   const pesoNum = Number(peso);
 
-  const edadValida =
-    edad.trim() === '' || (Number.isInteger(edadNum) && edadNum >= 0 && edadNum <= 150);
+  const fechaDate = fechaNacimiento.trim() === '' ? null : fromIsoDate(fechaNacimiento);
+  const fechaValida =
+    fechaDate === null ||
+    (!Number.isNaN(fechaDate.getTime()) && fechaDate >= MIN_BIRTHDATE && fechaDate <= MAX_BIRTHDATE);
   const alturaValida = altura.trim() === '' || (Number.isFinite(alturaNum) && alturaNum > 0);
   const pesoValida = peso.trim() === '' || (Number.isFinite(pesoNum) && pesoNum > 0);
 
   // El boton esta siempre disponible salvo que algun dato cargado sea invalido.
-  const canSubmit = edadValida && alturaValida && pesoValida;
+  const canSubmit = fechaValida && alturaValida && pesoValida;
 
   async function handleSave() {
     if (!canSubmit || loading) return;
@@ -153,7 +169,7 @@ export default function EditProfileScreen() {
     const { error } = await supabase
       .from('profiles')
       .update({
-        edad: edad.trim() === '' ? null : edadNum,
+        fecha_nacimiento: fechaNacimiento.trim() === '' ? null : fechaNacimiento,
         sexo: SEXO_OPTIONS.some((o) => o.value === sexo) ? sexo : null,
         altura: altura.trim() === '' ? null : alturaNum,
         peso: peso.trim() === '' ? null : pesoNum,
@@ -245,11 +261,15 @@ export default function EditProfileScreen() {
               </View>
 
               <SelectField
-                label="Edad"
+                label="Fecha de nacimiento"
                 icon="calendar"
-                value={edad ? `${edad} años` : ''}
-                placeholder="Elegí tu edad"
-                onPress={() => openPicker('age')}
+                value={
+                  fechaNacimiento
+                    ? `${formatearFecha(fechaNacimiento)} · ${calcularEdad(fechaNacimiento)} años`
+                    : ''
+                }
+                placeholder="Elegí tu fecha de nacimiento"
+                onPress={() => openPicker('birthdate')}
               />
 
               <SelectField
@@ -300,14 +320,16 @@ export default function EditProfileScreen() {
         <Pressable style={styles.modalBackdrop} onPress={() => setPicker(null)} />
         <View style={styles.sheet}>
           <FrenciaText role="title" style={styles.sheetTitle}>
-            {picker === 'age' ? 'Tu edad' : picker === 'height' ? 'Tu altura' : 'Tu peso'}
+            {picker === 'birthdate' ? 'Tu fecha de nacimiento' : picker === 'height' ? 'Tu altura' : 'Tu peso'}
           </FrenciaText>
-          {picker !== null ? (
+          {picker === 'birthdate' ? (
+            <BirthDatePicker value={draftDate} onChange={setDraftDate} />
+          ) : picker !== null ? (
             <MeasurePicker
               kind={picker}
               initial={draft}
               onChange={setDraft}
-              initialUnit={picker === 'height' ? unitHeight : picker === 'weight' ? unitWeight : 'metric'}
+              initialUnit={picker === 'height' ? unitHeight : unitWeight}
             />
           ) : null}
           <Button variant="primary" size="lg" fullWidth onPress={confirmPicker}>
