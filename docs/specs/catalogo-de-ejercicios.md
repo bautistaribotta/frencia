@@ -1,21 +1,21 @@
 # Catalogo de ejercicios
 
-Estado: propuesto
+Estado: implementado
 Fecha: 2026-07-29
 
 ## 1. Problema
 
-El catalogo esta vacio. Verificado el 2026-07-29 contra el proyecto remoto:
+El catalogo estaba vacio: `exercises` tenia 1 fila de prueba y `exercise_muscles`
+ninguna, asi que no se podia armar una rutina real ni probar el registro de
+sesion de punta a punta.
+
+Resuelto el 2026-07-29. Estado actual:
 
 | Tabla | Filas |
 |---|---|
-| `exercises` | 1 ("Press banca plano con barra") |
-| `exercise_muscles` | 0 |
+| `exercises` | 198 |
+| `exercise_muscles` | 425 (198 primarios, 227 secundarios) |
 | `muscle_groups` | 11 |
-
-Con un solo ejercicio no se puede armar una rutina real, el filtro por grupo
-muscular no filtra nada, y no hay forma de probar de punta a punta el registro de
-sesion. Bloquea todo lo demas.
 
 ## 2. Fuente elegida
 
@@ -61,11 +61,26 @@ Criterio de exclusion:
   existentes (ver 4.3).
 
 Razon, mas alla de lo obvio: un picker con 1.324 filas es inusable, y ademas
-**la curaduria salva la estrategia de busqueda actual**. Hoy la app carga el
-catalogo entero en memoria y filtra ahi. Con ~300 ejercicios y campos acotados
-eso son unos 50 KB, perfectamente viable. Con los 1.324 completos y sus
-instrucciones el JSON pesa 17 MB y habria que rehacer la busqueda contra el
-servidor.
+**la curaduria salva la estrategia de busqueda actual**. La app carga el
+catalogo entero en memoria y filtra ahi. Con 198 ejercicios y campos acotados
+(el hook solo trae `id`, `name` y `name_en`) eso son unos 20 KB, perfectamente
+viable. Con los 1.324 completos y sus instrucciones el JSON pesa 17 MB y habria
+que rehacer la busqueda contra el servidor.
+
+### 3.1 Por que la seleccion es manual
+
+El primer intento fue filtrar por reglas (equipamiento comun, cupo por grupo, y
+a igualdad de equipamiento el nombre mas corto como proxy de "ejercicio base").
+El resultado no servia: dejaba entrar variantes de render del mismo movimiento
+(`v. 2`, `(female)`, `(back pov)`), nombres que no son ejercicios de sala
+(`quads`, `balance board`, `spell caster`), y sobre todo **dejaba afuera lo mas
+basico** (dominadas, fondos, jalon al pecho, extension de triceps en polea,
+prensa), porque son nombres largos o de equipamiento que quedaba abajo en el
+orden de prioridad.
+
+La seleccion final es una lista escrita a mano de 198 ejercicios, cada uno con
+su nombre exacto del dataset y su traduccion. Un script valida que los 198
+existan realmente en el origen antes de generar el SQL.
 
 ## 4. Modelo de datos
 
@@ -133,25 +148,39 @@ de devolver todo ejercicio donde el pecho participe de refilon.
 
 ## 5. Importacion
 
-Se resuelve con un script que lee el dataset, aplica la curaduria y la
-traduccion, y **genera el SQL**. La migracion resultante se versiona y se aplica
-al proyecto remoto, para que la carga sea reproducible y no dependa de una
-ejecucion manual.
+El `data/exercises.json` del repositorio fuente (17 MB) **no se versiona**: solo
+hace falta para generar el SQL. Un script lo lee, valida que los 198 nombres
+elegidos existan, y emite las migraciones.
 
-Pasos:
+Migraciones aplicadas el 2026-07-29:
 
-1. Descargar `data/exercises.json` del repositorio fuente. No se versiona en
-   este repo: pesa 17 MB y solo se necesita para generar la migracion.
-2. Filtrar segun los criterios de la seccion 3.
-3. Traducir los nombres al espanol.
-4. Mapear `target` y `secondary_muscles` a `muscle_groups`, marcando
-   `is_primary`.
-5. Emitir el SQL de insercion en `exercises` y `exercise_muscles`.
+| Migracion | Contenido |
+|---|---|
+| `add_catalog_columns_to_exercises` | Columnas nuevas e `is_primary` |
+| `seed_exercises_catalog_curated` | Borra la fila de prueba e inserta los 198 |
+| `seed_exercise_muscles` | 425 relaciones musculares |
+| `seed_exercise_instructions_1..4` | Instrucciones en espanol, en cuatro tandas |
+| `mark_hip_abduction_primary_muscle` | Correccion, ver abajo |
 
-Queda una unica fila en `exercises` ("Press banca plano con barra"). La
-reestructuracion de `rutinas-y-dias.md` borro las tablas que la referenciaban,
-asi que ya no hay nada que preservar: se puede reemplazar o dejar que el dataset
-la duplique y limpiarla despues.
+Se dividio en varias migraciones porque el SQL completo son ~148 KB, de los
+cuales 100 KB son las instrucciones. Se aplicaron con `npx supabase db push`.
+
+**Correccion necesaria:** "Abductores en maquina" quedo sin musculo primario. Su
+`target` en el dataset es `abductors`, que no tiene equivalente entre los 11
+grupos, asi que el `join` del seed no encontro fila. Se promovio su relacion con
+gluteos (que ya existia como secundaria) a primaria, porque la abduccion de
+cadera trabaja sobre todo el gluteo medio. Vale como recordatorio: **todo
+ejercicio tiene que terminar con exactamente un primario**, y conviene
+verificarlo despues de cada importacion.
+
+## 5.1 Busqueda por los dos nombres
+
+`useExerciseCatalog` trae `id`, `name` y `name_en`, y el filtro del wizard mira
+los dos campos. Asi "jalon al pecho" y "lat pulldown" encuentran el mismo
+ejercicio, que es como se habla en el gimnasio.
+
+La clave del cache en AsyncStorage subio a `v2` al sumar `name_en`: con la `v1`
+los usuarios existentes hubieran quedado con objetos sin ese campo.
 
 ## 6. Fuera de alcance
 

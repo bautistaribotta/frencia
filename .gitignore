@@ -57,7 +57,3 @@ example
 # generated native folders
 /ios
 /android
-
-# Supabase versionado
-supabase/.temp/
-supabase/.branches/
