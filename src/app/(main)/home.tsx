@@ -42,10 +42,11 @@ const STEPS: Step[] = [
   { n: 3, title: 'Sigue tu progreso', sub: 'PRs, volumen semanal y 1RM estimado', state: 'locked' },
 ];
 
+// Por ahora solo Hoy y Perfil: Historial y Rutinas se suman cuando existan sus
+// pantallas. El TabBar reparte los items a los lados del boton central, asi que
+// con dos queda uno de cada lado.
 const TABS = [
   { value: 'hoy', label: 'Hoy', icon: 'home' },
-  { value: 'historial', label: 'Historial', icon: 'calendar' },
-  { value: 'rutinas', label: 'Rutinas', icon: 'list' },
   { value: 'perfil', label: 'Perfil', icon: 'user' },
 ];
 
