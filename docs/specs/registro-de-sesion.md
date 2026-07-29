@@ -3,15 +3,16 @@
 Estado: propuesto
 Fecha: 2026-07-29
 
-Depende de `programas-y-rutinas.md`, que define la jerarquia Programa > Rutina >
-Ejercicio de rutina. Este spec cubre la ejecucion: que pasa cuando el usuario
-toca Empezar.
+Depende de `rutinas-y-dias.md`, que define la jerarquia Rutina > Dia de
+entrenamiento > Ejercicio. Este spec cubre la ejecucion: que pasa cuando el
+usuario toca Empezar sobre un dia.
 
 ## 1. Problema
 
-Hoy la app permite planificar (crear rutinas con ejercicios, series, reps e
-intensidad objetivo) pero no registrar. El boton Empezar del home no lleva a
-ningun lado, y el paso 2 del onboarding ("Registra una sesion") esta bloqueado.
+Hoy la app permite planificar (crear rutinas con sus dias, ejercicios, series,
+reps e intensidad objetivo) pero no registrar. El boton Empezar del home no
+lleva a ningun lado, y el paso 2 del onboarding ("Registra una sesion") esta
+bloqueado.
 
 Sin registro no hay training log: no hay progresion, ni PRs, ni volumen, ni 1RM
 estimado. Todo eso son lecturas derivadas de lo que efectivamente se levanto.
@@ -39,35 +40,37 @@ y la app no elige por el usuario.
 1. Cada serie registra **peso, repeticiones e intensidad** (RIR o RPE, segun
    `profiles.medidor_esfuerzo`). Los tres son obligatorios para dar la serie por
    terminada.
-2. La sesion es **libre**. La rutina precarga que ejercicios tocan, pero el
-   usuario puede saltear ejercicios, agregar uno que no estaba, o hacer mas o
-   menos series de las planificadas. La app no bloquea ni advierte.
+2. La sesion es **libre**. El dia de entrenamiento precarga que ejercicios
+   tocan, pero el usuario puede saltear ejercicios, agregar uno que no estaba, o
+   hacer mas o menos series de las planificadas. La app no bloquea ni advierte.
 3. Las series se agregan **de a una**. Al abrir un ejercicio hay una sola serie
    lista para completar; al terminarla aparece la siguiente. No se pre-generan
-   filas vacias segun `routine_exercises.sets`, que pasa a ser solo una
+   filas vacias segun `training_day_exercises.sets`, que pasa a ser solo una
    referencia visible ("planificado: 4 series").
 4. La referencia es **serie por serie**: la serie 3 de hoy se compara contra la
    serie 3 de la vez pasada, no contra la mejor del ejercicio. Refleja la caida
    por fatiga dentro del ejercicio.
-5. La referencia se busca en **la ultima sesion terminada de esta misma rutina**.
-   Ver seccion 3.1 por el fallback.
+5. La referencia se busca en **la ultima sesion terminada de este mismo dia de
+   entrenamiento**. Ver seccion 3.1 por el fallback.
 6. Hay **como maximo una sesion en curso** por usuario, forzada en la base de
-   datos igual que el programa activo.
+   datos igual que la rutina activa.
 7. Una sesion en curso se retoma donde quedo. Un entrenamiento dura una hora con
    la pantalla apagandose, salir de la app es normal y no debe perder nada.
 
 ### 3.1 Fallback de la referencia
 
-Atar la referencia a la rutina da la comparacion mas limpia (mismo contexto, mismo
-orden de ejercicios, misma fatiga acumulada), pero tiene un agujero: como las
-rutinas cuelgan de un programa, estrenar un programa crea rutinas nuevas sin
-historial. La fila de referencia queda vacia justo cuando mas se necesita.
+Atar la referencia al dia da la comparacion mas limpia (mismo contexto, mismo
+orden de ejercicios, misma fatiga acumulada), pero tiene un agujero: como los
+dias cuelgan de una rutina, crear una rutina nueva crea dias nuevos sin
+historial. La fila de referencia queda vacia justo cuando mas se necesita, al
+estrenar bloque.
 
 Mitigacion, en dos niveles:
 
-1. Ultima sesion terminada de **esta rutina** que incluya ese ejercicio.
+1. Ultima sesion terminada de **este dia de entrenamiento** que incluya ese
+   ejercicio.
 2. Si no hay ninguna, ultima sesion terminada del usuario que incluya ese
-   ejercicio, **en cualquier rutina**. Se muestra igual pero diferenciado
+   ejercicio, **en cualquier dia**. Se muestra igual pero diferenciado
    visualmente (por ejemplo atenuado, o con la fecha explicita), para que quede
    claro que viene de otro contexto.
 
@@ -78,7 +81,7 @@ Si tampoco hay, no se muestra fila de referencia.
 ```
 auth.users
   |
-  +-- workout_sessions (id, user_id, routine_id, started_at, finished_at)
+  +-- workout_sessions (id, user_id, training_day_id, started_at, finished_at)
         |
         +-- session_sets (id, session_id, exercise_id, set_index, weight_kg,
                           reps, intensity_kind, intensity_value, completed_at)
@@ -94,7 +97,7 @@ si hacen falta notas por ejercicio.
 |---|---|---|
 | `id` | uuid pk | `gen_random_uuid()` |
 | `user_id` | uuid | FK a `auth.users`, on delete cascade |
-| `routine_id` | uuid null | FK a `routines` on delete set null. Nullable para que borrar una rutina no borre el historial |
+| `training_day_id` | uuid null | FK a `training_days` on delete set null. Nullable para que borrar un dia no borre el historial |
 | `started_at` | timestamptz | `now()` |
 | `finished_at` | timestamptz null | `null` = sesion en curso |
 | `created_at` | timestamptz | `now()` |
@@ -105,9 +108,10 @@ create unique index workout_sessions_una_en_curso
   where finished_at is null;
 ```
 
-`routine_id` nullable con `on delete set null` es intencional: el historial de lo
-que el usuario levanto sobrevive al borrado de la rutina que lo origino. Se
-pierde el vinculo, no el dato.
+`training_day_id` nullable con `on delete set null` es intencional: el historial
+de lo que el usuario levanto sobrevive al borrado del dia que lo origino, y como
+archivar una rutina no borra sus dias, las sesiones viejas conservan el vinculo.
+Se pierde la referencia solo si el dia se elimina de verdad.
 
 ### 4.2 `session_sets`
 
@@ -119,8 +123,8 @@ pierde el vinculo, no el dato.
 | `set_index` | smallint | Numero de serie dentro del ejercicio, arranca en 1 |
 | `weight_kg` | numeric | Siempre en kilos, ver 4.3 |
 | `reps` | smallint | `> 0` |
-| `intensity_kind` | text | `rir` o `rpe`, mismo check que `routine_exercises` |
-| `intensity_value` | numeric | `>= -1`, mismo check que `routine_exercises` |
+| `intensity_kind` | text | `rir` o `rpe`, mismo check que `training_day_exercises` |
+| `intensity_value` | numeric | `>= -1`, mismo check que `training_day_exercises` |
 | `completed_at` | timestamptz | `now()` |
 
 Indice para la consulta de referencia:
@@ -135,10 +139,11 @@ RLS por dueño en ambas tablas. `session_sets` valida via join a
 
 ### 4.3 Descanso entre series
 
-El descanso se define **al agregar el ejercicio a la rutina**, no durante la
-sesion. Es un tiempo fijo, igual para todas las series de ese ejercicio.
+El descanso se define **al agregar el ejercicio al dia**, no durante la sesion.
+Es un tiempo fijo, igual para todas las series de ese ejercicio.
 
-Nueva columna en `routine_exercises`:
+Columna en `training_day_exercises`, ya creada por la migracion de
+`rutinas-y-dias.md`:
 
 | Columna | Tipo | Notas |
 |---|---|---|
@@ -164,8 +169,8 @@ y no ensucia las agregaciones.
 
 ## 5. Consulta de la fila de referencia
 
-Dado `routine_id` y `exercise_id`, traer las series de la ultima sesion
-terminada de esa rutina que incluya ese ejercicio:
+Dado `training_day_id` y `exercise_id`, traer las series de la ultima sesion
+terminada de ese dia que incluya ese ejercicio:
 
 ```sql
 select s.set_index, s.weight_kg, s.reps, s.intensity_kind, s.intensity_value
@@ -175,7 +180,7 @@ where s.session_id = (
   from public.workout_sessions ws
   join public.session_sets ss on ss.session_id = ws.id
   where ws.user_id = (select auth.uid())
-    and ws.routine_id = :routine_id
+    and ws.training_day_id = :training_day_id
     and ws.finished_at is not null
     and ss.exercise_id = :exercise_id
   order by ws.finished_at desc
@@ -185,7 +190,7 @@ and s.exercise_id = :exercise_id
 order by s.set_index;
 ```
 
-Conviene traer la referencia de **todos** los ejercicios de la rutina al abrir la
+Conviene traer la referencia de **todos** los ejercicios del dia al abrir la
 sesion, en una sola consulta, y no una por ejercicio a medida que se avanza. Son
 pocos datos y evita un ida y vuelta en medio del entrenamiento, cuando la
 conexion del gimnasio suele ser mala.
@@ -194,19 +199,19 @@ conexion del gimnasio suele ser mala.
 
 ### 6.1 Empezar
 
-Desde el home, Empezar sobre una rutina crea una `workout_session` con
-`finished_at` en null y abre la pantalla de sesion.
+Desde el home, Empezar sobre un dia de entrenamiento crea una `workout_session`
+con `finished_at` en null y abre la pantalla de sesion.
 
 Si ya hay una sesion en curso, no se crea otra: se ofrece retomarla o
 descartarla.
 
 ### 6.2 Pantalla de sesion
 
-- Lista de los ejercicios de la rutina, en orden.
+- Lista de los ejercicios del dia, en orden.
 - Por ejercicio: series ya registradas, y una serie activa a completar.
 - Sobre la serie activa, la fila de referencia (seccion 2).
 - Acciones: registrar serie, saltear ejercicio, agregar un ejercicio que no
-  estaba en la rutina.
+  estaba en el dia.
 - Cerrar la app y volver retoma exactamente en este estado.
 
 ### 6.3 Temporizador de descanso

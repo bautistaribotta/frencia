@@ -148,9 +148,10 @@ Pasos:
    `is_primary`.
 5. Emitir el SQL de insercion en `exercises` y `exercise_muscles`.
 
-El ejercicio que ya existe ("Press banca plano con barra") se conserva. Si el
-dataset trae su equivalente, se actualiza esa fila en vez de insertar una nueva,
-para no romper el `routine_exercises` que ya lo referencia.
+Queda una unica fila en `exercises` ("Press banca plano con barra"). La
+reestructuracion de `rutinas-y-dias.md` borro las tablas que la referenciaban,
+asi que ya no hay nada que preservar: se puede reemplazar o dejar que el dataset
+la duplique y limpiarla despues.
 
 ## 6. Fuera de alcance
 
