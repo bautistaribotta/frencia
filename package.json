@@ -45,6 +45,7 @@
   "devDependencies": {
     "@types/react": "~19.1.10",
     "react-native-svg-transformer": "^1.5.3",
+    "supabase": "^2.110.0",
     "typescript": "~5.9.2"
   },
   "overrides": {
