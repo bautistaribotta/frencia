@@ -138,11 +138,15 @@ export default function CreateRoutineScreen() {
   const currentValid = index === 0 ? nombreLimpio !== '' : true;
 
   // Busqueda instantanea: filtra el catalogo en memoria (sin acentos ni
-  // mayusculas). Cero latencia, sin red por cada tecla.
+  // mayusculas). Cero latencia, sin red por cada tecla. Mira tambien el nombre
+  // en ingles, porque en el gimnasio se usan los dos ("jalon al pecho" y "lat
+  // pulldown" tienen que encontrar el mismo ejercicio).
   const results = useMemo(() => {
     const q = foldText(query.trim());
     if (q === '') return [];
-    return catalog.filter((e) => foldText(e.name).includes(q)).slice(0, 50);
+    return catalog
+      .filter((e) => foldText(e.name).includes(q) || (e.nameEn && foldText(e.nameEn).includes(q)))
+      .slice(0, 50);
   }, [query, catalog]);
 
   // --- Edicion de los dias ---------------------------------------------------

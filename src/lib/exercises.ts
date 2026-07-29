@@ -16,16 +16,19 @@ import { supabase } from '@/lib/supabase';
 export interface Exercise {
   id: string;
   name: string;
+  /** Nombre original en ingles: en el gimnasio se usan los dos indistintamente. */
+  nameEn: string | null;
 }
 
-const STORAGE_KEY = 'frencia.exercises.catalog.v1';
+// v2: el catalogo pasa a incluir name_en, asi que el cache viejo no sirve.
+const STORAGE_KEY = 'frencia.exercises.catalog.v2';
 
 // Cache en memoria compartido entre montajes del hook.
 let memoryCache: Exercise[] | null = null;
 
 async function fetchAll(): Promise<Exercise[]> {
-  const { data } = await supabase.from('exercises').select('id, name').order('name');
-  return data ?? [];
+  const { data } = await supabase.from('exercises').select('id, name, name_en').order('name');
+  return (data ?? []).map((e) => ({ id: e.id, name: e.name, nameEn: e.name_en }));
 }
 
 /** Normaliza texto para comparar sin distinguir mayusculas ni acentos. */
