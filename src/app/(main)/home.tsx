@@ -54,11 +54,18 @@ const TABS = [
 const SEMANA = ['L', 'M', 'X', 'J', 'V', 'S', 'D'];
 const SEMANA_CORTA = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
 
-interface RoutineCard {
+// Un dia de entrenamiento de la rutina activa, tal como se muestra en el home.
+interface TrainingDayCard {
   id: string;
   name: string;
   weekdays: number[];
   exerciseCount: number;
+}
+
+interface ActiveRoutine {
+  id: string;
+  name: string;
+  days: TrainingDayCard[];
 }
 
 export default function HomeScreen() {
@@ -68,10 +75,10 @@ export default function HomeScreen() {
   const { displayName, profile } = useProfile();
   const first = displayName.split(' ')[0];
 
-  const [routines, setRoutines] = useState<RoutineCard[]>([]);
+  const [routine, setRoutine] = useState<ActiveRoutine | null>(null);
   const [loaded, setLoaded] = useState(false);
 
-  // Relee las rutinas al enfocar la pantalla (incluye volver del wizard).
+  // Relee la rutina activa al enfocar la pantalla (incluye volver del wizard).
   useFocusEffect(
     useCallback(() => {
       let cancelado = false;
@@ -81,24 +88,40 @@ export default function HomeScreen() {
         } = await supabase.auth.getUser();
         if (!user) {
           if (!cancelado) {
-            setRoutines([]);
+            setRoutine(null);
             setLoaded(true);
           }
           return;
         }
+        // Solo hay una rutina activa (archived_at nulo); traemos sus dias con
+        // los weekdays y la cuenta de ejercicios en una sola consulta.
         const { data } = await supabase
           .from('routines')
-          .select('id, name, routine_weekdays(weekday), routine_exercises(id)')
+          .select(
+            'id, name, training_days(id, name, position, training_day_weekdays(weekday), training_day_exercises(id))',
+          )
           .eq('user_id', user.id)
-          .order('position');
+          .is('archived_at', null)
+          .maybeSingle();
         if (cancelado) return;
-        setRoutines(
-          (data ?? []).map((r) => ({
-            id: r.id,
-            name: r.name,
-            weekdays: (r.routine_weekdays ?? []).map((w) => w.weekday).sort((a, b) => a - b),
-            exerciseCount: (r.routine_exercises ?? []).length,
-          })),
+        setRoutine(
+          data
+            ? {
+                id: data.id,
+                name: data.name,
+                days: (data.training_days ?? [])
+                  .slice()
+                  .sort((a, b) => a.position - b.position)
+                  .map((d) => ({
+                    id: d.id,
+                    name: d.name,
+                    weekdays: (d.training_day_weekdays ?? [])
+                      .map((w) => w.weekday)
+                      .sort((a, b) => a - b),
+                    exerciseCount: (d.training_day_exercises ?? []).length,
+                  })),
+              }
+            : null,
         );
         setLoaded(true);
       })();
@@ -110,7 +133,7 @@ export default function HomeScreen() {
 
   const openProfile = () => router.push('/profile');
   const onCreateRoutine = () => router.push('/create-routine');
-  const hasRoutines = routines.length > 0;
+  const hasRoutine = routine !== null && routine.days.length > 0;
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
@@ -143,39 +166,39 @@ export default function HomeScreen() {
         </View>
 
         {/* Hasta tener la primera lectura no decidimos que mostrar. */}
-        {!loaded ? null : hasRoutines ? (
-          /* Lista de rutinas creadas */
+        {!loaded ? null : hasRoutine ? (
+          /* Rutina activa y sus dias de entrenamiento */
           <View style={styles.routinesBlock}>
             <View style={styles.routinesHeader}>
-              <FrenciaText role="dataLabel" color={colors.textTertiary}>
-                Tus rutinas
+              <FrenciaText role="subtitle" numberOfLines={1} style={styles.routineName}>
+                {routine.name}
               </FrenciaText>
               <FrenciaText role="dataLabel" color={colors.textTertiary}>
-                {routines.length}
+                {routine.days.length} {routine.days.length === 1 ? 'día' : 'días'}
               </FrenciaText>
             </View>
 
-            {routines.map((r) => (
-              <View key={r.id} style={styles.routineCard}>
+            {routine.days.map((d) => (
+              <View key={d.id} style={styles.routineCard}>
                 <View style={styles.routineText}>
                   <FrenciaText role="subtitle" numberOfLines={1}>
-                    {r.name}
+                    {d.name}
                   </FrenciaText>
                   <FrenciaText role="dataLabel" color={colors.textTertiary}>
-                    {r.exerciseCount} {r.exerciseCount === 1 ? 'ejercicio' : 'ejercicios'}
-                    {r.weekdays.length > 0
-                      ? ` · ${r.weekdays.map((d) => SEMANA_CORTA[d]).join(', ')}`
+                    {d.exerciseCount} {d.exerciseCount === 1 ? 'ejercicio' : 'ejercicios'}
+                    {d.weekdays.length > 0
+                      ? ` · ${d.weekdays.map((w) => SEMANA_CORTA[w]).join(', ')}`
                       : ''}
                   </FrenciaText>
                 </View>
 
-                {/* Tira de semana de la rutina */}
+                {/* Tira de semana del dia */}
                 <View style={styles.weekRow}>
-                  {SEMANA.map((d, i) => {
-                    const on = r.weekdays.includes(i);
+                  {SEMANA.map((letra, i) => {
+                    const on = d.weekdays.includes(i);
                     return (
                       <View
-                        key={d}
+                        key={letra}
                         style={[styles.weekCell, on ? styles.weekCellOn : styles.weekCellOff]}
                       >
                         <FrenciaText
@@ -183,7 +206,7 @@ export default function HomeScreen() {
                           color={on ? colors.textOnAccent : colors.textTertiary}
                           style={styles.weekLetter}
                         >
-                          {d}
+                          {letra}
                         </FrenciaText>
                       </View>
                     );
@@ -203,9 +226,16 @@ export default function HomeScreen() {
               </View>
             ))}
 
-            <Button variant="secondary" size="lg" icon="plus" fullWidth onPress={onCreateRoutine}>
-              Crear otra rutina
-            </Button>
+            {/* Solo puede haber una rutina activa, asi que crear otra archiva
+               la actual. Lo avisamos para que no sea una sorpresa. */}
+            <View style={styles.newRoutineBlock}>
+              <Button variant="secondary" size="lg" icon="plus" fullWidth onPress={onCreateRoutine}>
+                Crear rutina nueva
+              </Button>
+              <FrenciaText role="dataLabel" color={colors.textTertiary} style={styles.centerText}>
+                Archiva la rutina actual
+              </FrenciaText>
+            </View>
           </View>
         ) : (
           /* Estado vacio: onboarding para cuentas nuevas */
@@ -341,8 +371,13 @@ const makeStyles = (colors: Palette) =>
     flexDirection: 'row',
     alignItems: 'baseline',
     justifyContent: 'space-between',
+    gap: space[4],
     paddingHorizontal: space[1],
   },
+  // El nombre de la rutina se achica antes que la cuenta de dias.
+  routineName: { flexShrink: 1 },
+  newRoutineBlock: { gap: space[3] },
+  centerText: { textAlign: 'center' },
   routineCard: {
     gap: space[4],
     padding: spacing.padCard,
