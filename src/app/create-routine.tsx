@@ -1,13 +1,13 @@
 /* Frencia · Crear rutina — wizard.
-   Una rutina es un "dia": una lista de ejercicios con nombre libre. El doble
-   turno (entrenar dos veces el mismo dia) se resuelve creando rutinas separadas
-   ("Martes manana" / "Martes tarde"). El wizard arma la ficha en tres pasos:
-     1. nombre
-     2. que dias de la semana entrena (opcional, se puede repetir en varios)
-     3. ejercicios: buscador del catalogo + series y medidor de esfuerzo.
-   Los ejercicios se eligen contra el catalogo de Supabase (busqueda por nombre
-   con debounce) y se acumulan en memoria. Recien al finalizar se persiste todo
-   (rutina + dias + ejercicios) en una sola tanda, asi cancelar no deja basura. */
+   Una rutina es un conjunto de dias de entrenamiento. Cada dia tiene su nombre
+   ("Dia 1" por defecto, renombrable a "Push"), los dias de la semana en que se
+   entrena, y su lista de ejercicios con series, reps y medidor de esfuerzo.
+   El wizard tiene dos pasos fijos y uno por cada dia:
+     1. nombre de la rutina
+     2. cuantos dias tiene
+     3..n. armado de cada dia
+   Todo se acumula en memoria y recien al finalizar se persiste en una sola
+   tanda (rutina + dias + weekdays + ejercicios), asi cancelar no deja basura. */
 
 import { useRouter } from 'expo-router';
 import React, { useMemo, useState } from 'react';
@@ -44,60 +44,36 @@ import {
   type Palette,
 } from '@/design';
 
-type StepKey = 'nombre' | 'dias' | 'ejercicios';
-type StepType = 'text' | 'weekdays' | 'exercises';
-
-interface StepDef {
-  key: StepKey;
-  type: StepType;
-  // Etiqueta corta del paso para el eyebrow (PASO 1 DE 3 · NOMBRE).
-  tag: string;
-  prompt: string;
-  hint: string;
-  placeholder?: string;
-  maxLength?: number;
-}
-
-const STEPS: StepDef[] = [
-  {
-    key: 'nombre',
-    type: 'text',
-    tag: 'Nombre',
-    prompt: '¿Cómo se llama tu rutina?',
-    hint: 'Por ejemplo "Push" o "Martes por la mañana".',
-    placeholder: 'Push Pull Legs',
-    maxLength: 40,
-  },
-  {
-    key: 'dias',
-    type: 'weekdays',
-    tag: 'Días',
-    prompt: '¿Qué días la entrenás?',
-    hint: 'Opcional. Tocá los días que quieras; podés elegir varios.',
-  },
-  {
-    key: 'ejercicios',
-    type: 'exercises',
-    tag: 'Ejercicios',
-    prompt: '¿Qué ejercicios incluye?',
-    hint: 'Buscá en el catálogo y definí series y esfuerzo para cada uno.',
-  },
-];
-
 // Iniciales e indices de la semana (0 = lunes ... 6 = domingo, igual que el
-// rango del check de routine_weekdays.weekday).
+// rango del check de training_day_weekdays.weekday).
 const SEMANA = ['L', 'M', 'X', 'J', 'V', 'S', 'D'];
 const SEMANA_NOMBRES = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
 
+const MIN_DIAS = 1;
+const MAX_DIAS = 7;
+const DIAS_POR_DEFECTO = 3;
+
 type Medidor = 'rir' | 'rpe';
 
-// Ejercicio elegido para la rutina. Vive en memoria hasta finalizar.
-interface RoutineExercise {
+// Ejercicio elegido para un dia. Vive en memoria hasta finalizar.
+interface DayExercise {
   exerciseId: string;
   name: string;
   sets: number;
+  reps: number;
   intensityKind: Medidor;
   intensityValue: number;
+}
+
+// Dia de entrenamiento en construccion.
+interface TrainingDay {
+  name: string;
+  weekdays: boolean[];
+  exercises: DayExercise[];
+}
+
+function nuevoDia(n: number): TrainingDay {
+  return { name: `Día ${n}`, weekdays: Array(7).fill(false), exercises: [] };
 }
 
 // Opciones de intensidad segun el medidor del usuario. En RIR sumamos "Fallo"
@@ -131,9 +107,9 @@ export default function CreateRoutineScreen() {
 
   const [index, setIndex] = useState(0);
   const [nombre, setNombre] = useState('');
-  // Dias seleccionados: bandera por dia de la semana (lunes a domingo).
-  const [diasSel, setDiasSel] = useState<boolean[]>(() => Array(7).fill(false));
-  const [exercises, setExercises] = useState<RoutineExercise[]>([]);
+  const [dias, setDias] = useState<TrainingDay[]>(() =>
+    Array.from({ length: DIAS_POR_DEFECTO }, (_, i) => nuevoDia(i + 1)),
+  );
   const [saving, setSaving] = useState(false);
 
   // Catalogo completo en memoria: la busqueda filtra sobre esto, sin red.
@@ -145,15 +121,21 @@ export default function CreateRoutineScreen() {
   // Ejercicio elegido dentro del modal (null = todavia buscando).
   const [selected, setSelected] = useState<Exercise | null>(null);
   const [sets, setSets] = useState(3);
+  const [reps, setReps] = useState(10);
   const [intensityValue, setIntensityValue] = useState(() => defaultIntensity(medidor));
 
-  const step = STEPS[index];
-  const isLast = index === STEPS.length - 1;
+  // Dos pasos fijos (nombre y cantidad) y uno por cada dia.
+  const totalSteps = 2 + dias.length;
+  const isLast = index === totalSteps - 1;
   const nombreLimpio = nombre.trim();
   const opts = intensityOptions(medidor);
 
-  // El nombre es obligatorio; dias y ejercicios son opcionales.
-  const currentValid = step.key === 'nombre' ? nombreLimpio !== '' : true;
+  // A partir del paso 2 estamos armando un dia concreto.
+  const diaIndex = index - 2;
+  const diaActual = diaIndex >= 0 ? dias[diaIndex] : null;
+
+  // Solo el nombre de la rutina es obligatorio.
+  const currentValid = index === 0 ? nombreLimpio !== '' : true;
 
   // Busqueda instantanea: filtra el catalogo en memoria (sin acentos ni
   // mayusculas). Cero latencia, sin red por cada tecla.
@@ -163,13 +145,38 @@ export default function CreateRoutineScreen() {
     return catalog.filter((e) => foldText(e.name).includes(q)).slice(0, 50);
   }, [query, catalog]);
 
-  function alternarDia(i: number) {
-    setDiasSel((prev) => {
-      const next = [...prev];
-      next[i] = !next[i];
-      return next;
+  // --- Edicion de los dias ---------------------------------------------------
+
+  // Ajusta la cantidad de dias conservando lo ya cargado en los que siguen
+  // existiendo. Al recortar se pierden los dias del final.
+  function setCantidadDias(cantidad: number) {
+    setDias((prev) => {
+      if (cantidad === prev.length) return prev;
+      if (cantidad < prev.length) return prev.slice(0, cantidad);
+      const extra = Array.from({ length: cantidad - prev.length }, (_, i) =>
+        nuevoDia(prev.length + i + 1),
+      );
+      return [...prev, ...extra];
     });
   }
+
+  function actualizarDia(i: number, patch: Partial<TrainingDay>) {
+    setDias((prev) => prev.map((d, idx) => (idx === i ? { ...d, ...patch } : d)));
+  }
+
+  function alternarDiaSemana(i: number) {
+    if (!diaActual) return;
+    const next = [...diaActual.weekdays];
+    next[i] = !next[i];
+    actualizarDia(diaIndex, { weekdays: next });
+  }
+
+  function removeExercise(i: number) {
+    if (!diaActual) return;
+    actualizarDia(diaIndex, { exercises: diaActual.exercises.filter((_, idx) => idx !== i) });
+  }
+
+  // --- Navegacion ------------------------------------------------------------
 
   function goNext() {
     if (isLast) {
@@ -195,12 +202,13 @@ export default function CreateRoutineScreen() {
     else router.replace('/home');
   }
 
-  // --- Buscador / configurador de ejercicios -------------------------------
+  // --- Buscador / configurador de ejercicios ---------------------------------
 
   function openPicker() {
     setQuery('');
     setSelected(null);
     setSets(3);
+    setReps(10);
     setIntensityValue(defaultIntensity(medidor));
     setPickerOpen(true);
   }
@@ -208,30 +216,30 @@ export default function CreateRoutineScreen() {
   function pickExercise(hit: Exercise) {
     setSelected(hit);
     setSets(3);
+    setReps(10);
     setIntensityValue(defaultIntensity(medidor));
   }
 
   function saveExercise() {
-    if (!selected) return;
-    setExercises((prev) => [
-      ...prev,
-      {
-        exerciseId: selected.id,
-        name: selected.name,
-        sets,
-        intensityKind: medidor,
-        intensityValue,
-      },
-    ]);
-    // Cerrar vuelve a la lista del paso 3: ahi puede agregar otro o finalizar.
+    if (!selected || !diaActual) return;
+    actualizarDia(diaIndex, {
+      exercises: [
+        ...diaActual.exercises,
+        {
+          exerciseId: selected.id,
+          name: selected.name,
+          sets,
+          reps,
+          intensityKind: medidor,
+          intensityValue,
+        },
+      ],
+    });
+    // Cerrar vuelve al armado del dia: ahi puede agregar otro o seguir.
     setPickerOpen(false);
   }
 
-  function removeExercise(i: number) {
-    setExercises((prev) => prev.filter((_, idx) => idx !== i));
-  }
-
-  // -------------------------------------------------------------------------
+  // --- Persistencia ----------------------------------------------------------
 
   async function handleCreate() {
     if (!currentValid || saving) return;
@@ -247,15 +255,17 @@ export default function CreateRoutineScreen() {
       return;
     }
 
-    // La nueva rutina se agrega al final del orden actual.
-    const { count } = await supabase
+    // Solo puede haber una rutina activa: archivamos la anterior antes de
+    // insertar, o el indice unico parcial rechaza la nueva.
+    await supabase
       .from('routines')
-      .select('id', { count: 'exact', head: true })
-      .eq('user_id', user.id);
+      .update({ archived_at: new Date().toISOString() })
+      .eq('user_id', user.id)
+      .is('archived_at', null);
 
     const { data: routine, error } = await supabase
       .from('routines')
-      .insert({ user_id: user.id, name: nombreLimpio, position: count ?? 0 })
+      .insert({ user_id: user.id, name: nombreLimpio })
       .select('id')
       .single();
 
@@ -265,33 +275,73 @@ export default function CreateRoutineScreen() {
       return;
     }
 
-    // Dias asignados (opcional): una fila por dia elegido.
-    const weekdays = diasSel
-      .map((on, i) => (on ? i : -1))
-      .filter((i) => i >= 0)
-      .map((weekday) => ({ routine_id: routine.id, weekday }));
+    // Los dias se insertan juntos; Supabase devuelve las filas en el mismo
+    // orden en que se enviaron, asi que los ids se pueden aparear por indice.
+    const { data: diasCreados, error: errorDias } = await supabase
+      .from('training_days')
+      .insert(
+        dias.map((d, i) => ({
+          routine_id: routine.id,
+          user_id: user.id,
+          name: d.name.trim() || `Día ${i + 1}`,
+          position: i,
+        })),
+      )
+      .select('id');
 
-    if (weekdays.length > 0) {
-      await supabase.from('routine_weekdays').insert(weekdays);
+    if (errorDias || !diasCreados) {
+      setSaving(false);
+      showToast({ message: 'No pudimos crear los días. Proba de nuevo.', type: 'error' });
+      return;
     }
 
-    // Ejercicios elegidos: una fila por ejercicio, en el orden agregado.
-    if (exercises.length > 0) {
-      const rows = exercises.map((ex, i) => ({
-        routine_id: routine.id,
+    // Dias de la semana y ejercicios de todos los dias, en dos tandas.
+    const weekdayRows = dias.flatMap((d, i) =>
+      d.weekdays
+        .map((on, w) => (on ? w : -1))
+        .filter((w) => w >= 0)
+        .map((weekday) => ({ training_day_id: diasCreados[i].id, weekday })),
+    );
+
+    const exerciseRows = dias.flatMap((d, i) =>
+      d.exercises.map((ex, pos) => ({
+        training_day_id: diasCreados[i].id,
         exercise_id: ex.exerciseId,
-        position: i,
+        position: pos,
         sets: ex.sets,
+        reps: ex.reps,
         intensity_kind: ex.intensityKind,
         intensity_value: ex.intensityValue,
-      }));
-      await supabase.from('routine_exercises').insert(rows);
+      })),
+    );
+
+    if (weekdayRows.length > 0) {
+      await supabase.from('training_day_weekdays').insert(weekdayRows);
+    }
+    if (exerciseRows.length > 0) {
+      await supabase.from('training_day_exercises').insert(exerciseRows);
     }
 
     setSaving(false);
     showToast({ message: 'Rutina creada', type: 'success' });
     finish();
   }
+
+  // --- Textos del paso actual ------------------------------------------------
+
+  const stepTag = index === 0 ? 'Nombre' : index === 1 ? 'Días' : `Día ${diaIndex + 1}`;
+  const stepPrompt =
+    index === 0
+      ? '¿Cómo se llama tu rutina?'
+      : index === 1
+        ? '¿Cuántos días tiene?'
+        : `¿Qué entrenás el ${diaActual?.name || `día ${diaIndex + 1}`}?`;
+  const stepHint =
+    index === 0
+      ? 'Por ejemplo "Push Pull Legs" o "Fuerza 4 días".'
+      : index === 1
+        ? 'Podés agregar o quitar días más adelante.'
+        : 'Poné un nombre al día, marcá cuándo lo entrenás y sumá ejercicios.';
 
   return (
     <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
@@ -305,9 +355,9 @@ export default function CreateRoutineScreen() {
             {index === 0 ? 'Salir' : 'Atrás'}
           </Button>
           <View style={styles.progress}>
-            {STEPS.map((s, i) => (
+            {Array.from({ length: totalSteps }, (_, i) => (
               <View
-                key={s.key}
+                key={i}
                 style={[styles.segment, i <= index ? styles.segmentOn : styles.segmentOff]}
               />
             ))}
@@ -327,23 +377,24 @@ export default function CreateRoutineScreen() {
           {/* Control del paso actual */}
           <View style={styles.control}>
             <FrenciaText role="dataLabel" color={colors.accentText}>
-              Paso {index + 1} de {STEPS.length} · {step.tag}
+              Paso {index + 1} de {totalSteps} · {stepTag}
             </FrenciaText>
-            <FrenciaText role="subtitle">{step.prompt}</FrenciaText>
+            <FrenciaText role="subtitle">{stepPrompt}</FrenciaText>
             <FrenciaText role="bodySm" color={colors.textSecondary} style={styles.hint}>
-              {step.hint}
+              {stepHint}
             </FrenciaText>
 
-            {step.type === 'text' && (
+            {/* Paso 1: nombre de la rutina */}
+            {index === 0 && (
               <View style={styles.field}>
                 <Icon name="list" size={20} color={colors.accent} />
                 <TextInput
                   style={styles.input}
-                  placeholder={step.placeholder}
+                  placeholder="Push Pull Legs"
                   placeholderTextColor={colors.textTertiary}
                   value={nombre}
                   onChangeText={setNombre}
-                  maxLength={step.maxLength}
+                  maxLength={40}
                   returnKeyType="next"
                   onSubmitEditing={() => {
                     if (currentValid) goNext();
@@ -352,38 +403,62 @@ export default function CreateRoutineScreen() {
               </View>
             )}
 
-            {step.type === 'weekdays' && (
-              <View style={styles.pickerRow}>
-                {SEMANA.map((d, i) => {
-                  const on = diasSel[i];
-                  return (
-                    <Pressable
-                      key={d}
-                      onPress={() => alternarDia(i)}
-                      accessibilityRole="button"
-                      accessibilityState={{ selected: on }}
-                      accessibilityLabel={SEMANA_NOMBRES[i]}
-                      style={({ pressed }) => [
-                        styles.pickerCell,
-                        on ? styles.pickerCellOn : styles.pickerCellOff,
-                        pressed && styles.pickerCellPressed,
-                      ]}
-                    >
-                      <FrenciaText
-                        style={styles.pickerLetter}
-                        color={on ? colors.textOnAccent : colors.textSecondary}
-                      >
-                        {d}
-                      </FrenciaText>
-                    </Pressable>
-                  );
-                })}
-              </View>
+            {/* Paso 2: cuantos dias tiene la rutina */}
+            {index === 1 && (
+              <Stepper
+                label="Días de entrenamiento"
+                value={dias.length}
+                onChange={setCantidadDias}
+                min={MIN_DIAS}
+                max={MAX_DIAS}
+                size="lg"
+              />
             )}
 
-            {step.type === 'exercises' && (
-              <View style={styles.exercisesStep}>
-                {exercises.length === 0 ? (
+            {/* Pasos siguientes: armado de cada dia */}
+            {diaActual && (
+              <View style={styles.dayStep}>
+                <View style={styles.field}>
+                  <Icon name="calendar" size={20} color={colors.accent} />
+                  <TextInput
+                    style={styles.input}
+                    placeholder={`Día ${diaIndex + 1}`}
+                    placeholderTextColor={colors.textTertiary}
+                    value={diaActual.name}
+                    onChangeText={(name) => actualizarDia(diaIndex, { name })}
+                    maxLength={40}
+                    returnKeyType="done"
+                  />
+                </View>
+
+                <View style={styles.pickerRow}>
+                  {SEMANA.map((d, i) => {
+                    const on = diaActual.weekdays[i];
+                    return (
+                      <Pressable
+                        key={d}
+                        onPress={() => alternarDiaSemana(i)}
+                        accessibilityRole="button"
+                        accessibilityState={{ selected: on }}
+                        accessibilityLabel={SEMANA_NOMBRES[i]}
+                        style={({ pressed }) => [
+                          styles.pickerCell,
+                          on ? styles.pickerCellOn : styles.pickerCellOff,
+                          pressed && styles.pickerCellPressed,
+                        ]}
+                      >
+                        <FrenciaText
+                          style={styles.pickerLetter}
+                          color={on ? colors.textOnAccent : colors.textSecondary}
+                        >
+                          {d}
+                        </FrenciaText>
+                      </Pressable>
+                    );
+                  })}
+                </View>
+
+                {diaActual.exercises.length === 0 ? (
                   <View style={styles.emptyExercises}>
                     <Icon name="dumbbell" size={26} color={colors.textTertiary} />
                     <FrenciaText role="bodySm" color={colors.textTertiary} style={styles.centerText}>
@@ -392,7 +467,7 @@ export default function CreateRoutineScreen() {
                   </View>
                 ) : (
                   <View style={styles.exerciseList}>
-                    {exercises.map((ex, i) => (
+                    {diaActual.exercises.map((ex, i) => (
                       <View
                         key={`${ex.exerciseId}-${i}`}
                         style={[styles.exerciseRow, i > 0 && styles.exerciseRowDivider]}
@@ -402,8 +477,7 @@ export default function CreateRoutineScreen() {
                             {ex.name}
                           </FrenciaText>
                           <FrenciaText role="dataLabel" color={colors.textTertiary}>
-                            {ex.sets} {ex.sets === 1 ? 'serie' : 'series'} ·{' '}
-                            {intensityLabel(ex.intensityKind, ex.intensityValue)}
+                            {ex.sets}x{ex.reps} · {intensityLabel(ex.intensityKind, ex.intensityValue)}
                           </FrenciaText>
                         </View>
                         <Pressable
@@ -420,7 +494,7 @@ export default function CreateRoutineScreen() {
                 )}
 
                 <Button variant="secondary" size="lg" icon="plus" fullWidth onPress={openPicker}>
-                  {exercises.length === 0 ? 'Agregar ejercicio' : 'Agregar otro ejercicio'}
+                  {diaActual.exercises.length === 0 ? 'Agregar ejercicio' : 'Agregar otro ejercicio'}
                 </Button>
               </View>
             )}
@@ -455,151 +529,159 @@ export default function CreateRoutineScreen() {
       >
         <SafeAreaProvider>
           <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
-          <KeyboardAvoidingView
-            style={styles.flex}
-            behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-          >
-            {/* Header del modal: cerrar o volver al buscador */}
-            <View style={styles.modalHeader}>
-              <Button
-                variant="ghost"
-                size="sm"
-                icon={selected ? 'chevron-left' : 'x'}
-                onPress={() => (selected ? setSelected(null) : setPickerOpen(false))}
-              >
-                {selected ? 'Atrás' : 'Cerrar'}
-              </Button>
-              <FrenciaText role="title" style={styles.modalTitle} pointerEvents="none">
-                {selected ? 'Configurar' : 'Buscar ejercicio'}
-              </FrenciaText>
-            </View>
+            <KeyboardAvoidingView
+              style={styles.flex}
+              behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+            >
+              {/* Header del modal: cerrar o volver al buscador */}
+              <View style={styles.modalHeader}>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  icon={selected ? 'chevron-left' : 'x'}
+                  onPress={() => (selected ? setSelected(null) : setPickerOpen(false))}
+                >
+                  {selected ? 'Atrás' : 'Cerrar'}
+                </Button>
+                <FrenciaText role="title" style={styles.modalTitle} pointerEvents="none">
+                  {selected ? 'Configurar' : 'Buscar ejercicio'}
+                </FrenciaText>
+              </View>
 
-            {selected ? (
-              /* Configurar: series + medidor de esfuerzo del ejercicio elegido */
-              <ScrollView
-                style={styles.flex}
-                contentContainerStyle={styles.modalBody}
-                keyboardShouldPersistTaps="handled"
-                showsVerticalScrollIndicator={false}
-              >
-                <View style={styles.selectedCard}>
-                  <Icon name="dumbbell" size={20} color={colors.accent} />
-                  <FrenciaText role="subtitle" style={styles.flex} numberOfLines={2}>
-                    {selected.name}
-                  </FrenciaText>
-                </View>
-
-                <Stepper label="Series" value={sets} onChange={setSets} min={1} max={20} size="lg" />
-
-                <View style={styles.intensityBlock}>
-                  <FrenciaText role="dataLabel" color={colors.textTertiary}>
-                    Esfuerzo · {medidor === 'rir' ? 'RIR' : 'RPE'}
-                  </FrenciaText>
-                  <View style={styles.chipsRow}>
-                    {opts.map((o) => {
-                      const on = o.value === intensityValue;
-                      return (
-                        <Pressable
-                          key={o.value}
-                          onPress={() => setIntensityValue(o.value)}
-                          accessibilityRole="button"
-                          accessibilityState={{ selected: on }}
-                          accessibilityLabel={o.label}
-                          style={[styles.chip, on ? styles.chipOn : styles.chipOff]}
-                        >
-                          <FrenciaText
-                            role="bodySm"
-                            color={on ? colors.textOnAccent : colors.textSecondary}
-                            style={styles.chipText}
-                          >
-                            {o.label}
-                          </FrenciaText>
-                        </Pressable>
-                      );
-                    })}
-                  </View>
-                </View>
-              </ScrollView>
-            ) : (
-              /* Buscar: input + resultados del catalogo */
-              <View style={styles.flex}>
-                <View style={styles.searchField}>
-                  <Icon name="search" size={20} color={colors.textTertiary} />
-                  <TextInput
-                    style={styles.input}
-                    placeholder="Buscar ejercicio"
-                    placeholderTextColor={colors.textTertiary}
-                    value={query}
-                    onChangeText={setQuery}
-                    autoFocus
-                    autoCorrect={false}
-                    returnKeyType="search"
-                  />
-                  {query !== '' && (
-                    <Pressable
-                      hitSlop={8}
-                      onPress={() => setQuery('')}
-                      accessibilityRole="button"
-                      accessibilityLabel="Borrar búsqueda"
-                    >
-                      <Icon name="x" size={18} color={colors.textTertiary} />
-                    </Pressable>
-                  )}
-                </View>
-
+              {selected ? (
+                /* Configurar: series, reps y medidor de esfuerzo */
                 <ScrollView
                   style={styles.flex}
-                  contentContainerStyle={styles.resultsList}
+                  contentContainerStyle={styles.modalBody}
                   keyboardShouldPersistTaps="handled"
-                  keyboardDismissMode="interactive"
                   showsVerticalScrollIndicator={false}
                 >
-                  {catalogLoading ? (
-                    <View style={styles.resultsHint}>
-                      <ActivityIndicator color={colors.accent} />
-                    </View>
-                  ) : query.trim() === '' ? (
-                    <View style={styles.resultsHint}>
-                      <FrenciaText role="bodySm" color={colors.textTertiary} style={styles.centerText}>
-                        Escribí para buscar en el catálogo.
-                      </FrenciaText>
-                    </View>
-                  ) : results.length === 0 ? (
-                    <View style={styles.resultsHint}>
-                      <FrenciaText role="bodySm" color={colors.textTertiary} style={styles.centerText}>
-                        Sin resultados para "{query.trim()}".
-                      </FrenciaText>
-                    </View>
-                  ) : (
-                    results.map((hit) => (
-                      <Pressable
-                        key={hit.id}
-                        onPress={() => pickExercise(hit)}
-                        accessibilityRole="button"
-                        accessibilityLabel={hit.name}
-                        style={({ pressed }) => [styles.resultRow, pressed && styles.resultRowPressed]}
-                      >
-                        <Icon name="dumbbell" size={18} color={colors.textSecondary} />
-                        <FrenciaText role="bodySm" style={styles.resultName} numberOfLines={1}>
-                          {hit.name}
-                        </FrenciaText>
-                        <Icon name="plus" size={18} color={colors.accentText} />
-                      </Pressable>
-                    ))
-                  )}
-                </ScrollView>
-              </View>
-            )}
+                  <View style={styles.selectedCard}>
+                    <Icon name="dumbbell" size={20} color={colors.accent} />
+                    <FrenciaText role="subtitle" style={styles.flex} numberOfLines={2}>
+                      {selected.name}
+                    </FrenciaText>
+                  </View>
 
-            {/* Guardar el ejercicio configurado y volver a la lista */}
-            {selected && (
-              <View style={styles.nav}>
-                <Button variant="primary" size="lg" fullWidth icon="check" onPress={saveExercise}>
-                  Guardar ejercicio
-                </Button>
-              </View>
-            )}
-          </KeyboardAvoidingView>
+                  <Stepper label="Series" value={sets} onChange={setSets} min={1} max={20} size="lg" />
+                  <Stepper
+                    label="Repeticiones"
+                    value={reps}
+                    onChange={setReps}
+                    min={1}
+                    max={50}
+                    size="lg"
+                  />
+
+                  <View style={styles.intensityBlock}>
+                    <FrenciaText role="dataLabel" color={colors.textTertiary}>
+                      Esfuerzo · {medidor === 'rir' ? 'RIR' : 'RPE'}
+                    </FrenciaText>
+                    <View style={styles.chipsRow}>
+                      {opts.map((o) => {
+                        const on = o.value === intensityValue;
+                        return (
+                          <Pressable
+                            key={o.value}
+                            onPress={() => setIntensityValue(o.value)}
+                            accessibilityRole="button"
+                            accessibilityState={{ selected: on }}
+                            accessibilityLabel={o.label}
+                            style={[styles.chip, on ? styles.chipOn : styles.chipOff]}
+                          >
+                            <FrenciaText
+                              role="bodySm"
+                              color={on ? colors.textOnAccent : colors.textSecondary}
+                              style={styles.chipText}
+                            >
+                              {o.label}
+                            </FrenciaText>
+                          </Pressable>
+                        );
+                      })}
+                    </View>
+                  </View>
+                </ScrollView>
+              ) : (
+                /* Buscar: input + resultados del catalogo */
+                <View style={styles.flex}>
+                  <View style={styles.searchField}>
+                    <Icon name="search" size={20} color={colors.textTertiary} />
+                    <TextInput
+                      style={styles.input}
+                      placeholder="Buscar ejercicio"
+                      placeholderTextColor={colors.textTertiary}
+                      value={query}
+                      onChangeText={setQuery}
+                      autoFocus
+                      autoCorrect={false}
+                      returnKeyType="search"
+                    />
+                    {query !== '' && (
+                      <Pressable
+                        hitSlop={8}
+                        onPress={() => setQuery('')}
+                        accessibilityRole="button"
+                        accessibilityLabel="Borrar búsqueda"
+                      >
+                        <Icon name="x" size={18} color={colors.textTertiary} />
+                      </Pressable>
+                    )}
+                  </View>
+
+                  <ScrollView
+                    style={styles.flex}
+                    contentContainerStyle={styles.resultsList}
+                    keyboardShouldPersistTaps="handled"
+                    keyboardDismissMode="interactive"
+                    showsVerticalScrollIndicator={false}
+                  >
+                    {catalogLoading ? (
+                      <View style={styles.resultsHint}>
+                        <ActivityIndicator color={colors.accent} />
+                      </View>
+                    ) : query.trim() === '' ? (
+                      <View style={styles.resultsHint}>
+                        <FrenciaText role="bodySm" color={colors.textTertiary} style={styles.centerText}>
+                          Escribí para buscar en el catálogo.
+                        </FrenciaText>
+                      </View>
+                    ) : results.length === 0 ? (
+                      <View style={styles.resultsHint}>
+                        <FrenciaText role="bodySm" color={colors.textTertiary} style={styles.centerText}>
+                          Sin resultados para "{query.trim()}".
+                        </FrenciaText>
+                      </View>
+                    ) : (
+                      results.map((hit) => (
+                        <Pressable
+                          key={hit.id}
+                          onPress={() => pickExercise(hit)}
+                          accessibilityRole="button"
+                          accessibilityLabel={hit.name}
+                          style={({ pressed }) => [styles.resultRow, pressed && styles.resultRowPressed]}
+                        >
+                          <Icon name="dumbbell" size={18} color={colors.textSecondary} />
+                          <FrenciaText role="bodySm" style={styles.resultName} numberOfLines={1}>
+                            {hit.name}
+                          </FrenciaText>
+                          <Icon name="plus" size={18} color={colors.accentText} />
+                        </Pressable>
+                      ))
+                    )}
+                  </ScrollView>
+                </View>
+              )}
+
+              {/* Guardar el ejercicio configurado y volver al armado del dia */}
+              {selected && (
+                <View style={styles.nav}>
+                  <Button variant="primary" size="lg" fullWidth icon="check" onPress={saveExercise}>
+                    Guardar ejercicio
+                  </Button>
+                </View>
+              )}
+            </KeyboardAvoidingView>
           </SafeAreaView>
         </SafeAreaProvider>
       </Modal>
@@ -621,7 +703,7 @@ const makeStyles = (colors: Palette) =>
 
     // Cuerpo scrolleable. Centrado vertical para que los inputs caigan en la
     // zona que el pulgar alcanza usando el telefono con una mano. Con flexGrow
-    // el contenido largo (paso de ejercicios) sigue scrolleando normalmente.
+    // el contenido largo (armado de un dia) sigue scrolleando normalmente.
     scroll: {
       flexGrow: 1,
       justifyContent: 'center',
@@ -639,68 +721,60 @@ const makeStyles = (colors: Palette) =>
       flexDirection: 'row',
       alignItems: 'center',
       gap: space[4],
+      paddingHorizontal: space[5],
       height: sizing.controlHLg,
-      paddingHorizontal: spacing.padControl,
-      borderRadius: radius.md,
+      borderRadius: radius.lg,
       backgroundColor: colors.surfaceCard,
       borderWidth: 1,
-      borderColor: colors.surfaceGreenLine,
+      borderColor: colors.borderSubtle,
     },
-    input: {
-      flex: 1,
-      color: colors.textPrimary,
-      fontFamily: sans.regular,
-      fontSize: 18,
-      padding: 0,
-    },
+    input: { flex: 1, fontFamily: sans.regular, fontSize: 16, color: colors.textPrimary },
 
-    // Selector de dias de la semana
-    pickerRow: { flexDirection: 'row', gap: space[2], marginTop: space[2] },
+    // Grilla de dias de la semana
+    pickerRow: { flexDirection: 'row', gap: space[2] },
     pickerCell: {
       flex: 1,
-      height: 56,
+      aspectRatio: 1,
       borderRadius: radius.md,
       alignItems: 'center',
       justifyContent: 'center',
     },
     pickerCellOn: { backgroundColor: colors.accent },
     pickerCellOff: { backgroundColor: colors.surfaceCard, borderWidth: 1, borderColor: colors.borderSubtle },
-    pickerCellPressed: { opacity: 0.7 },
-    pickerLetter: { fontFamily: sans.bold, fontSize: 17 },
+    pickerCellPressed: { opacity: 0.75 },
+    pickerLetter: { fontFamily: sans.medium, fontSize: 15 },
 
-    // Paso de ejercicios
-    exercisesStep: { gap: space[4], marginTop: space[2] },
+    // Armado de un dia
+    dayStep: { gap: space[5] },
     emptyExercises: {
       alignItems: 'center',
       gap: space[3],
       paddingVertical: space[8],
       borderRadius: radius.lg,
-      borderWidth: 1.5,
+      borderWidth: 1,
       borderStyle: 'dashed',
-      borderColor: colors.borderDefault,
-      backgroundColor: colors.surfaceCard,
+      borderColor: colors.borderSubtle,
     },
     exerciseList: {
-      backgroundColor: colors.surfaceCard,
       borderRadius: radius.lg,
+      backgroundColor: colors.surfaceCard,
       borderWidth: 1,
       borderColor: colors.borderSubtle,
-      overflow: 'hidden',
     },
     exerciseRow: {
       flexDirection: 'row',
       alignItems: 'center',
       gap: space[4],
-      padding: space[5],
+      padding: spacing.padCard,
     },
     exerciseRowDivider: { borderTopWidth: 1, borderTopColor: colors.divider },
     exerciseInfo: { flex: 1, gap: space[1] },
-    exerciseName: { fontFamily: sans.semibold, color: colors.textPrimary },
+    exerciseName: { color: colors.textPrimary },
 
-    // Navegacion: fija debajo del scroll, nunca tapa el input
-    nav: { gap: space[2], paddingTop: space[4] },
+    // Navegacion inferior
+    nav: { paddingHorizontal: spacing.padScreen, paddingBottom: space[5] },
 
-    // Modal buscador / configurador
+    // Modal del buscador
     modalHeader: { flexDirection: 'row', alignItems: 'center', minHeight: 40 },
     modalTitle: { position: 'absolute', left: 0, right: 0, textAlign: 'center' },
     modalBody: { paddingTop: space[8], paddingBottom: space[6], gap: space[8] },
@@ -713,7 +787,7 @@ const makeStyles = (colors: Palette) =>
       borderRadius: radius.lg,
       backgroundColor: colors.surfaceCard,
       borderWidth: 1,
-      borderColor: colors.surfaceGreenLine,
+      borderColor: colors.borderSubtle,
     },
 
     intensityBlock: { gap: space[4] },
@@ -722,39 +796,35 @@ const makeStyles = (colors: Palette) =>
       minWidth: 52,
       paddingHorizontal: space[4],
       paddingVertical: space[3],
-      borderRadius: radius.md,
+      borderRadius: radius.pill,
       alignItems: 'center',
-      justifyContent: 'center',
     },
     chipOn: { backgroundColor: colors.accent },
     chipOff: { backgroundColor: colors.surfaceCard, borderWidth: 1, borderColor: colors.borderSubtle },
-    chipText: { fontFamily: sans.semibold },
+    chipText: { textAlign: 'center' },
 
-    // Buscador
     searchField: {
       flexDirection: 'row',
       alignItems: 'center',
       gap: space[4],
-      marginTop: space[5],
+      paddingHorizontal: space[5],
       height: sizing.controlHLg,
-      paddingHorizontal: spacing.padControl,
-      borderRadius: radius.md,
-      backgroundColor: colors.surfaceCard,
-      borderWidth: 1,
-      borderColor: colors.surfaceGreenLine,
-    },
-    resultsList: { paddingTop: space[4], paddingBottom: space[6], gap: space[2] },
-    resultsHint: { paddingTop: space[10], alignItems: 'center' },
-    resultRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: space[4],
-      padding: space[4],
-      borderRadius: radius.md,
+      borderRadius: radius.lg,
       backgroundColor: colors.surfaceCard,
       borderWidth: 1,
       borderColor: colors.borderSubtle,
     },
-    resultRowPressed: { opacity: 0.7 },
-    resultName: { flex: 1, fontFamily: sans.semibold, color: colors.textPrimary },
+    resultsList: { paddingTop: space[5], paddingBottom: space[6] },
+    resultsHint: { paddingVertical: space[8], alignItems: 'center' },
+    resultRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: space[4],
+      padding: spacing.padCard,
+      borderRadius: radius.lg,
+      backgroundColor: colors.surfaceCard,
+      marginBottom: space[2],
+    },
+    resultRowPressed: { opacity: 0.75 },
+    resultName: { flex: 1, color: colors.textPrimary },
   });
