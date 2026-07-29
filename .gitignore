@@ -37,6 +37,11 @@ Thumbs.db
 .claude/settings.local.json
 CLAUDE.md
 
+# Enlaces que genera "npx skills add": apuntan con ruta absoluta a esta
+# maquina. Las skills viven en .agents/skills; los enlaces se recrean solos.
+.claude/skills/supabase-postgres-best-practices
+.claude/skills/vercel-react-native-skills
+
 # local env files
 .env
 .env*.local
