@@ -22,7 +22,7 @@ import {
   TextInput,
   View,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 
 import { supabase } from '@/lib/supabase';
 import { useExerciseCatalog, foldText, type Exercise } from '@/lib/exercises';
@@ -444,8 +444,17 @@ export default function CreateRoutineScreen() {
       </KeyboardAvoidingView>
 
       {/* Buscador + configurador de ejercicios */}
-      <Modal visible={pickerOpen} animationType="slide" onRequestClose={() => setPickerOpen(false)}>
-        <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
+      {/* El Modal se monta en una ventana nativa aparte, fuera del arbol del
+         SafeAreaProvider de la app. Sin un provider propio los insets llegan en
+         cero y el header se mete abajo del notch. */}
+      <Modal
+        visible={pickerOpen}
+        animationType="slide"
+        onRequestClose={() => setPickerOpen(false)}
+        statusBarTranslucent
+      >
+        <SafeAreaProvider>
+          <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
           <KeyboardAvoidingView
             style={styles.flex}
             behavior={Platform.OS === 'ios' ? 'padding' : undefined}
@@ -591,7 +600,8 @@ export default function CreateRoutineScreen() {
               </View>
             )}
           </KeyboardAvoidingView>
-        </SafeAreaView>
+          </SafeAreaView>
+        </SafeAreaProvider>
       </Modal>
     </SafeAreaView>
   );
