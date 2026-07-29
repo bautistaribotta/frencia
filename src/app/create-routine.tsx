@@ -34,13 +34,11 @@ import {
   FrenciaText,
   Icon,
   Stepper,
-  display,
   radius,
   sans,
   sizing,
   space,
   spacing,
-  tracking,
   useColors,
   useThemedStyles,
   type Palette,
@@ -152,7 +150,6 @@ export default function CreateRoutineScreen() {
   const step = STEPS[index];
   const isLast = index === STEPS.length - 1;
   const nombreLimpio = nombre.trim();
-  const diasElegidos = diasSel.filter(Boolean).length;
   const opts = intensityOptions(medidor);
 
   // El nombre es obligatorio; dias y ejercicios son opcionales.
@@ -296,12 +293,6 @@ export default function CreateRoutineScreen() {
     finish();
   }
 
-  // Resumen de dias en el preview.
-  const resumenDias =
-    diasElegidos === 0
-      ? 'Sin días asignados'
-      : `${diasElegidos} ${diasElegidos === 1 ? 'día' : 'días'} por semana`;
-
   return (
     <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
       <KeyboardAvoidingView
@@ -323,8 +314,9 @@ export default function CreateRoutineScreen() {
           </View>
         </View>
 
-        {/* Cuerpo scrolleable: entra con el teclado abierto y tocar fuera
-           del input lo cierra (keyboardShouldPersistTaps). */}
+        {/* Cuerpo scrolleable: contenido centrado en vertical, entra con el
+           teclado abierto y tocar fuera del input lo cierra
+           (keyboardShouldPersistTaps). */}
         <ScrollView
           style={styles.flex}
           contentContainerStyle={styles.scroll}
@@ -332,48 +324,6 @@ export default function CreateRoutineScreen() {
           keyboardDismissMode="interactive"
           showsVerticalScrollIndicator={false}
         >
-          {/* Heroe: ficha de la rutina armandose en vivo */}
-          <View style={styles.preview}>
-            <FrenciaText role="dataLabel" color={colors.textTertiary}>
-              Tu rutina
-            </FrenciaText>
-
-            <FrenciaText
-              numberOfLines={2}
-              style={[styles.previewName, !nombreLimpio && styles.previewNameGhost]}
-            >
-              {nombreLimpio || 'Sin nombre'}
-            </FrenciaText>
-
-            {/* Tira de semana: refleja los dias asignados */}
-            <View style={styles.weekRow}>
-              {SEMANA.map((d, i) => {
-                const on = diasSel[i];
-                return (
-                  <View
-                    key={d}
-                    style={[styles.weekCell, on ? styles.weekCellOn : styles.weekCellOff]}
-                  >
-                    <FrenciaText
-                      role="dataLabel"
-                      color={on ? colors.textOnAccent : colors.textTertiary}
-                      style={styles.weekLetter}
-                    >
-                      {d}
-                    </FrenciaText>
-                  </View>
-                );
-              })}
-            </View>
-
-            <FrenciaText role="bodySm" color={colors.textSecondary}>
-              {resumenDias}
-              {exercises.length > 0
-                ? ` · ${exercises.length} ${exercises.length === 1 ? 'ejercicio' : 'ejercicios'}`
-                : ''}
-            </FrenciaText>
-          </View>
-
           {/* Control del paso actual */}
           <View style={styles.control}>
             <FrenciaText role="dataLabel" color={colors.accentText}>
@@ -659,37 +609,16 @@ const makeStyles = (colors: Palette) =>
     segmentOn: { backgroundColor: colors.accent },
     segmentOff: { backgroundColor: colors.surfaceChip },
 
-    // Cuerpo scrolleable
-    scroll: { paddingTop: space[8], paddingBottom: space[6], gap: space[8] },
-
-    // Heroe: ficha de rutina
-    preview: {
-      gap: space[5],
-      padding: spacing.padCard,
-      borderRadius: radius.xl,
-      backgroundColor: colors.surfaceCard,
-      borderWidth: 1,
-      borderColor: colors.borderSubtle,
-    },
-    previewName: {
-      fontFamily: display,
-      fontSize: 40,
-      lineHeight: 50,
-      letterSpacing: tracking.display,
-      color: colors.textPrimary,
-    },
-    previewNameGhost: { color: colors.textTertiary },
-    weekRow: { flexDirection: 'row', gap: space[2] },
-    weekCell: {
-      flex: 1,
-      aspectRatio: 1,
-      borderRadius: radius.sm,
-      alignItems: 'center',
+    // Cuerpo scrolleable. Centrado vertical para que los inputs caigan en la
+    // zona que el pulgar alcanza usando el telefono con una mano. Con flexGrow
+    // el contenido largo (paso de ejercicios) sigue scrolleando normalmente.
+    scroll: {
+      flexGrow: 1,
       justifyContent: 'center',
+      paddingTop: space[8],
+      paddingBottom: space[6],
+      gap: space[8],
     },
-    weekCellOn: { backgroundColor: colors.accent },
-    weekCellOff: { backgroundColor: colors.surfaceInset, borderWidth: 1, borderColor: colors.borderSubtle },
-    weekLetter: { lineHeight: 14 },
 
     // Control del paso
     control: { gap: space[3] },
