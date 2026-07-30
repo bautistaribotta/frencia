@@ -144,10 +144,81 @@ Muestra el nombre de la rutina activa y, debajo, sus dias ordenados por
 `position`, cada uno con su tira de semana, la cuenta de ejercicios y el boton
 Empezar.
 
+Cada tarjeta de dia lleva ademas un lapiz que abre la edicion de ese dia. Va en
+la tarjeta y no en la cabecera de la rutina porque lo que se edita es el dia, y
+va en variante ghost para no disputarle la atencion a Empezar, que es la accion
+principal de la tarjeta.
+
 El boton de crear avisa explicitamente que archiva la rutina actual, porque no
 es obvio y no tiene vuelta atras desde la interfaz.
 
 Si no hay rutina activa, se muestra el onboarding de cuenta nueva.
+
+### 5.3 Editar un dia
+
+Implementado en `src/app/edit-day.tsx`, con el dia como parametro de ruta.
+
+Es la **misma vista** que el paso 3 del wizard. El armado de un dia vive en
+`src/components/DayEditor.tsx` (nombre, dias de la semana, lista arrastrable de
+ejercicios y el boton de agregar) y el buscador en
+`src/components/ExercisePickerModal.tsx`. Ninguno de los dos sabe de la base:
+reciben el dia y avisan cada cambio. Quien los monta decide si eso va a memoria
+(wizard) o a la base (edicion).
+
+Los tipos y helpers compartidos —`TrainingDay`, `DayExercise`, las opciones de
+intensidad, la grilla de descansos y el resumen de un ejercicio— viven en
+`src/lib/dia.ts`, junto con `cargarDia` y `guardarDia`.
+
+#### Editar un ejercicio ya cargado
+
+Un toque corto sobre una fila abre el mismo modal directo en la cara de
+configurar, con los valores de ese ejercicio puestos. Mantenerla apretada sigue
+levantandola para reordenar: las separa el mismo umbral de 200ms que ya existia
+para no pelear con el scroll. Como ninguna de las dos acciones tiene icono
+propio, se enuncian arriba de la lista.
+
+Editando no hay vuelta al buscador. El ejercicio ya esta elegido y lo que se
+cambia son los numeros; para cambiar el ejercicio se quita y se agrega otro.
+
+Dos reglas del modal en modo edicion:
+
+1. **Conserva el uid** de la fila, y quien recibe el ejercicio reemplaza por uid
+   (`aplicarEjercicio`) en vez de por indice. Asi el reemplazo no depende de que
+   la lista no se haya movido.
+2. **Conserva el medidor con el que se guardo el ejercicio**, no la preferencia
+   actual del perfil. Si el usuario paso de RIR a RPE, reetiquetar un "2 RIR"
+   como "2 RPE" cambiaria el dato sin que nadie lo pida. Ademas el centinela
+   `-1` ("al fallo") solo existe en RIR y hay que poder mostrarlo.
+
+Los ejercicios **nuevos** si usan la preferencia actual del perfil, asi que un
+dia puede terminar mezclando RIR y RPE. El resumen de cada fila muestra el suyo.
+
+Diferencias respecto del paso del wizard:
+
+1. El contenido arranca arriba en vez de centrado: el dia ya tiene ejercicios,
+   asi que la pantalla nace larga y centrarla la haria saltar segun cuantos haya.
+2. El encabezado dice a que rutina pertenece el dia. Sin ese dato el campo de
+   nombre no ubica nada.
+3. Guardar esta deshabilitado si no hay cambios o si el nombre quedo vacio.
+4. Salir con cambios sin guardar pregunta antes de descartarlos. No hay
+   borrador: la pantalla edita en memoria y recien escribe al confirmar.
+
+#### Guardado
+
+Guardar un dia es **reemplazar** su contenido: borrar weekdays y ejercicios e
+insertar los nuevos. Hecho desde el cliente son cuatro llamadas sueltas, y si la
+red se corta entre el delete y el insert el dia queda vacio. Por eso va por la
+funcion `public.guardar_dia_entrenamiento(uuid, text, smallint[], jsonb)`, que
+corre todo en una transaccion: o entra entero o no entra nada.
+
+Es `security invoker`, asi que las politicas RLS del usuario que llama siguen
+aplicando y la funcion no puede tocar el dia de otro. Si el `update` inicial no
+afecta ninguna fila (el dia no existe o no es suyo), corta con excepcion antes
+de borrar nada. `anon` no tiene permiso de ejecucion.
+
+Reemplazar los ejercicios **no** toca el historial: `session_sets` referencia
+`exercises` y `workout_sessions`, no `training_day_exercises`. Editar un dia no
+borra lo que ya se levanto en el.
 
 ## 6. Fuera de alcance
 
@@ -159,7 +230,8 @@ Este spec cubre la **estructura**. La **ejecucion** vive en
 
 Tampoco cubre, por ahora:
 
-- Editar una rutina ya creada (agregar o quitar dias, reordenarlos).
+- Editar la rutina en si: renombrarla, agregar o quitar dias, reordenarlos.
+  Editar un **dia** ya existe (seccion 5.3); lo que falta es el nivel de arriba.
 - Duplicar una rutina como punto de partida de la siguiente.
 - Desarchivar una rutina vieja.
 - Plantillas de rutinas predefinidas.
