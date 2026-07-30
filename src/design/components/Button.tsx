@@ -11,7 +11,7 @@ import {
   View,
   type ViewStyle,
 } from 'react-native';
-import { radius, sans, shadow, sizing, space, motion, type Palette } from '../theme';
+import { radius, sans, sizing, space, motion, type Palette } from '../theme';
 import { useColors } from '../theme-context';
 import { Icon } from '../Icon';
 

@@ -3,7 +3,7 @@
 
 import React, { useMemo } from 'react';
 import { Pressable, type PressableProps, StyleSheet, type ViewStyle } from 'react-native';
-import { radius, shadow, motion, type Palette } from '../theme';
+import { radius, motion, type Palette } from '../theme';
 import { useColors } from '../theme-context';
 import { Icon } from '../Icon';
 

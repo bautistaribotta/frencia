@@ -23,14 +23,14 @@ import Animated, {
 } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
 
+import { mono, type Palette } from '../theme';
+import { useThemedStyles } from '../theme-context';
+
 // Tic suave cada vez que un numero pasa por el centro de la rueda.
 function tick() {
   if (Platform.OS === 'web') return;
   Haptics.selectionAsync().catch(() => {});
 }
-
-import { mono, type Palette } from '../theme';
-import { useThemedStyles } from '../theme-context';
 
 type Align = 'center' | 'left' | 'right';
 

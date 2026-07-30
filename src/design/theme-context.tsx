@@ -150,8 +150,16 @@ export function useColors(): Palette {
 
 /** Memoiza una fabrica de estilos contra la paleta activa.
  *  const makeStyles = (colors: Palette) => StyleSheet.create({ ... });
- *  const styles = useThemedStyles(makeStyles); */
+ *  const styles = useThemedStyles(makeStyles);
+ *
+ *  La fabrica tiene que ser estable: definila a nivel de modulo, nunca en el
+ *  cuerpo del componente. Una definida inline se recrea en cada render y, como
+ *  no esta en las dependencias, los estilos quedarian congelados con la primera
+ *  version. Se omite a proposito: incluirla haria que cada render de un
+ *  componente descuidado rehiciera todo el StyleSheet, que es justo lo que este
+ *  hook evita. */
 export function useThemedStyles<T>(factory: (colors: Palette) => T): T {
   const colors = useColors();
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- ver nota de arriba
   return useMemo(() => factory(colors), [colors]);
 }
