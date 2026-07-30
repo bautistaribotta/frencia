@@ -13,7 +13,9 @@
    se avisa el orden nuevo.
 
    El gesto se activa recien despues de mantener apretado (200ms) para no
-   pelear con el scroll del wizard: un arrastre corto sigue scrolleando. */
+   pelear con el scroll del wizard: un arrastre corto sigue scrolleando. Ese
+   mismo umbral separa las dos acciones de la fila: un toque corto la abre para
+   editarla, mantenerla apretada la levanta. */
 
 import React, { useCallback, useMemo, useState } from 'react';
 import { Platform, Pressable, StyleSheet, View, type LayoutChangeEvent } from 'react-native';
@@ -64,12 +66,15 @@ export interface DraggableExerciseListProps {
   /** Mueve el elemento de `from` a `to` (indices sobre `items`). */
   onReorder: (from: number, to: number) => void;
   onRemove: (index: number) => void;
+  /** Toque corto sobre una fila. Sin esto la fila no responde al toque. */
+  onPress?: (index: number) => void;
 }
 
 export function DraggableExerciseList({
   items,
   onReorder,
   onRemove,
+  onPress,
 }: DraggableExerciseListProps) {
   const styles = useThemedStyles(makeStyles);
   const colors = useColors();
@@ -118,6 +123,7 @@ export function DraggableExerciseList({
           dragY={dragY}
           onMeasure={i === 0 ? measure : undefined}
           onRemove={onRemove}
+          onPress={onPress}
           commit={commit}
           styles={styles}
           colors={colors}
@@ -138,6 +144,7 @@ interface RowProps {
   dragY: SharedValue<number>;
   onMeasure?: (e: LayoutChangeEvent) => void;
   onRemove: (index: number) => void;
+  onPress?: (index: number) => void;
   commit: (from: number, to: number) => void;
   styles: ReturnType<typeof makeStyles>;
   colors: Palette;
@@ -154,10 +161,15 @@ function Row({
   dragY,
   onMeasure,
   onRemove,
+  onPress,
   commit,
   styles,
   colors,
 }: RowProps) {
+  // 1 mientras el dedo esta sobre la fila. Solo alimenta la opacidad, asi que
+  // vive en el hilo de UI y no dispara renders.
+  const apretada = useSharedValue(0);
+
   const pan = useMemo(
     () =>
       Gesture.Pan()
@@ -197,6 +209,29 @@ function Row({
     [draggable, index, count, step, from, over, dragY, commit],
   );
 
+  const tap = useMemo(
+    () =>
+      Gesture.Tap()
+        .enabled(onPress !== undefined)
+        // onBegin/onFinalize y no onStart: el destello tiene que aparecer al
+        // apoyar el dedo, no cuando el gesto ya se reconocio.
+        .onBegin(() => {
+          apretada.value = 1;
+        })
+        .onFinalize(() => {
+          apretada.value = 0;
+        })
+        .onEnd((_e, success) => {
+          if (success && onPress) runOnJS(onPress)(index);
+        }),
+    [onPress, index, apretada],
+  );
+
+  // Exclusive y no Simultaneous: son dos acciones distintas sobre la misma
+  // fila. El pan tiene prioridad, y como recien se activa despues del long
+  // press, un toque corto lo deja pasar y lo reconoce el tap.
+  const gesto = useMemo(() => Gesture.Exclusive(pan, tap), [pan, tap]);
+
   const animStyle = useAnimatedStyle(() => {
     const f = from.value;
 
@@ -205,14 +240,24 @@ function Row({
         transform: [{ translateY: dragY.value }, { scale: 1.03 }],
         zIndex: 2,
         borderColor: colors.accent,
+        // La fila levantada no se atenua: ya se distingue por la escala y el
+        // borde, y bajarle la opacidad la haria ver deshabilitada. El numero
+        // pelado corta la animacion del toque, que es justo lo que se quiere al
+        // pasar de apretar a arrastrar.
+        opacity: 1,
       };
     }
+
+    const opacity = withTiming(apretada.value === 1 ? 0.72 : 1, {
+      duration: motion.durFast,
+    });
 
     if (f < 0) {
       return {
         transform: [{ translateY: 0 }, { scale: 1 }],
         zIndex: 0,
         borderColor: colors.borderSubtle,
+        opacity,
       };
     }
 
@@ -227,15 +272,21 @@ function Row({
       transform: [{ translateY: withTiming(shift, { duration: motion.durFast }) }, { scale: 1 }],
       zIndex: 0,
       borderColor: colors.borderSubtle,
+      opacity,
     };
   });
 
   return (
     <Animated.View style={[styles.row, animStyle]} onLayout={onMeasure}>
-      {/* Solo el asa y el texto arrastran: el tacho queda afuera del gesto
-         para que mantenerlo apretado no levante la fila. */}
-      <GestureDetector gesture={pan}>
-        <View style={styles.dragZone}>
+      {/* Solo el asa y el texto reciben los gestos: el tacho queda afuera para
+         que mantenerlo apretado no levante la fila ni la abra. */}
+      <GestureDetector gesture={gesto}>
+        <View
+          style={styles.dragZone}
+          accessible={onPress !== undefined}
+          accessibilityRole={onPress ? 'button' : undefined}
+          accessibilityLabel={onPress ? `Editar ${item.title}` : undefined}
+        >
           {draggable && (
             <Icon name="grip-vertical" size={18} color={colors.textTertiary} />
           )}
