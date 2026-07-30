@@ -18,6 +18,7 @@ import {
   Button,
   FrenciaText,
   Icon,
+  IconButton,
   TabBar,
   useColors,
   useThemedStyles,
@@ -180,16 +181,30 @@ export default function HomeScreen() {
 
             {routine.days.map((d) => (
               <View key={d.id} style={styles.routineCard}>
-                <View style={styles.routineText}>
-                  <FrenciaText role="subtitle" numberOfLines={1}>
-                    {d.name}
-                  </FrenciaText>
-                  <FrenciaText role="dataLabel" color={colors.textTertiary}>
-                    {d.exerciseCount} {d.exerciseCount === 1 ? 'ejercicio' : 'ejercicios'}
-                    {d.weekdays.length > 0
-                      ? ` · ${d.weekdays.map((w) => SEMANA_CORTA[w]).join(', ')}`
-                      : ''}
-                  </FrenciaText>
+                {/* El lapiz va en la tarjeta del dia, no en la cabecera de la
+                   rutina: lo que se edita es este dia. Ghost para que no le
+                   dispute la atencion a Empezar, que es la accion principal. */}
+                <View style={styles.cardHeader}>
+                  <View style={styles.routineText}>
+                    <FrenciaText role="subtitle" numberOfLines={1}>
+                      {d.name}
+                    </FrenciaText>
+                    <FrenciaText role="dataLabel" color={colors.textTertiary}>
+                      {d.exerciseCount} {d.exerciseCount === 1 ? 'ejercicio' : 'ejercicios'}
+                      {d.weekdays.length > 0
+                        ? ` · ${d.weekdays.map((w) => SEMANA_CORTA[w]).join(', ')}`
+                        : ''}
+                    </FrenciaText>
+                  </View>
+                  <IconButton
+                    icon="pencil"
+                    variant="ghost"
+                    size="sm"
+                    accessibilityLabel={`Editar ${d.name}`}
+                    onPress={() =>
+                      router.push({ pathname: '/edit-day', params: { dia: d.id } })
+                    }
+                  />
                 </View>
 
                 {/* Tira de semana del dia */}
@@ -390,7 +405,9 @@ const makeStyles = (colors: Palette) =>
     borderWidth: 1,
     borderColor: colors.borderSubtle,
   },
-  routineText: { gap: space[1] },
+  cardHeader: { flexDirection: 'row', alignItems: 'center', gap: space[3] },
+  // Se achica antes que el lapiz: el boton mantiene su area de toque.
+  routineText: { flex: 1, gap: space[1] },
   weekRow: { flexDirection: 'row', gap: space[2] },
   weekCell: {
     flex: 1,

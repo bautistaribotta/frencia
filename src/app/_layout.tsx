@@ -97,6 +97,15 @@ function RootNavigator() {
             gestureEnabled: false,
           }}
         />
+        {/* Editar un dia. Sin gesto de volver: hay cambios sin guardar y el
+            boton Atras es el que pregunta antes de descartarlos. */}
+        <Stack.Screen
+          name="edit-day"
+          options={{
+            animation: 'slide_from_right',
+            gestureEnabled: false,
+          }}
+        />
         {/* Sesion de entrenamiento. Sin gesto de volver por la misma razon que
             el wizard: los pasos manejan el retroceso con su propio boton. */}
         <Stack.Screen
