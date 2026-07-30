@@ -71,6 +71,8 @@ interface DayExercise {
   reps: number;
   intensityKind: Medidor;
   intensityValue: number;
+  // Descanso fijo entre series, en segundos. null = sin temporizador.
+  restSeconds: number | null;
 }
 
 let uidSeq = 0;
@@ -108,6 +110,35 @@ function defaultIntensity(medidor: Medidor): number {
 function intensityLabel(kind: Medidor, value: number): string {
   if (kind === 'rir') return value < 0 ? 'Al fallo' : `${value} RIR`;
   return `RPE ${value}`;
+}
+
+// Descansos ofrecidos. Nadie necesita elegir 137 segundos: los valores reales
+// caen en la grilla de 30 segundos, y por eso todas las apps de entrenamiento
+// ofrecen una lista y no un campo libre. "Sin" guarda null: la sesion no
+// muestra temporizador para ese ejercicio.
+const DESCANSOS: { label: string; value: number | null }[] = [
+  { label: 'Sin', value: null },
+  { label: '0:30', value: 30 },
+  { label: '0:45', value: 45 },
+  { label: '1:00', value: 60 },
+  { label: '1:30', value: 90 },
+  { label: '2:00', value: 120 },
+  { label: '2:30', value: 150 },
+  { label: '3:00', value: 180 },
+  { label: '4:00', value: 240 },
+  { label: '5:00', value: 300 },
+];
+
+// Dos minutos: el descanso tipico de hipertrofia y el punto medio de lo que
+// ofrecen las apps del rubro. Sirve como valor razonable sin configurar nada.
+const DESCANSO_POR_DEFECTO = 120;
+
+// Segundos a mm:ss, el formato con el que se lee un descanso.
+function restLabel(seconds: number | null): string {
+  if (seconds === null) return 'Sin descanso';
+  const m = Math.floor(seconds / 60);
+  const s = seconds % 60;
+  return `${m}:${String(s).padStart(2, '0')}`;
 }
 
 // Mismo color con alpha, para el degradado que funde la lista con el fondo.
@@ -148,6 +179,7 @@ export default function CreateRoutineScreen() {
   const [sets, setSets] = useState(3);
   const [reps, setReps] = useState(10);
   const [intensityValue, setIntensityValue] = useState(() => defaultIntensity(medidor));
+  const [restSeconds, setRestSeconds] = useState<number | null>(DESCANSO_POR_DEFECTO);
 
   // Dos pasos fijos (nombre y cantidad) y uno por cada dia.
   const totalSteps = 2 + dias.length;
@@ -182,7 +214,15 @@ export default function CreateRoutineScreen() {
       (diaActual?.exercises ?? []).map((ex) => ({
         key: ex.uid,
         title: ex.name,
-        detail: `${ex.sets}x${ex.reps} · ${intensityLabel(ex.intensityKind, ex.intensityValue)}`,
+        detail: [
+          `${ex.sets}x${ex.reps}`,
+          intensityLabel(ex.intensityKind, ex.intensityValue),
+          // Sin descanso no suma nada al resumen: se omite en vez de ocupar
+          // una linea con la ausencia del dato.
+          ex.restSeconds === null ? null : restLabel(ex.restSeconds),
+        ]
+          .filter(Boolean)
+          .join(' · '),
       })),
     [diaActual],
   );
@@ -275,6 +315,7 @@ export default function CreateRoutineScreen() {
     setSets(3);
     setReps(10);
     setIntensityValue(defaultIntensity(medidor));
+    setRestSeconds(DESCANSO_POR_DEFECTO);
     setPickerOpen(true);
   }
 
@@ -285,6 +326,7 @@ export default function CreateRoutineScreen() {
       setSets(3);
       setReps(10);
       setIntensityValue(defaultIntensity(medidor));
+      setRestSeconds(DESCANSO_POR_DEFECTO);
     },
     [medidor],
   );
@@ -322,6 +364,7 @@ export default function CreateRoutineScreen() {
           reps,
           intensityKind: medidor,
           intensityValue,
+          restSeconds,
         },
       ],
     });
@@ -402,6 +445,7 @@ export default function CreateRoutineScreen() {
         reps: ex.reps,
         intensity_kind: ex.intensityKind,
         intensity_value: ex.intensityValue,
+        rest_seconds: ex.restSeconds,
       })),
     );
 
@@ -650,7 +694,7 @@ export default function CreateRoutineScreen() {
                     size="lg"
                   />
 
-                  <View style={styles.intensityBlock}>
+                  <View style={styles.chipsBlock}>
                     <FrenciaText role="dataLabel" color={colors.textTertiary}>
                       Esfuerzo · {medidor === 'rir' ? 'RIR' : 'RPE'}
                     </FrenciaText>
@@ -664,6 +708,35 @@ export default function CreateRoutineScreen() {
                             accessibilityRole="button"
                             accessibilityState={{ selected: on }}
                             accessibilityLabel={o.label}
+                            style={[styles.chip, on ? styles.chipOn : styles.chipOff]}
+                          >
+                            <FrenciaText
+                              role="bodySm"
+                              color={on ? colors.textOnAccent : colors.textSecondary}
+                              style={styles.chipText}
+                            >
+                              {o.label}
+                            </FrenciaText>
+                          </Pressable>
+                        );
+                      })}
+                    </View>
+                  </View>
+
+                  <View style={styles.chipsBlock}>
+                    <FrenciaText role="dataLabel" color={colors.textTertiary}>
+                      Descanso entre series
+                    </FrenciaText>
+                    <View style={styles.chipsRow}>
+                      {DESCANSOS.map((o) => {
+                        const on = o.value === restSeconds;
+                        return (
+                          <Pressable
+                            key={String(o.value)}
+                            onPress={() => setRestSeconds(o.value)}
+                            accessibilityRole="button"
+                            accessibilityState={{ selected: on }}
+                            accessibilityLabel={restLabel(o.value)}
                             style={[styles.chip, on ? styles.chipOn : styles.chipOff]}
                           >
                             <FrenciaText
@@ -851,7 +924,7 @@ const makeStyles = (colors: Palette) =>
       borderColor: colors.borderSubtle,
     },
 
-    intensityBlock: { gap: space[4] },
+    chipsBlock: { gap: space[4] },
     chipsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: space[2] },
     chip: {
       minWidth: 52,

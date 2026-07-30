@@ -149,8 +149,17 @@ Columna en `training_day_exercises`, ya creada por la migracion de
 |---|---|---|
 | `rest_seconds` | smallint null | `null` = sin descanso configurado. Check `> 0` |
 
-Es opcional: si el usuario no lo define, la sesion no muestra temporizador para
-ese ejercicio.
+Es opcional: si el usuario elige "Sin", la columna queda en `null` y la sesion
+no muestra temporizador para ese ejercicio.
+
+El configurador ofrece una lista cerrada de descansos (30s, 45s, y de ahi en
+adelante la grilla de 30 segundos hasta 5:00) en vez de un campo libre. Ningun
+descanso real cae fuera de esa grilla, y elegir de una lista es un toque contra
+varios de un stepper. Es lo que hacen las apps del rubro.
+
+Por defecto viene en **2:00**, el descanso tipico de hipertrofia. No arranca en
+`null`: la mayoria de los ejercicios quiere temporizador, y pedirlo ejercicio
+por ejercicio para el caso comun es friccion al pedo.
 
 Deliberadamente **no** se guarda el descanso real que el usuario tomo. Eso
 implicaria registrar tiempos entre series y no aporta a la progresion, que se
