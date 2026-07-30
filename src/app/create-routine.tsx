@@ -653,7 +653,7 @@ export default function CreateRoutineScreen() {
                     ) : results.length === 0 ? (
                       <View style={styles.resultsHint}>
                         <FrenciaText role="bodySm" color={colors.textTertiary} style={styles.centerText}>
-                          Sin resultados para "{query.trim()}".
+                          Sin resultados para “{query.trim()}”.
                         </FrenciaText>
                       </View>
                     ) : (
