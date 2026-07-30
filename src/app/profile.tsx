@@ -21,7 +21,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { useProfile } from '@/contexts/profile';
 import { useToast } from '@/contexts/toast';
-import { pickAndUploadAvatar } from '@/lib/avatar';
+import { pickAndUploadAvatar, signAvatarUrl, deleteAvatarFile } from '@/lib/avatar';
 import { supabase } from '@/lib/supabase';
 
 import {
@@ -98,15 +98,18 @@ export default function ProfileScreen() {
       if (!user) return;
       const { data } = await supabase
         .from('profiles')
-        .select('medidor_esfuerzo, unidad_peso, unidad_altura, avatar_url, avatar_seed')
+        .select('medidor_esfuerzo, unidad_peso, unidad_altura, avatar_path, avatar_seed')
         .eq('id', user.id)
         .maybeSingle();
       if (cancelado || !data) return;
       setUseRpe(data.medidor_esfuerzo === 'rpe');
       setUseLb(data.unidad_peso === 'lb');
       setUseFeet(data.unidad_altura === 'ft');
-      if (data.avatar_url) setPhoto(data.avatar_url);
       if (data.avatar_seed) setSeed(data.avatar_seed);
+      if (data.avatar_path) {
+        const url = await signAvatarUrl(data.avatar_path);
+        if (!cancelado && url) setPhoto(url);
+      }
     })();
     return () => {
       cancelado = true;
@@ -162,9 +165,11 @@ export default function ProfileScreen() {
     }
     setBusy(true);
     const nuevaSeed = `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+    // Antes de soltar la referencia, porque la ruta sale de la propia fila.
+    await deleteAvatarFile(user.id);
     const { error } = await supabase
       .from('profiles')
-      .update({ avatar_seed: nuevaSeed, avatar_url: null })
+      .update({ avatar_seed: nuevaSeed, avatar_path: null })
       .eq('id', user.id);
     setBusy(false);
     if (error) {
@@ -188,13 +193,14 @@ export default function ProfileScreen() {
       return;
     }
     setBusy(true);
-    // Borra el archivo de Storage (no falla si no existe).
-    await supabase.storage.from('avatars').remove([`${user.id}/avatar.jpg`]);
+    // Borra el archivo de Storage. Va antes del update porque la ruta sale de
+    // la propia fila del perfil.
+    await deleteAvatarFile(user.id);
     // Asegura una semilla para mostrar el avatar generado.
     const semilla = seed ?? `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
     const { error } = await supabase
       .from('profiles')
-      .update({ avatar_url: null, avatar_seed: semilla })
+      .update({ avatar_path: null, avatar_seed: semilla })
       .eq('id', user.id);
     setBusy(false);
     if (error) {

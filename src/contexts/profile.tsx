@@ -10,11 +10,13 @@ import React, {
   useCallback,
   useContext,
   useEffect,
+  useRef,
   useState,
 } from 'react';
 
 import { supabase } from '@/lib/supabase';
 import { fechaNacimientoAEdad } from '@/lib/edad';
+import { signAvatarUrl } from '@/lib/avatar';
 import { useSession } from './session';
 
 export interface ProfileData {
@@ -60,6 +62,9 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
   // llegaba a ver loading=false con el perfil todavia sin leer. Interpretaba
   // ese null como "sin onboarding" y mandaba al setup en cada ingreso.
   const [loadedFor, setLoadedFor] = useState<string | null>(null);
+  // Ultimo usuario leido. Lo usa la firma del avatar, que resuelve tarde, para
+  // no pisar el perfil de otra cuenta si el usuario cambio mientras tanto.
+  const ultimoUsuario = useRef<string | null>(null);
 
   const refresh = useCallback(async () => {
     const {
@@ -67,10 +72,13 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
     } = await supabase.auth.getUser();
 
     if (!current) {
+      ultimoUsuario.current = null;
       setProfile(null);
       setLoadedFor(null);
       return;
     }
+
+    ultimoUsuario.current = current.id;
 
     // Recien creada la cuenta, la fila del profile la inserta un trigger. Si la
     // leemos demasiado pronto puede no estar todavia: reintentamos unas veces
@@ -79,7 +87,7 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
     for (let intento = 0; intento < 3; intento++) {
       const res = await supabase
         .from('profiles')
-        .select('name, username, fecha_nacimiento, sexo, altura, peso, avatar_url, avatar_seed, onboarding_completed, medidor_esfuerzo')
+        .select('name, username, fecha_nacimiento, sexo, altura, peso, avatar_path, avatar_seed, onboarding_completed, medidor_esfuerzo')
         .eq('id', current.id)
         .maybeSingle();
       if (res.data) {
@@ -98,7 +106,8 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
             sexo: data.sexo,
             altura: data.altura,
             peso: data.peso,
-            avatarUrl: data.avatar_url,
+            // Se completa despues, ver abajo.
+            avatarUrl: null,
             avatarSeed: data.avatar_seed,
             onboardingCompleted: data.onboarding_completed ?? false,
             medidorEsfuerzo: data.medidor_esfuerzo === 'rpe' ? 'rpe' : 'rir',
@@ -109,6 +118,18 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
     // sesion: si el usuario cambio a mitad de la lectura, el perfil viejo no
     // cuenta como cargado para el nuevo.
     setLoadedFor(current.id);
+
+    // Firmar el avatar es otra ida a Storage. Va despues de publicar el perfil
+    // y sin bloquearlo: el nombre no tiene por que esperar a una foto, ni
+    // desaparecer si Storage esta caido. Llega unos milisegundos mas tarde y
+    // hasta entonces se ve el avatar generado por semilla.
+    if (data?.avatar_path) {
+      const paraUsuario = current.id;
+      signAvatarUrl(data.avatar_path).then((url) => {
+        if (!url || ultimoUsuario.current !== paraUsuario) return;
+        setProfile((prev) => (prev ? { ...prev, avatarUrl: url } : prev));
+      });
+    }
   }, []);
 
   // Recarga el perfil cada vez que cambia el usuario (login/logout).

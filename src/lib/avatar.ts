@@ -1,11 +1,14 @@
 // Seleccion y subida de la foto de perfil al Storage de Supabase.
-// La imagen se guarda en avatars/{userId}/avatar.jpg (un solo archivo,
-// se sobrescribe) y la URL publica versionada queda en profiles.avatar_url.
+//
+// El bucket avatars es privado: la imagen va a avatars/{userId}/{aleatorio}.jpg
+// y en profiles.avatar_path queda la ruta, no una URL. Para mostrarla hay que
+// firmarla (ver signAvatarUrl).
 //
 // Lo que sale del selector nunca se sube tal cual: se reprocesa antes. Ver
 // prepararImagen.
 import * as ImagePicker from 'expo-image-picker';
 import { ImageManipulator, SaveFormat } from 'expo-image-manipulator';
+import * as Crypto from 'expo-crypto';
 
 import { supabase } from './supabase';
 
@@ -23,6 +26,10 @@ const CALIDAD = 0.85;
 // un corte para no ponerse a decodificar un archivo absurdo en un telefono
 // modesto.
 const MAX_BYTES_ENTRADA = 25 * 1024 * 1024;
+
+// Vigencia de la URL firmada. Una semana es de sobra para que no se venza con
+// la app abierta, y corta para que una URL que se filtre no sirva para siempre.
+const FIRMA_SEGUNDOS = 60 * 60 * 24 * 7;
 
 interface UploadResult {
   url?: string;
@@ -112,7 +119,12 @@ export async function pickAndUploadAvatar(userId: string): Promise<UploadResult>
     // Siempre JPEG: el reprocesado normaliza el formato, asi que el nombre del
     // archivo y el content-type no pueden discrepar con el contenido.
     const contentType = 'image/jpeg';
-    const path = `${userId}/avatar.jpg`;
+    // Nombre aleatorio y no reutilizado. Antes era siempre avatar.jpg, o sea
+    // una ruta deducible desde el uuid del usuario. Ademas evita el
+    // cache-busting: cada subida es un archivo nuevo, no hay version vieja que
+    // el CDN pueda seguir sirviendo.
+    const path = `${userId}/${Crypto.randomUUID()}.jpg`;
+    const anterior = await rutaGuardada(userId);
     const uri = await prepararImagen(asset);
 
     // Subimos via FormData con el uri del archivo: React Native lo sube en
@@ -126,7 +138,7 @@ export async function pickAndUploadAvatar(userId: string): Promise<UploadResult>
     } as unknown as Blob);
 
     const { error: uploadError } = await withTimeout(
-      supabase.storage.from('avatars').upload(path, formData, { contentType, upsert: true }),
+      supabase.storage.from('avatars').upload(path, formData, { contentType }),
       30000,
     );
 
@@ -134,21 +146,73 @@ export async function pickAndUploadAvatar(userId: string): Promise<UploadResult>
       return { error: 'No pudimos subir la imagen. Proba de nuevo.' };
     }
 
-    // Cache-bust: al sobrescribir el mismo path, el CDN podria servir la vieja.
-    const { data } = supabase.storage.from('avatars').getPublicUrl(path);
-    const url = `${data.publicUrl}?v=${Date.now()}`;
-
     const { error: profileError } = await supabase
       .from('profiles')
-      .update({ avatar_url: url })
+      .update({ avatar_path: path })
       .eq('id', userId);
 
     if (profileError) {
+      // El perfil sigue apuntando a la foto anterior, asi que la que acabamos
+      // de subir no la referencia nadie: la sacamos en vez de dejarla colgada.
+      await supabase.storage.from('avatars').remove([path]);
       return { error: 'Subimos la imagen pero no pudimos guardarla en tu perfil.' };
+    }
+
+    // Recien con el perfil ya apuntando al archivo nuevo se borra el viejo.
+    if (anterior && anterior !== path) {
+      await supabase.storage.from('avatars').remove([anterior]);
+    }
+
+    const url = await signAvatarUrl(path);
+    if (!url) {
+      return { error: 'Subimos la imagen pero no pudimos mostrarla. Volve a entrar al perfil.' };
     }
 
     return { url };
   } catch {
     return { error: 'No pudimos procesar la imagen.' };
   }
+}
+
+/** Ruta del avatar que el perfil tiene guardado hoy, o null si no hay foto. */
+async function rutaGuardada(userId: string): Promise<string | null> {
+  const { data } = await supabase
+    .from('profiles')
+    .select('avatar_path')
+    .eq('id', userId)
+    .maybeSingle();
+  return data?.avatar_path ?? null;
+}
+
+/**
+ * Convierte la ruta guardada en una URL que se pueda mostrar. El bucket es
+ * privado, asi que sin firma no hay forma de leer el archivo.
+ */
+export async function signAvatarUrl(path: string | null): Promise<string | null> {
+  if (!path) return null;
+  try {
+    const { data, error } = await supabase.storage
+      .from('avatars')
+      .createSignedUrl(path, FIRMA_SEGUNDOS);
+    if (error || !data) return null;
+    return data.signedUrl;
+  } catch {
+    // Nunca propaga. Quedarse sin foto es un problema chico; que la caida de
+    // Storage se lleve puesto al perfil entero de quien llama, no.
+    return null;
+  }
+}
+
+/**
+ * Borra del bucket la foto que el perfil tenga guardada. No toca la fila del
+ * perfil: eso lo hace quien llama, y tiene que hacerlo despues, porque de aca
+ * sale la ruta.
+ *
+ * Si el borrado falla queda un archivo huerfano, al que no llega nadie porque
+ * el bucket es privado y ninguna fila lo referencia.
+ */
+export async function deleteAvatarFile(userId: string): Promise<void> {
+  const path = await rutaGuardada(userId);
+  if (!path) return;
+  await supabase.storage.from('avatars').remove([path]);
 }
