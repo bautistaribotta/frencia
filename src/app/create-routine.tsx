@@ -10,9 +10,10 @@
    tanda (rutina + dias + weekdays + ejercicios), asi cancelar no deja basura. */
 
 import { useRouter } from 'expo-router';
-import React, { useMemo, useState } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
+  FlatList,
   KeyboardAvoidingView,
   Modal,
   Platform,
@@ -21,8 +22,10 @@ import {
   StyleSheet,
   TextInput,
   View,
+  type ListRenderItemInfo,
 } from 'react-native';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
+import { LinearGradient } from 'expo-linear-gradient';
 
 import { supabase } from '@/lib/supabase';
 import { useExerciseCatalog, foldText, type Exercise } from '@/lib/exercises';
@@ -96,6 +99,17 @@ function intensityLabel(kind: Medidor, value: number): string {
   return `RPE ${value}`;
 }
 
+// Mismo color con alpha, para el degradado que funde la lista con el fondo.
+// Interpolar hacia 'transparent' no sirve: es negro con alpha 0, y en el tema
+// claro el degradado saldria gris sucio en vez de desvanecerse.
+function withAlpha(hex: string, alpha: number): string {
+  const h = hex.replace('#', '');
+  const r = parseInt(h.slice(0, 2), 16);
+  const g = parseInt(h.slice(2, 4), 16);
+  const b = parseInt(h.slice(4, 6), 16);
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+}
+
 export default function CreateRoutineScreen() {
   const colors = useColors();
   const styles = useThemedStyles(makeStyles);
@@ -141,12 +155,14 @@ export default function CreateRoutineScreen() {
   // mayusculas). Cero latencia, sin red por cada tecla. Mira tambien el nombre
   // en ingles, porque en el gimnasio se usan los dos ("jalon al pecho" y "lat
   // pulldown" tienen que encontrar el mismo ejercicio).
+  // Sin texto se lista el catalogo entero por nombre: el usuario puede
+  // explorar sin saber de antemano como se llama lo que busca.
   const results = useMemo(() => {
     const q = foldText(query.trim());
-    if (q === '') return [];
-    return catalog
-      .filter((e) => foldText(e.name).includes(q) || (e.nameEn && foldText(e.nameEn).includes(q)))
-      .slice(0, 50);
+    if (q === '') return catalog;
+    return catalog.filter(
+      (e) => foldText(e.name).includes(q) || (e.nameEn && foldText(e.nameEn).includes(q)),
+    );
   }, [query, catalog]);
 
   // --- Edicion de los dias ---------------------------------------------------
@@ -217,12 +233,36 @@ export default function CreateRoutineScreen() {
     setPickerOpen(true);
   }
 
-  function pickExercise(hit: Exercise) {
-    setSelected(hit);
-    setSets(3);
-    setReps(10);
-    setIntensityValue(defaultIntensity(medidor));
-  }
+  // Estable: lo usa el renderItem de la lista, que se memoiza contra el.
+  const pickExercise = useCallback(
+    (hit: Exercise) => {
+      setSelected(hit);
+      setSets(3);
+      setReps(10);
+      setIntensityValue(defaultIntensity(medidor));
+    },
+    [medidor],
+  );
+
+  const keyExtractor = useCallback((hit: Exercise) => hit.id, []);
+
+  const renderResult = useCallback(
+    ({ item }: ListRenderItemInfo<Exercise>) => (
+      <Pressable
+        onPress={() => pickExercise(item)}
+        accessibilityRole="button"
+        accessibilityLabel={item.name}
+        style={({ pressed }) => [styles.resultRow, pressed && styles.resultRowPressed]}
+      >
+        <Icon name="dumbbell" size={18} color={colors.textSecondary} />
+        <FrenciaText role="bodySm" style={styles.resultName} numberOfLines={1}>
+          {item.name}
+        </FrenciaText>
+        <Icon name="plus" size={18} color={colors.accentText} />
+      </Pressable>
+    ),
+    [pickExercise, styles, colors],
+  );
 
   function saveExercise() {
     if (!selected || !diaActual) return;
@@ -537,7 +577,8 @@ export default function CreateRoutineScreen() {
               style={styles.flex}
               behavior={Platform.OS === 'ios' ? 'padding' : undefined}
             >
-              {/* Header del modal: cerrar o volver al buscador */}
+              {/* Header del modal: solo la salida. El titulo va mas abajo,
+                 junto al contenido, para que no compita con el boton. */}
               <View style={styles.modalHeader}>
                 <Button
                   variant="ghost"
@@ -547,9 +588,6 @@ export default function CreateRoutineScreen() {
                 >
                   {selected ? 'Atrás' : 'Cerrar'}
                 </Button>
-                <FrenciaText role="title" style={styles.modalTitle} pointerEvents="none">
-                  {selected ? 'Configurar' : 'Buscar ejercicio'}
-                </FrenciaText>
               </View>
 
               {selected ? (
@@ -560,6 +598,8 @@ export default function CreateRoutineScreen() {
                   keyboardShouldPersistTaps="handled"
                   showsVerticalScrollIndicator={false}
                 >
+                  <FrenciaText role="title">Configurar</FrenciaText>
+
                   <View style={styles.selectedCard}>
                     <Icon name="dumbbell" size={20} color={colors.accent} />
                     <FrenciaText role="subtitle" style={styles.flex} numberOfLines={2}>
@@ -607,73 +647,70 @@ export default function CreateRoutineScreen() {
                   </View>
                 </ScrollView>
               ) : (
-                /* Buscar: input + resultados del catalogo */
+                /* Buscar: titulo, input y catalogo. El bloque de arriba baja
+                   respecto del boton Cerrar para que no queden pegados. */
                 <View style={styles.flex}>
-                  <View style={styles.searchField}>
-                    <Icon name="search" size={20} color={colors.textTertiary} />
-                    <TextInput
-                      style={styles.input}
-                      placeholder="Buscar ejercicio"
-                      placeholderTextColor={colors.textTertiary}
-                      value={query}
-                      onChangeText={setQuery}
-                      autoFocus
-                      autoCorrect={false}
-                      returnKeyType="search"
-                    />
-                    {query !== '' && (
-                      <Pressable
-                        hitSlop={8}
-                        onPress={() => setQuery('')}
-                        accessibilityRole="button"
-                        accessibilityLabel="Borrar búsqueda"
-                      >
-                        <Icon name="x" size={18} color={colors.textTertiary} />
-                      </Pressable>
-                    )}
+                  <View style={styles.searchHeader}>
+                    <FrenciaText role="title">Buscar ejercicio</FrenciaText>
+
+                    <View style={styles.searchField}>
+                      <Icon name="search" size={20} color={colors.textTertiary} />
+                      <TextInput
+                        style={styles.input}
+                        placeholder="Nombre del ejercicio"
+                        placeholderTextColor={colors.textTertiary}
+                        value={query}
+                        onChangeText={setQuery}
+                        autoCorrect={false}
+                        returnKeyType="search"
+                      />
+                      {query !== '' && (
+                        <Pressable
+                          hitSlop={8}
+                          onPress={() => setQuery('')}
+                          accessibilityRole="button"
+                          accessibilityLabel="Borrar búsqueda"
+                        >
+                          <Icon name="x" size={18} color={colors.textTertiary} />
+                        </Pressable>
+                      )}
+                    </View>
                   </View>
 
-                  <ScrollView
-                    style={styles.flex}
-                    contentContainerStyle={styles.resultsList}
-                    keyboardShouldPersistTaps="handled"
-                    keyboardDismissMode="interactive"
-                    showsVerticalScrollIndicator={false}
-                  >
-                    {catalogLoading ? (
-                      <View style={styles.resultsHint}>
-                        <ActivityIndicator color={colors.accent} />
-                      </View>
-                    ) : query.trim() === '' ? (
-                      <View style={styles.resultsHint}>
-                        <FrenciaText role="bodySm" color={colors.textTertiary} style={styles.centerText}>
-                          Escribí para buscar en el catálogo.
-                        </FrenciaText>
-                      </View>
-                    ) : results.length === 0 ? (
-                      <View style={styles.resultsHint}>
-                        <FrenciaText role="bodySm" color={colors.textTertiary} style={styles.centerText}>
-                          Sin resultados para “{query.trim()}”.
-                        </FrenciaText>
-                      </View>
-                    ) : (
-                      results.map((hit) => (
-                        <Pressable
-                          key={hit.id}
-                          onPress={() => pickExercise(hit)}
-                          accessibilityRole="button"
-                          accessibilityLabel={hit.name}
-                          style={({ pressed }) => [styles.resultRow, pressed && styles.resultRowPressed]}
-                        >
-                          <Icon name="dumbbell" size={18} color={colors.textSecondary} />
-                          <FrenciaText role="bodySm" style={styles.resultName} numberOfLines={1}>
-                            {hit.name}
-                          </FrenciaText>
-                          <Icon name="plus" size={18} color={colors.accentText} />
-                        </Pressable>
-                      ))
-                    )}
-                  </ScrollView>
+                  {/* Sin texto la lista trae el catalogo entero, asi que va
+                     virtualizada: montar 198 filas de una vez es caro. */}
+                  {catalogLoading ? (
+                    <View style={styles.resultsHint}>
+                      <ActivityIndicator color={colors.accent} />
+                    </View>
+                  ) : (
+                    <View style={styles.listWrap}>
+                      <FlatList
+                        data={results}
+                        keyExtractor={keyExtractor}
+                        renderItem={renderResult}
+                        contentContainerStyle={styles.resultsList}
+                        keyboardShouldPersistTaps="handled"
+                        keyboardDismissMode="interactive"
+                        showsVerticalScrollIndicator={false}
+                        ListEmptyComponent={
+                          <View style={styles.resultsHint}>
+                            <FrenciaText role="bodySm" color={colors.textTertiary} style={styles.centerText}>
+                              Sin resultados para “{query.trim()}”.
+                            </FrenciaText>
+                          </View>
+                        }
+                      />
+
+                      {/* Funde las filas contra el fondo antes de que lleguen
+                         al buscador. Va despues de la lista para quedar encima,
+                         y no intercepta toques. */}
+                      <LinearGradient
+                        colors={[colors.bgApp, withAlpha(colors.bgApp, 0)]}
+                        style={styles.fadeTop}
+                      />
+                    </View>
+                  )}
                 </View>
               )}
 
@@ -780,8 +817,9 @@ const makeStyles = (colors: Palette) =>
 
     // Modal del buscador
     modalHeader: { flexDirection: 'row', alignItems: 'center', minHeight: 40 },
-    modalTitle: { position: 'absolute', left: 0, right: 0, textAlign: 'center' },
-    modalBody: { paddingTop: space[8], paddingBottom: space[6], gap: space[8] },
+    // Titulo e input separados del boton Cerrar, que queda solo arriba.
+    searchHeader: { paddingTop: space[7], gap: space[5] },
+    modalBody: { paddingTop: space[7], paddingBottom: space[6], gap: space[8] },
 
     selectedCard: {
       flexDirection: 'row',
@@ -818,7 +856,19 @@ const makeStyles = (colors: Palette) =>
       borderWidth: 1,
       borderColor: colors.borderSubtle,
     },
-    resultsList: { paddingTop: space[5], paddingBottom: space[6] },
+    listWrap: { flex: 1 },
+    fadeTop: {
+      position: 'absolute',
+      top: 0,
+      left: 0,
+      right: 0,
+      height: space[8],
+      pointerEvents: 'none',
+    },
+    // El padding de arriba iguala la altura del degradado: en reposo la primera
+    // fila se ve entera, y al scrollear las filas se funden ahi en vez de
+    // cortarse pegadas al buscador.
+    resultsList: { paddingTop: space[8], paddingBottom: space[6] },
     resultsHint: { paddingVertical: space[8], alignItems: 'center' },
     resultRow: {
       flexDirection: 'row',
