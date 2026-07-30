@@ -31,6 +31,7 @@ import { supabase } from '@/lib/supabase';
 import { useExerciseCatalog, foldText, type Exercise } from '@/lib/exercises';
 import { useProfile } from '@/contexts/profile';
 import { useToast } from '@/contexts/toast';
+import { DraggableExerciseList } from '@/components/DraggableExerciseList';
 
 import {
   Button,
@@ -60,12 +61,22 @@ type Medidor = 'rir' | 'rpe';
 
 // Ejercicio elegido para un dia. Vive en memoria hasta finalizar.
 interface DayExercise {
+  // Identidad propia de la fila, estable aunque se reordene o se repita el
+  // mismo ejercicio en el dia. El indice no sirve como key: al arrastrar
+  // cambia, y React desmontaria la fila en pleno gesto.
+  uid: string;
   exerciseId: string;
   name: string;
   sets: number;
   reps: number;
   intensityKind: Medidor;
   intensityValue: number;
+}
+
+let uidSeq = 0;
+function nextUid(): string {
+  uidSeq += 1;
+  return `ex-${uidSeq}`;
 }
 
 // Dia de entrenamiento en construccion.
@@ -165,6 +176,17 @@ export default function CreateRoutineScreen() {
     );
   }, [query, catalog]);
 
+  // Filas que consume la lista arrastrable: solo texto, sin tipos del dominio.
+  const exerciseItems = useMemo(
+    () =>
+      (diaActual?.exercises ?? []).map((ex) => ({
+        key: ex.uid,
+        title: ex.name,
+        detail: `${ex.sets}x${ex.reps} · ${intensityLabel(ex.intensityKind, ex.intensityValue)}`,
+      })),
+    [diaActual],
+  );
+
   // --- Edicion de los dias ---------------------------------------------------
 
   // Ajusta la cantidad de dias conservando lo ya cargado en los que siguen
@@ -191,10 +213,33 @@ export default function CreateRoutineScreen() {
     actualizarDia(diaIndex, { weekdays: next });
   }
 
-  function removeExercise(i: number) {
-    if (!diaActual) return;
-    actualizarDia(diaIndex, { exercises: diaActual.exercises.filter((_, idx) => idx !== i) });
-  }
+  const removeExercise = useCallback(
+    (i: number) => {
+      setDias((prev) =>
+        prev.map((d, idx) =>
+          idx === diaIndex ? { ...d, exercises: d.exercises.filter((_, j) => j !== i) } : d,
+        ),
+      );
+    },
+    [diaIndex],
+  );
+
+  // El orden de los ejercicios es el orden en que se entrenan, asi que
+  // arrastrarlos cambia el dato, no solo la vista.
+  const moveExercise = useCallback(
+    (from: number, to: number) => {
+      setDias((prev) =>
+        prev.map((d, idx) => {
+          if (idx !== diaIndex) return d;
+          const next = [...d.exercises];
+          const [moved] = next.splice(from, 1);
+          next.splice(to, 0, moved);
+          return { ...d, exercises: next };
+        }),
+      );
+    },
+    [diaIndex],
+  );
 
   // --- Navegacion ------------------------------------------------------------
 
@@ -270,6 +315,7 @@ export default function CreateRoutineScreen() {
       exercises: [
         ...diaActual.exercises,
         {
+          uid: nextUid(),
           exerciseId: selected.id,
           name: selected.name,
           sets,
@@ -510,30 +556,17 @@ export default function CreateRoutineScreen() {
                     </FrenciaText>
                   </View>
                 ) : (
-                  <View style={styles.exerciseList}>
-                    {diaActual.exercises.map((ex, i) => (
-                      <View
-                        key={`${ex.exerciseId}-${i}`}
-                        style={[styles.exerciseRow, i > 0 && styles.exerciseRowDivider]}
-                      >
-                        <View style={styles.exerciseInfo}>
-                          <FrenciaText role="bodySm" style={styles.exerciseName} numberOfLines={1}>
-                            {ex.name}
-                          </FrenciaText>
-                          <FrenciaText role="dataLabel" color={colors.textTertiary}>
-                            {ex.sets}x{ex.reps} · {intensityLabel(ex.intensityKind, ex.intensityValue)}
-                          </FrenciaText>
-                        </View>
-                        <Pressable
-                          hitSlop={8}
-                          onPress={() => removeExercise(i)}
-                          accessibilityRole="button"
-                          accessibilityLabel={`Quitar ${ex.name}`}
-                        >
-                          <Icon name="trash-2" size={18} color={colors.textTertiary} />
-                        </Pressable>
-                      </View>
-                    ))}
+                  <View style={styles.exerciseBlock}>
+                    {diaActual.exercises.length > 1 && (
+                      <FrenciaText role="dataLabel" color={colors.textTertiary}>
+                        Mantené apretado un ejercicio para cambiarlo de orden
+                      </FrenciaText>
+                    )}
+                    <DraggableExerciseList
+                      items={exerciseItems}
+                      onReorder={moveExercise}
+                      onRemove={removeExercise}
+                    />
                   </View>
                 )}
 
@@ -796,21 +829,7 @@ const makeStyles = (colors: Palette) =>
       borderStyle: 'dashed',
       borderColor: colors.borderSubtle,
     },
-    exerciseList: {
-      borderRadius: radius.lg,
-      backgroundColor: colors.surfaceCard,
-      borderWidth: 1,
-      borderColor: colors.borderSubtle,
-    },
-    exerciseRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: space[4],
-      padding: spacing.padCard,
-    },
-    exerciseRowDivider: { borderTopWidth: 1, borderTopColor: colors.divider },
-    exerciseInfo: { flex: 1, gap: space[1] },
-    exerciseName: { color: colors.textPrimary },
+    exerciseBlock: { gap: space[3] },
 
     // Navegacion inferior
     nav: { paddingHorizontal: spacing.padScreen, paddingBottom: space[5] },
