@@ -97,6 +97,15 @@ function RootNavigator() {
             gestureEnabled: false,
           }}
         />
+        {/* Sesion de entrenamiento. Sin gesto de volver por la misma razon que
+            el wizard: los pasos manejan el retroceso con su propio boton. */}
+        <Stack.Screen
+          name="session"
+          options={{
+            animation: 'slide_from_right',
+            gestureEnabled: false,
+          }}
+        />
       </Stack>
     </>
   );

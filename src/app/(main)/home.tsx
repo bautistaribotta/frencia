@@ -213,13 +213,17 @@ export default function HomeScreen() {
                   })}
                 </View>
 
-                {/* Empezar: sin accion por ahora (proxima entrega: sesion). */}
                 <Button
                   variant="primary"
                   size="lg"
                   icon="play"
                   fullWidth
-                  onPress={() => {}}
+                  onPress={() =>
+                    router.push({
+                      pathname: '/session',
+                      params: { dia: d.id, nombre: d.name },
+                    })
+                  }
                 >
                   Empezar
                 </Button>
