@@ -54,7 +54,12 @@ const ProfileContext = createContext<ProfileContextValue>({
 export function ProfileProvider({ children }: { children: React.ReactNode }) {
   const { user } = useSession();
   const [profile, setProfile] = useState<ProfileData | null>(null);
-  const [loading, setLoading] = useState(true);
+  // Id del usuario cuyo perfil ya terminamos de leer. `loading` se deriva de
+  // compararlo con el de la sesion, en vez de ser un booleano suelto: los
+  // efectos de los hijos corren antes que los del provider, y el gate de auth
+  // llegaba a ver loading=false con el perfil todavia sin leer. Interpretaba
+  // ese null como "sin onboarding" y mandaba al setup en cada ingreso.
+  const [loadedFor, setLoadedFor] = useState<string | null>(null);
 
   const refresh = useCallback(async () => {
     const {
@@ -63,7 +68,7 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
 
     if (!current) {
       setProfile(null);
-      setLoading(false);
+      setLoadedFor(null);
       return;
     }
 
@@ -100,7 +105,10 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
           }
         : null,
     );
-    setLoading(false);
+    // Marcamos contra el id que efectivamente leimos, no contra el de la
+    // sesion: si el usuario cambio a mitad de la lectura, el perfil viejo no
+    // cuenta como cargado para el nuevo.
+    setLoadedFor(current.id);
   }, []);
 
   // Recarga el perfil cada vez que cambia el usuario (login/logout).
@@ -108,12 +116,30 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (!userId) {
       setProfile(null);
-      setLoading(false);
+      setLoadedFor(null);
       return;
     }
-    setLoading(true);
-    refresh();
+    let cancelado = false;
+    (async () => {
+      try {
+        await refresh();
+      } catch {
+        if (!cancelado) setProfile(null);
+      } finally {
+        // Falle o no la lectura, damos el perfil por resuelto: el gate de auth
+        // espera a que `loading` sea false para decidir ruta, y sin esto una
+        // caida de red lo dejaria esperando para siempre.
+        if (!cancelado) setLoadedFor(userId);
+      }
+    })();
+    return () => {
+      cancelado = true;
+    };
   }, [userId, refresh]);
+
+  // Hay sesion pero todavia no leimos el perfil de ese usuario. Sin sesion no
+  // hay nada que esperar.
+  const loading = userId ? loadedFor !== userId : false;
 
   const applyAvatar = useCallback(
     (next: { url?: string | null; seed?: string | null }) => {
