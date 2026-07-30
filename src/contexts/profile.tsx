@@ -17,6 +17,7 @@ import React, {
 import { supabase } from '@/lib/supabase';
 import { fechaNacimientoAEdad } from '@/lib/edad';
 import { signAvatarUrl } from '@/lib/avatar';
+import type { UnidadPeso } from '@/lib/peso';
 import { useSession } from './session';
 
 export interface ProfileData {
@@ -31,6 +32,9 @@ export interface ProfileData {
   onboardingCompleted: boolean;
   // Medidor de esfuerzo preferido. Decide la escala al cargar ejercicios.
   medidorEsfuerzo: 'rir' | 'rpe';
+  // Unidad en la que se muestra y se escribe el peso. Lo guardado es siempre
+  // kilo, ver seccion 4.4 de docs/specs/registro-de-sesion.md
+  unidadPeso: UnidadPeso;
 }
 
 interface ProfileContextValue {
@@ -87,7 +91,7 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
     for (let intento = 0; intento < 3; intento++) {
       const res = await supabase
         .from('profiles')
-        .select('name, username, fecha_nacimiento, sexo, altura, peso, avatar_path, avatar_seed, onboarding_completed, medidor_esfuerzo')
+        .select('name, username, fecha_nacimiento, sexo, altura, peso, avatar_path, avatar_seed, onboarding_completed, medidor_esfuerzo, unidad_peso')
         .eq('id', current.id)
         .maybeSingle();
       if (res.data) {
@@ -111,6 +115,7 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
             avatarSeed: data.avatar_seed,
             onboardingCompleted: data.onboarding_completed ?? false,
             medidorEsfuerzo: data.medidor_esfuerzo === 'rpe' ? 'rpe' : 'rir',
+            unidadPeso: data.unidad_peso === 'lb' ? 'lb' : 'kg',
           }
         : null,
     );
