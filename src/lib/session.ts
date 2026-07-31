@@ -24,6 +24,26 @@ export interface SerieFantasma {
   reps: number;
   intensityKind: Medidor;
   intensityValue: number;
+  /** Cuando termino esa sesion, en epoch ms. */
+  hechaEl: number;
+}
+
+/**
+ * "hoy", "ayer", "hace 6 dias". La referencia sirve distinto segun cuanto haga:
+ * repetir el peso de anteayer no es lo mismo que repetir el de hace una semana.
+ */
+export function haceCuanto(epochMs: number): string {
+  const hoy = new Date();
+  const entonces = new Date(epochMs);
+  // Contra el arranque del dia y no contra la hora exacta: entrenar a la manana
+  // y mirar a la noche no puede convertir "hoy" en "hace 1 dia".
+  const dia = 24 * 60 * 60 * 1000;
+  const aMedianoche = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
+  const dias = Math.round((aMedianoche(hoy) - aMedianoche(entonces)) / dia);
+
+  if (dias <= 0) return 'hoy';
+  if (dias === 1) return 'ayer';
+  return `hace ${dias} días`;
 }
 
 /** Clave de una serie dentro del dia: ejercicio + numero de serie (base 1). */
@@ -156,6 +176,7 @@ export async function cargarFantasmas(
       reps: fila.reps,
       intensityKind: fila.intensity_kind === 'rpe' ? 'rpe' : 'rir',
       intensityValue: Number(fila.intensity_value),
+      hechaEl: finDe(fila),
     });
   }
 

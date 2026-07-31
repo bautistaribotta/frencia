@@ -246,11 +246,53 @@ Ejercicio 2 · serie 1
 Un paso de serie muestra:
 
 - En que ejercicio y serie esta, sobre cuantos.
-- El nombre del ejercicio y lo planificado (reps e intensidad objetivo).
-- La serie fantasma, si la hay (seccion 2).
-- Tres campos: peso, reps e intensidad. Vacios.
+- El nombre del ejercicio.
+- La **grilla comparativa** de la serie, ver abajo.
 - Un menu con: sumar una serie a este ejercicio, cortar el ejercicio aca,
   terminar la sesion.
+
+#### La grilla comparativa
+
+Implementada en `src/components/SerieComparativa.tsx`.
+
+Lo que indico quien armo la rutina, lo que se hizo la vez anterior y lo que se
+esta cargando ahora son **el mismo dato en tres momentos**. Van en una sola
+grilla, con las mismas columnas, el mismo orden y la misma tipografia:
+
+```
+              KG      REPS     RIR
+PLAN           —        8       2
+ÚLTIMA        80        8       2     hace 6 dias
+HOY         [ 82 ]   [    ]  [    ]
+```
+
+**El plan no trae peso.** La rutina prescribe reps e intensidad, nunca kilos.
+Esa celda queda vacia a proposito y es lo mas importante de la pantalla: el plan
+da la *forma* del esfuerzo y el peso es lo que elige el usuario para que esa
+forma sea cierta. Es para lo que existe el RIR. Alineada arriba del kilaje de la
+ultima vez, la celda vacia dice sola de donde sale el numero de hoy.
+
+Lo que diferencia las tres filas **no es el color**:
+
+1. La **etiqueta** de la izquierda, que es texto y por eso sobrevive al modo
+   para daltonicos.
+2. El **orden fijo** plan > ultima > hoy, que es una linea de tiempo leida hacia
+   abajo.
+3. Las **cajas**, que tiene solo la fila de hoy porque es la unica que se
+   completa. La diferencia principal es funcional antes que decorativa.
+
+El acento naranja (la linea sobre Hoy, el borde de las cajas ya cargadas) va
+encima de esas tres senales, no en lugar de ellas.
+
+Los campos de hoy siguen **vacios**, aunque ahora la referencia este alineada
+justo arriba: la progresion tiene que ser una decision y no inercia. No hay
+gesto para copiar la fila anterior.
+
+La fila de la ultima vez dice **cuanto hace** (`hoy`, `ayer`, `hace 6 dias`).
+Repetir el peso de anteayer no significa lo mismo que repetir el de hace una
+semana. Sin registro en la ventana, la fila queda en guiones en vez de
+desaparecer: el alto de la pantalla no cambia entre una serie con referencia y
+una sin, y "no hay con que comparar" tambien es informacion.
 
 Al tocar Siguiente la serie se escribe en `session_sets`. Anterior vuelve al paso
 previo con lo que se habia cargado, editable: corregir un peso mal anotado

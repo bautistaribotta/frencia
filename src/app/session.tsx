@@ -20,7 +20,6 @@ import {
   ScrollView,
   StyleSheet,
   Text,
-  TextInput,
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -37,6 +36,7 @@ import {
   crearSesion,
   descartarSesion,
   guardarSerie,
+  haceCuanto,
   sesionEnCurso,
   terminarSesion,
   type EjercicioPlan,
@@ -46,6 +46,7 @@ import {
 import { useProfile } from '@/contexts/profile';
 import { useToast } from '@/contexts/toast';
 import { RestRing } from '@/components/RestRing';
+import { SerieComparativa } from '@/components/SerieComparativa';
 
 import {
   Button,
@@ -55,7 +56,6 @@ import {
   ProgressBar,
   mono,
   radius,
-  sizing,
   space,
   spacing,
   useColors,
@@ -116,9 +116,10 @@ function mmss(segundos: number): string {
   return `${m}:${String(s).padStart(2, '0')}`;
 }
 
-function etiquetaIntensidad(kind: Medidor, value: number): string {
-  if (kind === 'rir') return value < 0 ? 'al fallo' : `${value} RIR`;
-  return `RPE ${value}`;
+/** Intensidad pelada para una celda: la columna ya dice si es RIR o RPE. */
+function valorIntensidad(kind: Medidor, value: number): string {
+  if (kind === 'rir' && value < 0) return 'Fallo';
+  return String(value);
 }
 
 /** Cuanto suma o resta cada toque a los botones del descanso, en segundos. */
@@ -650,16 +651,14 @@ export default function SessionScreen() {
             </FrenciaText>
             <FrenciaText role="title">{ejercicioActual.name}</FrenciaText>
             {/* En el descanso, lo que importa es cuanto del ejercicio ya quedo
-               atras. En la serie eso ya lo dice el titulo de abajo, asi que el
-               lugar lo ocupa lo que hay que apuntarle a esta serie. */}
-            <FrenciaText role="bodySm" color={colors.textSecondary}>
-              {paso.tipo === 'descanso'
-                ? seriesHechas(paso.despuesDe + 1, seriesDelEjercicio)
-                : `Objetivo ${ejercicioActual.reps} reps · ${etiquetaIntensidad(
-                    ejercicioActual.intensityKind,
-                    ejercicioActual.intensityValue,
-                  )}`}
-            </FrenciaText>
+               atras. En la serie el objetivo ya no vive aca: es la primera fila
+               de la grilla, al lado de lo que se hizo y de lo que se esta
+               cargando. Ahi lo dice el titulo de abajo. */}
+            {paso.tipo === 'descanso' ? (
+              <FrenciaText role="bodySm" color={colors.textSecondary}>
+                {seriesHechas(paso.despuesDe + 1, seriesDelEjercicio)}
+              </FrenciaText>
+            ) : null}
           </View>
 
           {paso.tipo === 'descanso' ? (
@@ -724,53 +723,37 @@ export default function SessionScreen() {
                 </FrenciaText>
               </View>
 
-              {/* Serie fantasma: lo que se hizo en esta misma serie la vez
-                 anterior. Los campos van vacios a proposito, para que la
-                 progresion sea una decision y no inercia. */}
-              {fantasma ? (
-                <View style={styles.fantasma}>
-                  <FrenciaText role="dataLabel" color={colors.textTertiary}>
-                    Anterior
-                  </FrenciaText>
-                  <FrenciaText role="data" color={colors.textSecondary}>
-                    {mostrarPeso(fantasma.weightKg, unidad)} {unidad} × {fantasma.reps} ·{' '}
-                    {etiquetaIntensidad(fantasma.intensityKind, fantasma.intensityValue)}
-                  </FrenciaText>
-                </View>
-              ) : (
-                <View style={styles.fantasmaVacio}>
-                  <FrenciaText role="bodySm" color={colors.textTertiary}>
-                    Sin registro de los últimos 10 días.
-                  </FrenciaText>
-                </View>
-              )}
-
-              <View style={styles.campos}>
-                <Campo
-                  label={unidad === 'lb' ? 'Peso · lb' : 'Peso · kg'}
-                  value={valorActual.peso}
-                  onChangeText={(t) => setCampo('peso', t)}
-                  keyboardType="decimal-pad"
-                  styles={styles}
-                  colors={colors}
-                />
-                <Campo
-                  label="Reps"
-                  value={valorActual.reps}
-                  onChangeText={(t) => setCampo('reps', t)}
-                  keyboardType="number-pad"
-                  styles={styles}
-                  colors={colors}
-                />
-                <Campo
-                  label={medidor === 'rir' ? 'RIR' : 'RPE'}
-                  value={valorActual.intensidad}
-                  onChangeText={(t) => setCampo('intensidad', t)}
-                  keyboardType="number-pad"
-                  styles={styles}
-                  colors={colors}
-                />
-              </View>
+              {/* Las tres lecturas de la serie en una sola grilla. Los campos
+                 de hoy van vacios a proposito, para que la progresion sea una
+                 decision y no inercia: se ve lo anterior y se escribe igual. */}
+              <SerieComparativa
+                unidadPeso={unidad}
+                medidor={medidor === 'rir' ? 'RIR' : 'RPE'}
+                planReps={String(ejercicioActual.reps)}
+                planIntensidad={valorIntensidad(
+                  ejercicioActual.intensityKind,
+                  ejercicioActual.intensityValue,
+                )}
+                anterior={
+                  fantasma
+                    ? {
+                        peso: String(mostrarPeso(fantasma.weightKg, unidad)),
+                        reps: String(fantasma.reps),
+                        intensidad: valorIntensidad(
+                          fantasma.intensityKind,
+                          fantasma.intensityValue,
+                        ),
+                        cuando: haceCuanto(fantasma.hechaEl),
+                      }
+                    : null
+                }
+                peso={valorActual.peso}
+                reps={valorActual.reps}
+                intensidad={valorActual.intensidad}
+                onPeso={(t) => setCampo('peso', t)}
+                onReps={(t) => setCampo('reps', t)}
+                onIntensidad={(t) => setCampo('intensidad', t)}
+              />
             </>
           )}
         </ScrollView>
@@ -822,42 +805,6 @@ export default function SessionScreen() {
   );
 }
 
-/* Caja de un dato de la serie. Tipografia mono porque es un numero que se
-   compara contra otro (la fantasma), y la mono los alinea. */
-function Campo({
-  label,
-  value,
-  onChangeText,
-  keyboardType,
-  styles,
-  colors,
-}: {
-  label: string;
-  value: string;
-  onChangeText: (t: string) => void;
-  keyboardType: 'decimal-pad' | 'number-pad';
-  styles: ReturnType<typeof makeStyles>;
-  colors: Palette;
-}) {
-  return (
-    <View style={styles.campo}>
-      <FrenciaText role="dataLabel" color={colors.textTertiary}>
-        {label}
-      </FrenciaText>
-      <TextInput
-        style={styles.campoInput}
-        value={value}
-        onChangeText={onChangeText}
-        keyboardType={keyboardType}
-        placeholder="—"
-        placeholderTextColor={colors.textTertiary}
-        maxLength={5}
-        selectTextOnFocus
-      />
-    </View>
-  );
-}
-
 const makeStyles = (colors: Palette) =>
   StyleSheet.create({
     safe: { flex: 1, backgroundColor: colors.bgApp },
@@ -882,38 +829,6 @@ const makeStyles = (colors: Palette) =>
       fontSize: 48,
       lineHeight: 56,
       includeFontPadding: false,
-    },
-
-    fantasma: {
-      gap: space[2],
-      padding: spacing.padCard,
-      borderRadius: radius.lg,
-      backgroundColor: colors.surfaceCard,
-      borderWidth: 1,
-      borderColor: colors.borderSubtle,
-    },
-    // Mismo alto visual que la fantasma, para que la pantalla no salte entre
-    // una serie con referencia y una sin.
-    fantasmaVacio: {
-      padding: spacing.padCard,
-      borderRadius: radius.lg,
-      borderWidth: 1,
-      borderStyle: 'dashed',
-      borderColor: colors.borderSubtle,
-    },
-
-    campos: { flexDirection: 'row', gap: space[3] },
-    campo: { flex: 1, gap: space[2] },
-    campoInput: {
-      height: sizing.controlHLg,
-      borderRadius: radius.lg,
-      backgroundColor: colors.surfaceCard,
-      borderWidth: 1,
-      borderColor: colors.borderSubtle,
-      textAlign: 'center',
-      fontFamily: mono.bold,
-      fontSize: 22,
-      color: colors.textPrimary,
     },
 
     nav: { flexDirection: 'row', gap: space[3], paddingHorizontal: spacing.padScreen, paddingBottom: space[5] },
