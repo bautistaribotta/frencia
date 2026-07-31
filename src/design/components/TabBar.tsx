@@ -50,20 +50,32 @@ export function TabBar({ items, value, onChange, fab, style }: TabBarProps) {
 
   return (
     <View style={[styles.bar, { paddingBottom: 10 + Math.max(insets.bottom, 8) }, style]}>
-      {left.map(renderTab)}
       {fab ? (
-        <View style={styles.fabSlot}>
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel={fab.label || 'acción'}
-            onPress={fab.onPress}
-            style={({ pressed }) => [styles.fab, pressed && { transform: [{ scale: 0.94 }] }]}
-          >
-            <Icon name={fab.icon || 'plus'} size={26} strokeWidth={2.5} color={colors.textOnAccent} />
-          </Pressable>
-        </View>
-      ) : null}
-      {right.map(renderTab)}
+        /* Los dos lados van en grupos de ancho igual para que el FAB quede
+           centrado tambien con una cantidad impar de tabs. Sueltos, el lado con
+           menos items se lleva mas ancho y el FAB se corre. */
+        <>
+          <View style={styles.group}>{left.map(renderTab)}</View>
+          <View style={styles.fabSlot}>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={fab.label || 'acción'}
+              onPress={fab.onPress}
+              style={({ pressed }) => [styles.fab, pressed && { transform: [{ scale: 0.94 }] }]}
+            >
+              <Icon
+                name={fab.icon || 'plus'}
+                size={26}
+                strokeWidth={2.5}
+                color={colors.textOnAccent}
+              />
+            </Pressable>
+          </View>
+          <View style={styles.group}>{right.map(renderTab)}</View>
+        </>
+      ) : (
+        items.map(renderTab)
+      )}
     </View>
   );
 }
@@ -80,6 +92,7 @@ const makeStyles = (colors: Palette) =>
       paddingHorizontal: 8,
       paddingTop: 10,
     },
+    group: { flex: 1, flexDirection: 'row', alignItems: 'flex-start' },
     tab: { flex: 1, alignItems: 'center', gap: 4, paddingVertical: 4 },
     tabLabel: {
       fontFamily: mono.medium,
