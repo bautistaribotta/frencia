@@ -52,6 +52,9 @@ export const SEMANA_NOMBRES = [
   'Sábado',
   'Domingo',
 ];
+// Para los resumenes de una linea, donde el nombre entero no entra y la
+// inicial sola no se entiende fuera de la tira de siete.
+export const SEMANA_CORTA = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
 
 // Opciones de intensidad segun el medidor del usuario. En RIR sumamos "Fallo"
 // (centinela -1) como paso por debajo de 0 RIR; en RPE va de 1 a 10.

@@ -85,6 +85,33 @@ export async function cargarRutinas(): Promise<RutinaResumen[]> {
   }));
 }
 
+/** Un dia tal como lo manda la edicion de la rutina. `id` null = dia nuevo. */
+export interface DiaAGuardar {
+  id: string | null;
+  name: string;
+}
+
+/**
+ * Reemplaza nombre y dias de una rutina. `dias` es el orden final completo: los
+ * que no esten se borran, con sus ejercicios.
+ *
+ * Va por RPC y no por llamadas sueltas porque son cuatro operaciones —
+ * renombrar, borrar, reordenar, insertar— y una a medio hacer deja la rutina
+ * rota. Ver la migracion guardar_rutina.
+ */
+export async function guardarRutina(
+  routineId: string,
+  name: string,
+  dias: DiaAGuardar[],
+): Promise<boolean> {
+  const { error } = await supabase.rpc('guardar_rutina', {
+    p_routine_id: routineId,
+    p_name: name.trim() || 'Rutina',
+    p_dias: dias.map((d, i) => ({ id: d.id, name: d.name.trim() || `Día ${i + 1}` })),
+  });
+  return !error;
+}
+
 /** Una rutina con sus dias en orden. null si no existe o no es del usuario. */
 export async function cargarRutina(routineId: string): Promise<RutinaDetalle | null> {
   const { data, error } = await supabase

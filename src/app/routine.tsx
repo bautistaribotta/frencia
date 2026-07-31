@@ -12,7 +12,7 @@ import { ActivityIndicator, Pressable, ScrollView, StyleSheet, View } from 'reac
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 
-import { useToast } from '@/contexts/toast';
+import { SEMANA_CORTA } from '@/lib/dia';
 import { cargarRutina, fechaCorta, type RutinaDetalle } from '@/lib/rutinas';
 
 import {
@@ -30,9 +30,6 @@ import {
   type Palette,
 } from '@/design';
 
-// Nombres cortos de la semana. 0 = lunes, igual que el check de la tabla.
-const SEMANA_CORTA = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
-
 function resumenDia(ejercicios: number, weekdays: number[]): string {
   const cuenta = `${ejercicios} ${ejercicios === 1 ? 'ejercicio' : 'ejercicios'}`;
   if (weekdays.length === 0) return cuenta;
@@ -43,7 +40,6 @@ export default function RoutineScreen() {
   const colors = useColors();
   const styles = useThemedStyles(makeStyles);
   const router = useRouter();
-  const { showToast } = useToast();
 
   const { id } = useLocalSearchParams<{ id?: string }>();
 
@@ -87,7 +83,7 @@ export default function RoutineScreen() {
             size="sm"
             icon="pencil"
             onPress={() =>
-              showToast({ message: 'Editar la rutina todavía no está disponible', type: 'info' })
+              router.push({ pathname: '/edit-routine', params: { id: rutina.id } })
             }
           >
             Editar rutina
@@ -157,7 +153,9 @@ export default function RoutineScreen() {
                         {resumenDia(d.ejercicios, d.weekdays)}
                       </FrenciaText>
                     </View>
-                    <Icon name="chevron-right" size={17} color={colors.textTertiary} />
+                    {/* Lapiz y no chevron: la fila no lleva a ver el dia, lo
+                       abre para editarlo. Es el mismo icono que en el home. */}
+                    <Icon name="pencil" size={17} color={colors.textTertiary} />
                   </Pressable>
                 ))}
               </View>

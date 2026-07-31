@@ -276,11 +276,47 @@ hace desde el home; aca se mira y se corrige el plan.
 Editar los dias de una rutina archivada esta permitido a proposito: son datos
 del usuario y no hay razon para bloquearlos.
 
-El boton **Editar rutina** existe pero todavia no hace nada: avisa que la
-funcion no esta disponible. Un boton que no responde al toque se lee como roto,
-asi que dice que le falta en vez de quedarse mudo.
+El boton **Editar rutina** abre la pantalla de la seccion 5.6. Cada dia lleva un
+lapiz que abre la edicion del dia (seccion 5.3); la fila entera sigue siendo
+tocable, el lapiz esta para que se vea que se puede.
 
-### 5.6 Barra de navegacion
+### 5.6 Editar una rutina
+
+Implementado en `src/app/edit-routine.tsx`. Cubre lo que es de la rutina y no de
+un dia: el **nombre**, **que dias la componen** y **en que orden**. El contenido
+de cada dia se edita en su propia pantalla.
+
+Funciona igual en una rutina activa y en una archivada. Son datos del usuario y
+no hay razon para bloquear los de una rutina vieja; el spec ya tomaba esa
+decision para los dias.
+
+**No es un wizard.** El de creacion pregunta de a un paso porque esta armando
+algo que todavia no existe y el orden de las preguntas es la guia. Editar es lo
+contrario: se entra sabiendo que se quiere cambiar, casi siempre una sola cosa.
+Todo va en una pantalla, y se recicla lo que corresponde: el campo de nombre del
+paso 1 y la lista arrastrable que ya usan los ejercicios de un dia.
+
+- **Reordenar**: se mantiene apretado y se arrastra, igual que los ejercicios.
+  El orden es el que despues muestran el detalle y el home.
+- **Quitar un dia**: el tacho de la fila. Si el dia tiene ejercicios se pregunta
+  antes, porque se van con el. No se puede quitar el ultimo: una rutina sin dias
+  no sirve para nada.
+- **Agregar un dia**: entra vacio al final. El maximo es 7, el mismo del wizard,
+  porque mas dias que la semana no tienen donde caer.
+- Las filas **no** se tocan para entrar al dia. Salir de aca con cambios sin
+  guardar los perderia, asi que el contenido de un dia se carga desde el detalle
+  o desde el home. Al guardar, si quedaron dias nuevos, el aviso lo dice.
+
+Nada se toca hasta Guardar. Volver con cambios pendientes pregunta antes de
+descartarlos, igual que la edicion de un dia.
+
+**Guardado atomico** con la funcion `guardar_rutina`, por la misma razon que
+`guardar_dia_entrenamiento` (seccion 5.3): renombrar, borrar los dias que
+salieron, reacomodar los que quedaron e insertar los nuevos son cuatro
+operaciones, y borrar un dia se lleva sus ejercicios por cascada. Sueltas desde
+el cliente, una red que se corta en el medio deja la rutina a medio guardar.
+
+### 5.7 Barra de navegacion
 
 Cuatro tabs: Hoy, Rutinas, Historial y Perfil, con el boton de crear al centro.
 Quedan dos de cada lado, asi que la barra sale simetrica sin ayuda. (Con tres
@@ -322,9 +358,9 @@ Este spec cubre la **estructura**. La **ejecucion** vive en
 
 Tampoco cubre, por ahora:
 
-- Editar la rutina en si: renombrarla, agregar o quitar dias, reordenarlos.
-  Editar un **dia** ya existe (seccion 5.3) y el boton del detalle ya esta
-  puesto (seccion 5.5); lo que falta es la funcion atras.
+- Cargar los ejercicios de un dia nuevo desde la pantalla de la rutina. El dia
+  se crea vacio y se completa entrando a el (seccion 5.3).
+- Renombrar un dia desde la pantalla de la rutina. Se hace entrando al dia.
 - Duplicar una rutina como punto de partida de la siguiente.
 - Desarchivar una rutina vieja.
 - Plantillas de rutinas predefinidas.

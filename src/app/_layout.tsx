@@ -99,8 +99,16 @@ function RootNavigator() {
             fullScreenGestureEnabled: true,
           }}
         />
-        {/* Editar un dia. Sin gesto de volver: hay cambios sin guardar y el
-            boton Atras es el que pregunta antes de descartarlos. */}
+        {/* Editar una rutina y editar un dia. Sin gesto de volver: hay cambios
+            sin guardar y el boton Atras es el que pregunta antes de
+            descartarlos. */}
+        <Stack.Screen
+          name="edit-routine"
+          options={{
+            animation: 'slide_from_right',
+            gestureEnabled: false,
+          }}
+        />
         <Stack.Screen
           name="edit-day"
           options={{
