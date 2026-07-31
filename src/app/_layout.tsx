@@ -97,6 +97,16 @@ function RootNavigator() {
             gestureEnabled: false,
           }}
         />
+        {/* Detalle de una rutina. Es solo lectura, asi que el gesto de volver
+            no puede perder nada. */}
+        <Stack.Screen
+          name="routine"
+          options={{
+            animation: 'slide_from_right',
+            gestureEnabled: true,
+            fullScreenGestureEnabled: true,
+          }}
+        />
         {/* Editar un dia. Sin gesto de volver: hay cambios sin guardar y el
             boton Atras es el que pregunta antes de descartarlos. */}
         <Stack.Screen

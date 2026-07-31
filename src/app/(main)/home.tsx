@@ -43,11 +43,12 @@ const STEPS: Step[] = [
   { n: 3, title: 'Sigue tu progreso', sub: 'PRs, volumen semanal y 1RM estimado', state: 'locked' },
 ];
 
-// Por ahora solo Hoy y Perfil: Historial y Rutinas se suman cuando existan sus
-// pantallas. El TabBar reparte los items a los lados del boton central, asi que
-// con dos queda uno de cada lado.
+// Falta Historial, que se suma cuando exista su pantalla. El TabBar reparte los
+// items a los lados del boton central: con tres van dos a la izquierda y uno a
+// la derecha, y el FAB queda igual centrado.
 const TABS = [
   { value: 'hoy', label: 'Hoy', icon: 'home' },
+  { value: 'rutinas', label: 'Rutinas', icon: 'layers' },
   { value: 'perfil', label: 'Perfil', icon: 'user' },
 ];
 
@@ -358,6 +359,7 @@ export default function HomeScreen() {
         items={TABS}
         value="hoy"
         onChange={(value) => {
+          if (value === 'rutinas') router.push('/routines');
           if (value === 'perfil') openProfile();
         }}
         fab={{ icon: 'plus', label: 'Crear', onPress: onCreateRoutine }}

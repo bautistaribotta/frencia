@@ -220,6 +220,64 @@ Reemplazar los ejercicios **no** toca el historial: `session_sets` referencia
 `exercises` y `workout_sessions`, no `training_day_exercises`. Editar un dia no
 borra lo que ya se levanto en el.
 
+### 5.4 Lista de rutinas
+
+Implementada en `src/app/(main)/routines.tsx`, con su tab propio en la barra
+inferior.
+
+El home y esta pantalla responden preguntas distintas, y por eso no comparten
+forma. El home responde "que entreno hoy": su fila es un **dia**, con la tira de
+semana y el boton Empezar. Aca la pregunta es "que planes tuve y cual esta
+corriendo": la fila es la **rutina entera**.
+
+| | Home | Rutinas |
+|---|---|---|
+| Fila | Dia de entrenamiento | Rutina |
+| Estructura | Pila de tarjetas iguales | Una activa destacada + registro |
+| Accion en la fila | Empezar | Ninguna; se entra tocando |
+| Tira de semana | Si | No |
+| Nombre | `subtitle` (Archivo) | Activa en `display` (Anton) |
+| Datos | Cuenta de ejercicios | Fechas en monoespaciada |
+
+La rutina activa es el unico plan corriendo, asi que se lleva el nombre en
+display y el peso visual de la pantalla. Las anteriores van como filas al hilo
+separadas por una linea fina: son historial, no cosas que se accionan.
+
+Cada rutina muestra su periodo: "desde 29 jul" si sigue activa, "15 jun – 29
+jul" si ya se archivo.
+
+Sin rutinas, la pantalla invita a crear la primera. Si hay archivadas pero
+ninguna activa —posible despues de archivar— se avisa y se ofrece crear.
+
+### 5.5 Detalle de una rutina
+
+Implementado en `src/app/routine.tsx`, con la rutina como parametro de ruta.
+
+Nombre, estado (en curso o archivada), periodo y los dias que la componen. Cada
+dia se toca para editarlo, y va a la pantalla de la seccion 5.3.
+
+Mantiene el idioma de la lista —nombre en display, datos en monoespaciada, dias
+como filas al hilo— y no el del home. Empezar el entrenamiento se hace desde el
+home; aca se mira y se corrige el plan.
+
+Editar los dias de una rutina archivada esta permitido a proposito: son datos
+del usuario y no hay razon para bloquearlos.
+
+El boton **Editar rutina** existe pero todavia no hace nada: avisa que la
+funcion no esta disponible. Un boton que no responde al toque se lee como roto,
+asi que dice que le falta en vez de quedarse mudo.
+
+### 5.6 Barra de navegacion
+
+Tres tabs: Hoy, Rutinas y Perfil, con el boton de crear al centro. Falta
+Historial, que se suma cuando exista su pantalla.
+
+Con una cantidad impar de tabs, el `TabBar` reparte dos a la izquierda y uno a
+la derecha. Los dos lados van en grupos de ancho igual para que el boton central
+quede centrado; sueltos, el lado con menos items se llevaba mas ancho y lo
+corria. La contra es que el tab solitario queda centrado en su mitad y no a la
+misma distancia que los otros dos. Se acomoda solo cuando entre el cuarto tab.
+
 ## 6. Fuera de alcance
 
 Este spec cubre la **estructura**. La **ejecucion** vive en
@@ -231,7 +289,8 @@ Este spec cubre la **estructura**. La **ejecucion** vive en
 Tampoco cubre, por ahora:
 
 - Editar la rutina en si: renombrarla, agregar o quitar dias, reordenarlos.
-  Editar un **dia** ya existe (seccion 5.3); lo que falta es el nivel de arriba.
+  Editar un **dia** ya existe (seccion 5.3) y el boton del detalle ya esta
+  puesto (seccion 5.5); lo que falta es la funcion atras.
 - Duplicar una rutina como punto de partida de la siguiente.
 - Desarchivar una rutina vieja.
 - Plantillas de rutinas predefinidas.
