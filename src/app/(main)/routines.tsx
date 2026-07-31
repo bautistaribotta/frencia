@@ -1,27 +1,25 @@
 /* Frencia · Rutinas — todas las rutinas del usuario.
    El home responde "que entreno hoy" y por eso muestra dias, cada uno con su
-   tira de semana y su boton Empezar. Aca la pregunta es otra: que planes tuve,
-   cual esta corriendo y cuanto duro cada uno. La fila es la rutina entera.
+   tira de semana y su boton Empezar. Aca la pregunta es otra: que planes tuve y
+   cual esta corriendo. La fila es la rutina entera.
 
-   Por eso las dos vistas no comparten forma. Aca no hay tira de semana ni
-   Empezar, la rutina activa es un bloque solo y las anteriores son un registro
-   de filas con fechas en monoespaciada. Se entra tocando la fila. */
+   Todas las rutinas ocupan la misma tarjeta: lo unico que separa a la que esta
+   en curso es el color. Que la activa sea mas grande la convertiria en otra
+   cosa, y son todas lo mismo vistas en momentos distintos. Se entra tocando
+   la tarjeta. */
 
 import React, { useCallback, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect, useRouter } from 'expo-router';
 
-import { cargarRutinas, periodo, type RutinaResumen } from '@/lib/rutinas';
+import { cargarRutinas, fechaCorta, type RutinaResumen } from '@/lib/rutinas';
 
 import {
-  Badge,
   Button,
   FrenciaText,
   Icon,
-  display,
   radius,
-  sans,
   space,
   spacing,
   useColors,
@@ -31,6 +29,13 @@ import {
 
 function contarDias(n: number): string {
   return `${n} ${n === 1 ? 'día' : 'días'}`;
+}
+
+/** "En curso · 3 días · 29 JUL 2026". El estado va en el texto y no solo en el
+ *  color, que es lo unico que lo hace legible en el modo para daltonicos. */
+function resumen(rutina: RutinaResumen): string {
+  const datos = `${contarDias(rutina.dias)} · ${fechaCorta(rutina.creadaEl)}`;
+  return rutina.activa ? `En curso · ${datos}` : datos;
 }
 
 export default function RoutinesScreen() {
@@ -63,6 +68,37 @@ export default function RoutinesScreen() {
   const activa = rutinas.find((r) => r.activa) ?? null;
   const anteriores = rutinas.filter((r) => !r.activa);
 
+  const tarjeta = (rutina: RutinaResumen) => (
+    <Pressable
+      key={rutina.id}
+      onPress={() => abrirRutina(rutina.id)}
+      accessibilityRole="button"
+      accessibilityLabel={`Abrir ${rutina.name}`}
+      style={({ pressed }) => [
+        styles.tarjeta,
+        rutina.activa && styles.tarjetaActiva,
+        pressed && styles.pressed,
+      ]}
+    >
+      <View style={styles.tarjetaTexto}>
+        <FrenciaText role="subtitle" numberOfLines={1}>
+          {rutina.name}
+        </FrenciaText>
+        <FrenciaText
+          role="dataLabel"
+          color={rutina.activa ? colors.accentText : colors.textTertiary}
+        >
+          {resumen(rutina)}
+        </FrenciaText>
+      </View>
+      <Icon
+        name="chevron-right"
+        size={18}
+        color={rutina.activa ? colors.accentText : colors.textTertiary}
+      />
+    </Pressable>
+  );
+
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
@@ -85,26 +121,8 @@ export default function RoutinesScreen() {
           </View>
         ) : (
           <>
-            {/* La rutina activa es el unico plan que esta corriendo, asi que se
-               lleva el nombre en display y todo el peso visual de la pantalla. */}
             {activa ? (
-              <Pressable
-                onPress={() => abrirRutina(activa.id)}
-                accessibilityRole="button"
-                accessibilityLabel={`Abrir ${activa.name}`}
-                style={({ pressed }) => [styles.activa, pressed && styles.pressed]}
-              >
-                <Badge tone="green">En curso</Badge>
-                <FrenciaText role="display" style={styles.activaNombre} numberOfLines={2}>
-                  {activa.name}
-                </FrenciaText>
-                <View style={styles.metaRow}>
-                  <FrenciaText role="data" color={colors.textSecondary}>
-                    {contarDias(activa.dias)} · {periodo(activa)}
-                  </FrenciaText>
-                  <Icon name="chevron-right" size={18} color={colors.accentText} />
-                </View>
-              </Pressable>
+              tarjeta(activa)
             ) : (
               <View style={styles.sinActiva}>
                 <FrenciaText role="bodySm" color={colors.textSecondary}>
@@ -126,34 +144,7 @@ export default function RoutinesScreen() {
                     {anteriores.length}
                   </FrenciaText>
                 </View>
-
-                {/* Filas al hilo, sin tarjeta: son historial, no cosas que se
-                   accionan. La linea fina las separa sin darles volumen. */}
-                <View>
-                  {anteriores.map((r, i) => (
-                    <Pressable
-                      key={r.id}
-                      onPress={() => abrirRutina(r.id)}
-                      accessibilityRole="button"
-                      accessibilityLabel={`Abrir ${r.name}`}
-                      style={({ pressed }) => [
-                        styles.fila,
-                        i > 0 && styles.filaDivisor,
-                        pressed && styles.pressed,
-                      ]}
-                    >
-                      <View style={styles.filaTexto}>
-                        <FrenciaText role="bodySm" style={styles.filaNombre} numberOfLines={1}>
-                          {r.name}
-                        </FrenciaText>
-                        <FrenciaText role="dataLabel" color={colors.textTertiary}>
-                          {contarDias(r.dias)} · {periodo(r)}
-                        </FrenciaText>
-                      </View>
-                      <Icon name="chevron-right" size={17} color={colors.textTertiary} />
-                    </Pressable>
-                  ))}
-                </View>
+                <View style={styles.pila}>{anteriores.map(tarjeta)}</View>
               </View>
             )}
           </>
@@ -175,30 +166,22 @@ const makeStyles = (colors: Palette) =>
     centerText: { textAlign: 'center' },
     pressed: { opacity: 0.75 },
 
-    // Rutina activa
-    activa: {
-      gap: space[3],
-      padding: spacing.padCard,
-      borderRadius: radius.xl,
-      backgroundColor: colors.surfaceOrangeSoft,
-      borderWidth: 1,
-      borderColor: colors.surfaceOrangeLine,
-    },
-    // Anton no es de ancho fijo y el nombre lo pone el usuario, asi que se
-    // achica respecto del display por defecto para que entre en dos lineas.
-    activaNombre: {
-      fontFamily: display,
-      fontSize: 32,
-      lineHeight: 36,
-      textTransform: 'uppercase',
-      includeFontPadding: false,
-    },
-    metaRow: {
+    // Una sola tarjeta para todas. La activa cambia de color, no de tamanio.
+    tarjeta: {
       flexDirection: 'row',
       alignItems: 'center',
-      justifyContent: 'space-between',
-      gap: space[3],
+      gap: space[4],
+      padding: spacing.padCard,
+      borderRadius: radius.lg,
+      backgroundColor: colors.surfaceCard,
+      borderWidth: 1,
+      borderColor: colors.borderSubtle,
     },
+    tarjetaActiva: {
+      backgroundColor: colors.surfaceOrangeSoft,
+      borderColor: colors.surfaceOrangeLine,
+    },
+    tarjetaTexto: { flex: 1, gap: space[2] },
 
     sinActiva: {
       alignItems: 'flex-start',
@@ -210,24 +193,14 @@ const makeStyles = (colors: Palette) =>
       borderColor: colors.borderSubtle,
     },
 
-    // Registro de rutinas anteriores
     anteriores: { gap: space[3] },
     seccionHeader: {
       flexDirection: 'row',
-      alignItems: 'baseline',
+      alignItems: 'center',
       justifyContent: 'space-between',
       paddingHorizontal: space[1],
     },
-    fila: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: space[4],
-      paddingVertical: space[4],
-      paddingHorizontal: space[1],
-    },
-    filaDivisor: { borderTopWidth: 1, borderTopColor: colors.divider },
-    filaTexto: { flex: 1, gap: space[1] },
-    filaNombre: { fontFamily: sans.semibold, color: colors.textPrimary },
+    pila: { gap: space[3] },
 
     // Estado vacio
     vacio: {
