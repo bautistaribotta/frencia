@@ -233,18 +233,28 @@ corriendo": la fila es la **rutina entera**.
 | | Home | Rutinas |
 |---|---|---|
 | Fila | Dia de entrenamiento | Rutina |
-| Estructura | Pila de tarjetas iguales | Una activa destacada + registro |
 | Accion en la fila | Empezar | Ninguna; se entra tocando |
 | Tira de semana | Si | No |
-| Nombre | `subtitle` (Archivo) | Activa en `display` (Anton) |
-| Datos | Cuenta de ejercicios | Fechas en monoespaciada |
+| Datos | Cuenta de ejercicios | Fecha de creacion |
 
-La rutina activa es el unico plan corriendo, asi que se lleva el nombre en
-display y el peso visual de la pantalla. Las anteriores van como filas al hilo
-separadas por una linea fina: son historial, no cosas que se accionan.
+**Todas las rutinas ocupan la misma tarjeta.** Lo unico que distingue a la que
+esta en curso es el color: fondo y borde naranjas contra la superficie neutra
+de las demas. Agrandarla la convertiria en otra cosa, y son todas lo mismo
+vistas en momentos distintos; la unica diferencia real es cual esta corriendo
+ahora.
 
-Cada rutina muestra su periodo: "desde 29 jul" si sigue activa, "15 jun – 29
-jul" si ya se archivo.
+El estado tambien va en el texto: la activa dice "En curso" antes de los datos.
+El color solo no alcanza, porque es justo lo que el modo para daltonicos viene
+a compensar.
+
+Cada rutina muestra **cuando se creo**, en el formato `29 JUL 2026`. No cuando
+se uso por ultima vez: eso es una lectura sobre las sesiones y va en el
+historial, no aca.
+
+La fecha se arma por partes con `formatToParts` y no formateando derecho,
+porque cada version de ICU decora distinto la fecha corta en es-AR ("29 jul
+2026", "29 jul. 2026", "29 de jul de 2026"). Tomando dia, mes y anio sueltos el
+resultado es igual en todos los dispositivos.
 
 Sin rutinas, la pantalla invita a crear la primera. Si hay archivadas pero
 ninguna activa —posible despues de archivar— se avisa y se ofrece crear.
@@ -253,12 +263,13 @@ ninguna activa —posible despues de archivar— se avisa y se ofrece crear.
 
 Implementado en `src/app/routine.tsx`, con la rutina como parametro de ruta.
 
-Nombre, estado (en curso o archivada), periodo y los dias que la componen. Cada
-dia se toca para editarlo, y va a la pantalla de la seccion 5.3.
+Nombre, estado (en curso o archivada), fecha de creacion y los dias que la
+componen. Cada dia se toca para editarlo, y va a la pantalla de la seccion 5.3.
 
-Mantiene el idioma de la lista —nombre en display, datos en monoespaciada, dias
-como filas al hilo— y no el del home. Empezar el entrenamiento se hace desde el
-home; aca se mira y se corrige el plan.
+Aca si el nombre va en display (Anton): es una pantalla sola y el nombre es su
+titulo, no una fila que tiene que medir igual que las de al lado. Los datos van
+en monoespaciada y los dias como filas al hilo. Empezar el entrenamiento se
+hace desde el home; aca se mira y se corrige el plan.
 
 Editar los dias de una rutina archivada esta permitido a proposito: son datos
 del usuario y no hay razon para bloquearlos.
@@ -269,14 +280,17 @@ asi que dice que le falta en vez de quedarse mudo.
 
 ### 5.6 Barra de navegacion
 
-Tres tabs: Hoy, Rutinas y Perfil, con el boton de crear al centro. Falta
-Historial, que se suma cuando exista su pantalla.
+Cuatro tabs: Hoy, Rutinas, Historial y Perfil, con el boton de crear al centro.
+Quedan dos de cada lado, asi que la barra sale simetrica sin ayuda. (Con tres
+tabs habia que meter cada lado en un grupo de ancho igual para que el boton
+central no se corriera, y aun asi el tab solitario quedaba centrado en su
+mitad. Los grupos siguen ahi porque son lo correcto en los dos casos.)
 
-Con una cantidad impar de tabs, el `TabBar` reparte dos a la izquierda y uno a
-la derecha. Los dos lados van en grupos de ancho igual para que el boton central
-quede centrado; sueltos, el lado con menos items se llevaba mas ancho y lo
-corria. La contra es que el tab solitario queda centrado en su mitad y no a la
-misma distancia que los otros dos. Se acomoda solo cuando entre el cuarto tab.
+**Historial todavia no existe como pantalla.** El tab abre un estado que dice
+que falta y que va a mostrar pesos, series y progresion. Reservarle el lugar
+ahora evita que la barra se reacomode entera mas adelante, y el usuario ve para
+donde va la app. Lo que promete es cierto: `session_sets` ya se escribe en cada
+sesion, o sea que los datos se estan juntando.
 
 **La barra vive en el layout, no en las pantallas.** El grupo `(main)` es un
 navegador de pestanias (`Tabs`) con una barra propia: se monta una sola vez y
