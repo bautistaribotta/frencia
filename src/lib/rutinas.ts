@@ -1,0 +1,107 @@
+/* Rutinas del usuario: el listado completo y el detalle de una.
+   El home trae solo la activa porque su pregunta es "que entreno hoy". Aca la
+   pregunta es otra: que planes tuve y cual esta corriendo, asi que se traen
+   todas y el estado archivada/activa es parte del dato.
+   Ver docs/specs/rutinas-y-dias.md */
+
+import { supabase } from './supabase';
+
+/** Una rutina en el listado. */
+export interface RutinaResumen {
+  id: string;
+  name: string;
+  /** Sin archivar. Solo una por usuario, forzado por indice unico parcial. */
+  activa: boolean;
+  creadaEl: string;
+  archivadaEl: string | null;
+  dias: number;
+}
+
+/** Un dia dentro del detalle de una rutina. */
+export interface DiaResumen {
+  id: string;
+  name: string;
+  /** Indices 0 = lunes ... 6 = domingo, ordenados. */
+  weekdays: number[];
+  ejercicios: number;
+}
+
+export interface RutinaDetalle extends Omit<RutinaResumen, 'dias'> {
+  dias: DiaResumen[];
+}
+
+// Hoisteado: construir un Intl.DateTimeFormat es caro y esto se llama una vez
+// por fila.
+const FORMATO_FECHA = new Intl.DateTimeFormat('es-AR', { day: 'numeric', month: 'short' });
+
+/** "29 jul". El locale devuelve "jul." y el punto sobra en una linea de datos. */
+export function fechaCorta(iso: string): string {
+  return FORMATO_FECHA.format(new Date(iso)).replace('.', '');
+}
+
+/**
+ * Periodo que cubrio la rutina: "desde 29 jul" si sigue activa, "15 jun – 29
+ * jul" si ya se archivo. Una rutina creada y archivada el mismo dia muestra la
+ * fecha sola en vez de repetirla.
+ */
+export function periodo(rutina: Pick<RutinaResumen, 'creadaEl' | 'archivadaEl'>): string {
+  const desde = fechaCorta(rutina.creadaEl);
+  if (!rutina.archivadaEl) return `desde ${desde}`;
+  const hasta = fechaCorta(rutina.archivadaEl);
+  return desde === hasta ? desde : `${desde} – ${hasta}`;
+}
+
+/** Todas las rutinas del usuario, de la mas nueva a la mas vieja. */
+export async function cargarRutinas(): Promise<RutinaResumen[]> {
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return [];
+
+  const { data, error } = await supabase
+    .from('routines')
+    .select('id, name, archived_at, created_at, training_days(id)')
+    .eq('user_id', user.id)
+    .order('created_at', { ascending: false });
+
+  if (error || !data) return [];
+
+  return data.map((r) => ({
+    id: r.id,
+    name: r.name,
+    activa: r.archived_at === null,
+    creadaEl: r.created_at,
+    archivadaEl: r.archived_at,
+    dias: (r.training_days ?? []).length,
+  }));
+}
+
+/** Una rutina con sus dias en orden. null si no existe o no es del usuario. */
+export async function cargarRutina(routineId: string): Promise<RutinaDetalle | null> {
+  const { data, error } = await supabase
+    .from('routines')
+    .select(
+      'id, name, archived_at, created_at, training_days(id, name, position, training_day_weekdays(weekday), training_day_exercises(id))',
+    )
+    .eq('id', routineId)
+    .maybeSingle();
+
+  if (error || !data) return null;
+
+  return {
+    id: data.id,
+    name: data.name,
+    activa: data.archived_at === null,
+    creadaEl: data.created_at,
+    archivadaEl: data.archived_at,
+    dias: (data.training_days ?? [])
+      .slice()
+      .sort((a, b) => a.position - b.position)
+      .map((d) => ({
+        id: d.id,
+        name: d.name,
+        weekdays: (d.training_day_weekdays ?? []).map((w) => w.weekday).sort((a, b) => a - b),
+        ejercicios: (d.training_day_exercises ?? []).length,
+      })),
+  };
+}
