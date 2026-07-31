@@ -1,11 +1,13 @@
-/* Frencia · DraggableExerciseList — lista de ejercicios reordenable a mano.
-   El orden importa: los ejercicios se hacen en la secuencia en que estan, asi
-   que se pueden arrastrar para acomodarlos.
+/* Frencia · DraggableRowList — lista reordenable a mano.
+   La usan los ejercicios de un dia y los dias de una rutina: en los dos casos
+   el orden es un dato, no una casualidad, asi que las filas se arrastran para
+   acomodarlas. No sabe de que son las filas; recibe titulo y detalle ya
+   armados.
 
-   Por que a mano y no una libreria: la lista vive adentro del ScrollView del
-   wizard y tiene, como mucho, un punado de filas. Meter una FlatList
-   arrastrable adentro de otro scroll trae mas problemas (scroll anidado,
-   virtualizacion, una dependencia nativa mas) de los que resuelve.
+   Por que a mano y no una libreria: la lista vive adentro de otro ScrollView y
+   tiene, como mucho, un punado de filas. Meter una FlatList arrastrable adentro
+   de otro scroll trae mas problemas (scroll anidado, virtualizacion, una
+   dependencia nativa mas) de los que resuelve.
 
    Como funciona: las filas quedan en el flujo normal y solo se les anima
    translateY. La que se arrastra sigue al dedo; las demas se corren un lugar
@@ -13,9 +15,9 @@
    se avisa el orden nuevo.
 
    El gesto se activa recien despues de mantener apretado (200ms) para no
-   pelear con el scroll del wizard: un arrastre corto sigue scrolleando. Ese
-   mismo umbral separa las dos acciones de la fila: un toque corto la abre para
-   editarla, mantenerla apretada la levanta. */
+   pelear con el scroll de alrededor: un arrastre corto sigue scrolleando. Ese
+   mismo umbral separa las dos acciones de la fila cuando hay onPress: un toque
+   corto la abre, mantenerla apretada la levanta. */
 
 import React, { useCallback, useMemo, useState } from 'react';
 import { Platform, Pressable, StyleSheet, View, type LayoutChangeEvent } from 'react-native';
@@ -55,14 +57,14 @@ function tick() {
 
 /** Fila de la lista. `key` tiene que ser estable entre reordenamientos: si
  *  cambia al mover, React desmonta la fila en pleno arrastre. */
-export interface ExerciseRowData {
+export interface RowData {
   key: string;
   title: string;
   detail: string;
 }
 
-export interface DraggableExerciseListProps {
-  items: ExerciseRowData[];
+export interface DraggableRowListProps {
+  items: RowData[];
   /** Mueve el elemento de `from` a `to` (indices sobre `items`). */
   onReorder: (from: number, to: number) => void;
   onRemove: (index: number) => void;
@@ -70,12 +72,12 @@ export interface DraggableExerciseListProps {
   onPress?: (index: number) => void;
 }
 
-export function DraggableExerciseList({
+export function DraggableRowList({
   items,
   onReorder,
   onRemove,
   onPress,
-}: DraggableExerciseListProps) {
+}: DraggableRowListProps) {
   const styles = useThemedStyles(makeStyles);
   const colors = useColors();
 
@@ -134,7 +136,7 @@ export function DraggableExerciseList({
 }
 
 interface RowProps {
-  item: ExerciseRowData;
+  item: RowData;
   index: number;
   count: number;
   step: number;

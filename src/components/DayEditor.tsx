@@ -9,7 +9,7 @@
 import React, { useCallback, useMemo, useRef } from 'react';
 import { Pressable, StyleSheet, TextInput, View } from 'react-native';
 
-import { DraggableExerciseList } from '@/components/DraggableExerciseList';
+import { DraggableRowList } from '@/components/DraggableRowList';
 import {
   SEMANA,
   SEMANA_NOMBRES,
@@ -158,7 +158,7 @@ export function DayEditor({
               ? 'Tocá un ejercicio para editarlo · mantenelo apretado para cambiarlo de orden'
               : 'Tocá el ejercicio para editarlo'}
           </FrenciaText>
-          <DraggableExerciseList
+          <DraggableRowList
             items={exerciseItems}
             onReorder={moverEjercicio}
             onRemove={quitarEjercicio}
