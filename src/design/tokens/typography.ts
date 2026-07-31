@@ -60,27 +60,33 @@ export const tracking = {
 
 /**
  * Semantic text roles — spread onto a <Text style={...}>.
- * lineHeight is absolute px (RN), derived from the CSS ratios.
+ * lineHeight is absolute px (RN).
+ *
+ * CUIDADO: en RN el lineHeight define la caja de la linea y el glifo se centra
+ * adentro. Si queda por debajo de la caja natural de la fuente, el texto se
+ * recorta arriba (y a veces abajo), no se desborda como en CSS. Los ratios de
+ * la hoja de estilos web no se pueden copiar tal cual: aca el piso es ~1.15
+ * para Anton, que es alta y condensada, y ~1.3 para Archivo y JetBrains Mono.
  */
 export const textRole = {
   // Display — Anton, tight
-  hero: { fontFamily: display, fontSize: fontSize.display2xl, lineHeight: 96, letterSpacing: tracking.display },
-  display: { fontFamily: display, fontSize: fontSize.displayLg, lineHeight: 54, letterSpacing: tracking.display },
+  hero: { fontFamily: display, fontSize: fontSize.display2xl, lineHeight: 100, letterSpacing: tracking.display },
+  display: { fontFamily: display, fontSize: fontSize.displayLg, lineHeight: 56, letterSpacing: tracking.display },
 
   // Headings — Archivo
-  title: { fontFamily: sans.bold, fontSize: fontSize.titleLg, lineHeight: 29 },
-  subtitle: { fontFamily: sans.semibold, fontSize: fontSize.titleMd, lineHeight: 22 },
+  title: { fontFamily: sans.bold, fontSize: fontSize.titleLg, lineHeight: 31 },
+  subtitle: { fontFamily: sans.semibold, fontSize: fontSize.titleMd, lineHeight: 26 },
 
   // Body — Archivo
   body: { fontFamily: sans.regular, fontSize: fontSize.bodyLg, lineHeight: 25 },
   bodySm: { fontFamily: sans.regular, fontSize: fontSize.bodyMd, lineHeight: 22 },
 
   // Data — JetBrains Mono
-  data: { fontFamily: mono.medium, fontSize: fontSize.bodyMd, lineHeight: 17 },
+  data: { fontFamily: mono.medium, fontSize: fontSize.bodyMd, lineHeight: 20 },
   dataLabel: {
     fontFamily: mono.medium,
     fontSize: fontSize.labelMd,
-    lineHeight: 12,
+    lineHeight: 15,
     letterSpacing: tracking.wider,
     textTransform: 'uppercase',
   },
