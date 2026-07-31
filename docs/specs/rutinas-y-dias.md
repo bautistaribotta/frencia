@@ -251,10 +251,12 @@ Cada rutina muestra **cuando se creo**, en el formato `29 JUL 2026`. No cuando
 se uso por ultima vez: eso es una lectura sobre las sesiones y va en el
 historial, no aca.
 
-La fecha se arma por partes con `formatToParts` y no formateando derecho,
-porque cada version de ICU decora distinto la fecha corta en es-AR ("29 jul
-2026", "29 jul. 2026", "29 de jul de 2026"). Tomando dia, mes y anio sueltos el
-resultado es igual en todos los dispositivos.
+La fecha se arma **sin `Intl`**, con una tabla de doce abreviaturas. Hermes
+resuelve `Intl` contra el ICU del sistema y el resultado cambia segun el
+dispositivo: el formato corto en es-AR sale "29 jul 2026", "29 jul. 2026" o
+"29 de jul de 2026", y `formatToParts` devuelve el dia y deja mes y anio
+vacios. Escribir los meses a mano no depende de nada y sale igual en todos
+lados. Es una app en un solo idioma, asi que no se pierde nada.
 
 Sin rutinas, la pantalla invita a crear la primera. Si hay archivadas pero
 ninguna activa —posible despues de archivar— se avisa y se ofrece crear.

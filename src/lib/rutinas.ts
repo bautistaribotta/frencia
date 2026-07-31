@@ -30,28 +30,34 @@ export interface RutinaDetalle extends Omit<RutinaResumen, 'dias'> {
   dias: DiaResumen[];
 }
 
-// Hoisteado: construir un Intl.DateTimeFormat es caro y esto se llama una vez
-// por fila.
-const FORMATO_FECHA = new Intl.DateTimeFormat('es-AR', {
-  day: 'numeric',
-  month: 'short',
-  year: 'numeric',
-});
+const MESES = [
+  'ENE',
+  'FEB',
+  'MAR',
+  'ABR',
+  'MAY',
+  'JUN',
+  'JUL',
+  'AGO',
+  'SEP',
+  'OCT',
+  'NOV',
+  'DIC',
+];
 
 /**
- * "29 JUL 2026".
+ * "29 JUL 2026". Fecha local, que es el dia que el usuario vivio.
  *
- * Se arma por partes en vez de formatear derecho porque cada version de ICU
- * decora distinto la fecha corta en es-AR: "29 jul 2026", "29 jul. 2026" o
- * "29 de jul de 2026". Tomando dia, mes y anio sueltos el resultado es el mismo
- * en todos lados.
+ * Sin Intl a proposito. Hermes lo resuelve contra el ICU del sistema y ahi
+ * cambia todo segun el dispositivo: el formato corto en es-AR sale "29 jul
+ * 2026", "29 jul. 2026" o "29 de jul de 2026", y formatToParts directamente
+ * devuelve el dia y deja mes y anio vacios. Doce abreviaturas escritas a mano
+ * no dependen de nada y salen igual en todos lados.
  */
 export function fechaCorta(iso: string): string {
-  const partes = FORMATO_FECHA.formatToParts(new Date(iso));
-  const parte = (tipo: Intl.DateTimeFormatPartTypes) =>
-    partes.find((p) => p.type === tipo)?.value ?? '';
-  const mes = parte('month').replace('.', '').toUpperCase();
-  return `${parte('day')} ${mes} ${parte('year')}`;
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return '';
+  return `${d.getDate()} ${MESES[d.getMonth()]} ${d.getFullYear()}`;
 }
 
 /** Todas las rutinas del usuario, de la mas nueva a la mas vieja. */
