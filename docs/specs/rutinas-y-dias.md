@@ -278,6 +278,24 @@ quede centrado; sueltos, el lado con menos items se llevaba mas ancho y lo
 corria. La contra es que el tab solitario queda centrado en su mitad y no a la
 misma distancia que los otros dos. Se acomoda solo cuando entre el cuarto tab.
 
+**La barra vive en el layout, no en las pantallas.** El grupo `(main)` es un
+navegador de pestanias (`Tabs`) con una barra propia: se monta una sola vez y
+cambiar de pestania intercambia la pantalla debajo sin desmontarla ni volver a
+animarla. Antes cada pantalla dibujaba su `TabBar` y el cambio era un `push` en
+el stack, asi que la barra entraba deslizandose con la pantalla nueva.
+
+Consecuencias del modelo:
+
+- **Perfil es una pestania**, no una pantalla apilada. Perdio el boton Volver y
+  el gesto de arrastrar hacia abajo para cerrar: con la barra siempre visible,
+  se sale tocando otra pestania.
+- Las pestanias **quedan montadas** despues de la primera visita. Los datos
+  igual se releen con `useFocusEffect`, asi que volver a una pestania muestra lo
+  que se creo o edito mientras tanto.
+- Solo son pestanias los destinos de primer nivel. El wizard, la sesion, el
+  detalle de una rutina y las pantallas de edicion siguen en el stack de arriba
+  y **tapan la barra a proposito**: se entra a hacer una cosa y se sale.
+
 ## 6. Fuera de alcance
 
 Este spec cubre la **estructura**. La **ejecucion** vive en

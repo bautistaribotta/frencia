@@ -65,14 +65,6 @@ function RootNavigator() {
             sin bloquear la interaccion. edit-profile entra desde la derecha y
             permite volver con swipe horizontal en toda la pantalla. */}
         <Stack.Screen
-          name="profile"
-          options={{
-            animation: 'slide_from_right',
-            gestureEnabled: true,
-            fullScreenGestureEnabled: true,
-          }}
-        />
-        <Stack.Screen
           name="edit-profile"
           options={{
             animation: 'slide_from_right',

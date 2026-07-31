@@ -19,7 +19,6 @@ import {
   FrenciaText,
   Icon,
   IconButton,
-  TabBar,
   useColors,
   useThemedStyles,
   mono,
@@ -41,15 +40,6 @@ const STEPS: Step[] = [
   { n: 1, title: 'Crea tu primera rutina', sub: 'Define ejercicios, series y repeticiones', state: 'active' },
   { n: 2, title: 'Registra una sesion', sub: 'Anota peso, reps y RIR mientras entrenas', state: 'locked' },
   { n: 3, title: 'Sigue tu progreso', sub: 'PRs, volumen semanal y 1RM estimado', state: 'locked' },
-];
-
-// Falta Historial, que se suma cuando exista su pantalla. El TabBar reparte los
-// items a los lados del boton central: con tres van dos a la izquierda y uno a
-// la derecha, y el FAB queda igual centrado.
-const TABS = [
-  { value: 'hoy', label: 'Hoy', icon: 'home' },
-  { value: 'rutinas', label: 'Rutinas', icon: 'layers' },
-  { value: 'perfil', label: 'Perfil', icon: 'user' },
 ];
 
 // Iniciales (preview) y nombres cortos (resumen) de la semana. 0 = lunes.
@@ -133,7 +123,9 @@ export default function HomeScreen() {
     }, []),
   );
 
-  const openProfile = () => router.push('/profile');
+  // navigate y no push: el perfil es una pestania, asi que se cambia a ella en
+  // vez de apilar otra copia encima.
+  const openProfile = () => router.navigate('/profile');
   const onCreateRoutine = () => router.push('/create-routine');
   const hasRoutine = routine !== null && routine.days.length > 0;
 
@@ -353,17 +345,6 @@ export default function HomeScreen() {
           </>
         )}
       </ScrollView>
-
-      {/* Barra de pestanas fija */}
-      <TabBar
-        items={TABS}
-        value="hoy"
-        onChange={(value) => {
-          if (value === 'rutinas') router.push('/routines');
-          if (value === 'perfil') openProfile();
-        }}
-        fab={{ icon: 'plus', label: 'Crear', onPress: onCreateRoutine }}
-      />
     </SafeAreaView>
   );
 }

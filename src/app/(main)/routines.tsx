@@ -19,7 +19,6 @@ import {
   Button,
   FrenciaText,
   Icon,
-  TabBar,
   display,
   radius,
   sans,
@@ -29,12 +28,6 @@ import {
   useThemedStyles,
   type Palette,
 } from '@/design';
-
-const TABS = [
-  { value: 'hoy', label: 'Hoy', icon: 'home' },
-  { value: 'rutinas', label: 'Rutinas', icon: 'layers' },
-  { value: 'perfil', label: 'Perfil', icon: 'user' },
-];
 
 function contarDias(n: number): string {
   return `${n} ${n === 1 ? 'día' : 'días'}`;
@@ -166,21 +159,6 @@ export default function RoutinesScreen() {
           </>
         )}
       </ScrollView>
-
-      <TabBar
-        items={TABS}
-        value="rutinas"
-        onChange={(value) => {
-          // Volver en vez de apilar otro home: el home queda debajo porque se
-          // llego aca desde su tab. Sin historial (entrada directa) se reemplaza.
-          if (value === 'hoy') {
-            if (router.canGoBack()) router.back();
-            else router.replace('/home');
-          }
-          if (value === 'perfil') router.push('/profile');
-        }}
-        fab={{ icon: 'plus', label: 'Crear', onPress: crearRutina }}
-      />
     </SafeAreaView>
   );
 }

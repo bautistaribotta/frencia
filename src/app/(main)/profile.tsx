@@ -1,22 +1,12 @@
 /* Frencia · Perfil — pantalla de perfil y ajustes.
-   Se abre al tocar el encabezado de saludo. Foto de perfil (Storage),
-   editar perfil y ajustes. RIR/RPE, kg/lb, cm/ft y el tema (oscuro/claro)
-   se guardan en Supabase; el tema ademas se aplica en vivo via contexto. */
+   Es una pestania: se llega desde la barra de abajo o tocando el encabezado de
+   saludo del home. Foto de perfil (Storage), editar perfil y ajustes. RIR/RPE,
+   kg/lb, cm/ft y el tema (oscuro/claro) se guardan en Supabase; el tema ademas
+   se aplica en vivo via contexto. */
 
 import { useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
-import {
-  Modal,
-  Platform,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  View,
-  type NativeScrollEvent,
-  type NativeSyntheticEvent,
-} from 'react-native';
-import { Gesture, GestureDetector } from 'react-native-gesture-handler';
-import { runOnJS } from 'react-native-reanimated';
+import { Modal, Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { useProfile } from '@/contexts/profile';
@@ -65,28 +55,6 @@ export default function ProfileScreen() {
   // el image picker: presentar un modal nativo mientras otro se cierra deja
   // el picker sin aparecer y la promesa colgada.
   const [pendingPick, setPendingPick] = useState(false);
-
-  function closeProfile() {
-    if (router.canGoBack()) router.back();
-    else router.replace('/home');
-  }
-
-  // Gesto vertical para volver: solo activo con el scroll arriba del todo,
-  // asi no compite con el desplazamiento del contenido. El swipe horizontal
-  // (izquierda a derecha) lo maneja el gesto nativo del Stack.
-  const [atTop, setAtTop] = useState(true);
-
-  function onScroll(e: NativeSyntheticEvent<NativeScrollEvent>) {
-    setAtTop(e.nativeEvent.contentOffset.y <= 0);
-  }
-
-  const swipeDownGesture = Gesture.Pan()
-    .enabled(atTop)
-    .activeOffsetY(20)
-    .failOffsetX([-20, 20])
-    .onEnd((e) => {
-      if (e.translationY > 120) runOnJS(closeProfile)();
-    });
 
   // Carga preferencias y avatar guardados del usuario al abrir el perfil.
   useEffect(() => {
@@ -245,31 +213,10 @@ export default function ProfileScreen() {
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
-      <GestureDetector gesture={swipeDownGesture}>
-      <ScrollView
-        contentContainerStyle={styles.scroll}
-        showsVerticalScrollIndicator={false}
-        onScroll={onScroll}
-        scrollEventThrottle={16}
-      >
-        {/* Encabezado con cierre */}
+      <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
+        {/* Sin boton de volver: es una pestania y se sale tocando otra. */}
         <View style={styles.header}>
-          <Pressable
-            hitSlop={10}
-            onPress={closeProfile}
-            accessibilityRole="button"
-            accessibilityLabel="Volver"
-            style={styles.backBtn}
-          >
-            <Icon name="chevron-left" size={24} color={colors.textPrimary} />
-            <FrenciaText role="bodySm" color={colors.textPrimary} style={styles.backLabel}>
-              Volver
-            </FrenciaText>
-          </Pressable>
-          {/* Titulo centrado de forma absoluta para no descentrarse con el boton */}
-          <FrenciaText role="title" style={styles.headerTitle} pointerEvents="none">
-            Perfil
-          </FrenciaText>
+          <FrenciaText role="title">Perfil</FrenciaText>
         </View>
 
         {/* Tarjeta de usuario */}
@@ -410,7 +357,6 @@ export default function ProfileScreen() {
           </View>
         </Pressable>
       </ScrollView>
-      </GestureDetector>
 
       {/* Opciones de avatar */}
       <Modal
@@ -486,22 +432,8 @@ const makeStyles = (colors: Palette) =>
 
   // Encabezado
   header: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    justifyContent: 'center',
     minHeight: 40,
-  },
-  backBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: space[1],
-    zIndex: 1,
-  },
-  backLabel: { fontFamily: sans.semibold },
-  headerTitle: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    textAlign: 'center',
   },
 
   // Tarjeta de usuario
