@@ -272,7 +272,10 @@ que viene.
   haya trabado o la app haya estado en segundo plano.
 - Volver atras muestra la serie que se acaba de cargar, editable. Volver a
   avanzar retoma la cuenta donde iba, no la reinicia.
-- Al llegar a cero, vibracion y aviso visual. **No avanza solo**: cambiar de
+- Al llegar a cero, vibracion y aviso visual. La vibracion son **tres golpes
+  fuertes seguidos**, no la notificacion del sistema: con el telefono en el
+  bolsillo esa ultima no se siente. Lo que la hace reconocible es la
+  repeticion, no la fuerza de cada golpe. **No avanza solo**: cambiar de
   pantalla sin que el usuario toque nada, en medio del gimnasio, es peor que
   esperar. Sin notificacion del sistema por ahora, para no sumar dependencia ni
   pedir permisos.
@@ -282,6 +285,24 @@ que viene.
   del ultimo ejercicio: no queda nada para lo que descansar.
 - El descanso no se persiste: es estado efimero de la pantalla. Si el usuario
   cierra la app, al volver no hay temporizador corriendo.
+
+**Ajuste de +/- 10s.** Debajo del aro hay dos botones que suman y restan diez
+segundos al descanso que esta corriendo.
+
+- El ajuste vale **solo para ese descanso**. El siguiente vuelve a arrancar en
+  el `rest_seconds` del ejercicio: el plan no se toca desde la sesion.
+- Restar nunca deja el reloj en negativo. Restar diez sobre cuatro segundos
+  termina el descanso; no deja una deuda que despues haya que compensar
+  sumando. Con el descanso terminado el boton de restar queda deshabilitado.
+- Sumar despues de que sono devuelve el aviso del final: vuelve a vibrar al
+  llegar al nuevo cero.
+- El aro se dibuja contra la duracion ajustada, asi la parte llena sigue siendo
+  la proporcion real de lo que queda.
+
+**Encabezado del paso.** En el descanso, la linea bajo el nombre del ejercicio
+dice cuantas series quedaron hechas ("1 de 3 series hechas"). En el paso de
+serie eso ya lo dice el titulo ("Serie 2 de 3"), asi que el lugar lo ocupa el
+objetivo de la serie: reps e intensidad planificadas.
 
 ### 6.4 Terminar
 
