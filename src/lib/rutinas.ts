@@ -32,23 +32,26 @@ export interface RutinaDetalle extends Omit<RutinaResumen, 'dias'> {
 
 // Hoisteado: construir un Intl.DateTimeFormat es caro y esto se llama una vez
 // por fila.
-const FORMATO_FECHA = new Intl.DateTimeFormat('es-AR', { day: 'numeric', month: 'short' });
-
-/** "29 jul". El locale devuelve "jul." y el punto sobra en una linea de datos. */
-export function fechaCorta(iso: string): string {
-  return FORMATO_FECHA.format(new Date(iso)).replace('.', '');
-}
+const FORMATO_FECHA = new Intl.DateTimeFormat('es-AR', {
+  day: 'numeric',
+  month: 'short',
+  year: 'numeric',
+});
 
 /**
- * Periodo que cubrio la rutina: "desde 29 jul" si sigue activa, "15 jun – 29
- * jul" si ya se archivo. Una rutina creada y archivada el mismo dia muestra la
- * fecha sola en vez de repetirla.
+ * "29 JUL 2026".
+ *
+ * Se arma por partes en vez de formatear derecho porque cada version de ICU
+ * decora distinto la fecha corta en es-AR: "29 jul 2026", "29 jul. 2026" o
+ * "29 de jul de 2026". Tomando dia, mes y anio sueltos el resultado es el mismo
+ * en todos lados.
  */
-export function periodo(rutina: Pick<RutinaResumen, 'creadaEl' | 'archivadaEl'>): string {
-  const desde = fechaCorta(rutina.creadaEl);
-  if (!rutina.archivadaEl) return `desde ${desde}`;
-  const hasta = fechaCorta(rutina.archivadaEl);
-  return desde === hasta ? desde : `${desde} – ${hasta}`;
+export function fechaCorta(iso: string): string {
+  const partes = FORMATO_FECHA.formatToParts(new Date(iso));
+  const parte = (tipo: Intl.DateTimeFormatPartTypes) =>
+    partes.find((p) => p.type === tipo)?.value ?? '';
+  const mes = parte('month').replace('.', '').toUpperCase();
+  return `${parte('day')} ${mes} ${parte('year')}`;
 }
 
 /** Todas las rutinas del usuario, de la mas nueva a la mas vieja. */

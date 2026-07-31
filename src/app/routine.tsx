@@ -13,7 +13,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 
 import { useToast } from '@/contexts/toast';
-import { cargarRutina, periodo, type RutinaDetalle } from '@/lib/rutinas';
+import { cargarRutina, fechaCorta, type RutinaDetalle } from '@/lib/rutinas';
 
 import {
   Badge,
@@ -118,7 +118,8 @@ export default function RoutineScreen() {
               {rutina.name}
             </FrenciaText>
             <FrenciaText role="data" color={colors.textSecondary}>
-              {rutina.dias.length} {rutina.dias.length === 1 ? 'día' : 'días'} · {periodo(rutina)}
+              {rutina.dias.length} {rutina.dias.length === 1 ? 'día' : 'días'} ·{' '}
+              {fechaCorta(rutina.creadaEl)}
             </FrenciaText>
           </View>
 
@@ -195,12 +196,13 @@ const makeStyles = (colors: Palette) =>
     titulo: { gap: space[3], alignItems: 'flex-start' },
     // Anton no es de ancho fijo y el nombre lo pone el usuario, asi que se
     // achica respecto del display por defecto para que entre en pocas lineas.
+    // El lineHeight se baja con el, pero no por debajo de la caja natural de
+    // la fuente: ahi RN recorta los ascendentes en vez de desbordar.
     nombre: {
       fontFamily: display,
       fontSize: 34,
-      lineHeight: 38,
+      lineHeight: 40,
       textTransform: 'uppercase',
-      includeFontPadding: false,
     },
 
     seccion: { gap: space[3] },
