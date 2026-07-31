@@ -14,10 +14,12 @@ import type { BottomTabBarProps } from '@react-navigation/bottom-tabs';
 import { TabBar } from '@/design';
 
 // El value de cada item es el nombre del archivo de la pantalla, que es como
-// las identifica el navegador. Falta Historial, que se suma cuando exista.
+// las identifica el navegador. Con cuatro tabs quedan dos de cada lado del
+// boton central y la barra sale simetrica sola.
 const TABS = [
   { value: 'home', label: 'Hoy', icon: 'home' },
   { value: 'routines', label: 'Rutinas', icon: 'layers' },
+  { value: 'history', label: 'Historial', icon: 'history' },
   { value: 'profile', label: 'Perfil', icon: 'user' },
 ];
 
@@ -57,6 +59,7 @@ export default function MainLayout() {
     <Tabs screenOptions={{ headerShown: false }} tabBar={(props) => <FrenciaTabBar {...props} />}>
       <Tabs.Screen name="home" />
       <Tabs.Screen name="routines" />
+      <Tabs.Screen name="history" />
       <Tabs.Screen name="profile" />
     </Tabs>
   );
