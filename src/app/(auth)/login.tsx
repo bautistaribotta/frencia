@@ -66,7 +66,23 @@ export default function LoginScreen() {
     setLoading(false);
 
     if (error) {
-      setErrorMsg('No pudimos ingresar. Revisá tu correo y contraseña.');
+      // El servidor puede fallar por credenciales (400) o por un problema
+      // temporal de conexion/servidor (500, timeout, proyecto despertando de
+      // una pausa). En ese segundo caso el SDK a veces deja la sesion creada
+      // igual: confirmamos antes de culpar a la contraseña, asi no mostramos
+      // un error falso mientras el gate ya esta por redirigir.
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+      if (session) return;
+
+      const credencialesInvalidas =
+        error.status === 400 || /invalid login credentials/i.test(error.message);
+      setErrorMsg(
+        credencialesInvalidas
+          ? 'Correo o contraseña incorrectos.'
+          : 'No pudimos conectar con el servidor. Probá de nuevo en unos segundos.',
+      );
       return;
     }
 
