@@ -16,6 +16,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 
 import { supabase } from '@/lib/supabase';
+import { signInWithProvider, type OAuthProvider } from '@/lib/oauth';
 
 import AppleLogo from '@/assets/icons/apple.svg';
 import GoogleLogo from '@/assets/icons/google.svg';
@@ -45,6 +46,7 @@ export default function RegisterScreen() {
   const [confirm, setConfirm] = useState('');
   const [showPass, setShowPass] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [oauthLoading, setOauthLoading] = useState<OAuthProvider | null>(null);
   const [errorMsg, setErrorMsg] = useState('');
 
   const passwordsMatch = password.length >= 6 && password === confirm;
@@ -82,6 +84,24 @@ export default function RegisterScreen() {
     // volvemos al login. Mas adelante usaremos confirmacion por email.
     await supabase.auth.signOut();
     goToLogin();
+  }
+
+  // Registrarse con un proveedor es la misma operacion que iniciar sesion: si
+  // el usuario no existe, el proveedor lo crea. Tras el exito no navegamos a
+  // mano; el gate del layout raiz detecta la sesion y decide setup vs home.
+  async function handleOAuth(provider: OAuthProvider) {
+    if (oauthLoading) return;
+    setOauthLoading(provider);
+    setErrorMsg('');
+
+    const { error } = await signInWithProvider(provider);
+
+    setOauthLoading(null);
+
+    if (error) {
+      setErrorMsg('No pudimos continuar con ese proveedor. Proba de nuevo.');
+      return;
+    }
   }
 
   return (
@@ -217,6 +237,9 @@ export default function RegisterScreen() {
                 size="lg"
                 leading={<AppleLogo width={20} height={20} />}
                 style={styles.socialBtn}
+                loading={oauthLoading === 'apple'}
+                disabled={oauthLoading !== null}
+                onPress={() => handleOAuth('apple')}
               >
                 Apple
               </Button>
@@ -225,6 +248,9 @@ export default function RegisterScreen() {
                 size="lg"
                 leading={<GoogleLogo width={20} height={20} />}
                 style={styles.socialBtn}
+                loading={oauthLoading === 'google'}
+                disabled={oauthLoading !== null}
+                onPress={() => handleOAuth('google')}
               >
                 Google
               </Button>
