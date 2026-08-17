@@ -14,7 +14,8 @@
    Lo que las diferencia no es el color:
      - la etiqueta de la izquierda, que es texto y sobrevive al modo daltonico;
      - el orden fijo plan > ultima > hoy, que es una linea de tiempo;
-     - las cajas, que tiene solo la fila de hoy porque es la unica que se
+     - las tres filas comparten la caja redondeada, pero la de hoy es mas alta,
+       editable y toma el borde de acento al cargarse: es la unica que se
        completa. La diferencia es funcional antes que decorativa.
    El acento naranja va encima de todo eso, no en lugar de eso. */
 
@@ -183,14 +184,16 @@ function Referencia({
       </View>
       {valores.map((v, i) => (
         <View key={i} style={styles.celda}>
-          <Text
-            style={[
-              styles.numeroRef,
-              { color: v === VACIO ? colors.textDisabled : colors.textSecondary },
-            ]}
-          >
-            {v}
-          </Text>
+          <View style={styles.cajaRef}>
+            <Text
+              style={[
+                styles.numeroRef,
+                { color: v === VACIO ? colors.textDisabled : colors.textSecondary },
+              ]}
+            >
+              {v}
+            </Text>
+          </View>
         </View>
       ))}
     </View>
@@ -232,7 +235,7 @@ function Caja({
 
 const makeStyles = (colors: Palette) =>
   StyleSheet.create({
-    grilla: { gap: space[1] },
+    grilla: { gap: space[2] },
 
     fila: { flexDirection: 'row', alignItems: 'center', gap: space[2] },
     // Ancho fijo: es lo que mantiene las columnas alineadas entre las tres
@@ -247,6 +250,19 @@ const makeStyles = (colors: Palette) =>
       lineHeight: 26,
       textAlign: 'center',
       includeFontPadding: false,
+    },
+
+    // Plan y ultima comparten la caja redondeada de hoy, pero mas bajas y en el
+    // relleno base: son referencia, no el campo que se completa. La jerarquia la
+    // sostienen el alto y la tipografia, no un color distinto.
+    cajaRef: {
+      height: sizing.controlHMd,
+      borderRadius: radius.lg,
+      backgroundColor: colors.surfaceCard,
+      borderWidth: 1,
+      borderColor: colors.borderSubtle,
+      alignItems: 'center',
+      justifyContent: 'center',
     },
 
     // Hoy se separa con una linea de acento y algo mas de aire arriba: es el
