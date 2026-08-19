@@ -210,27 +210,6 @@ export default function EditProfileScreen() {
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
-          {/* Hero */}
-          <View style={styles.hero}>
-            <View style={styles.brandRow}>
-              <View style={styles.mark}>
-                <Icon name="dumbbell" size={34} color={colors.textOnAccent} />
-              </View>
-              <View style={styles.brandText}>
-                <FrenciaText role="display" style={styles.wordmark}>
-                  FRENCIA
-                </FrenciaText>
-                <FrenciaText
-                  role="dataLabel"
-                  color={colors.accentText}
-                  style={styles.tagline}
-                >
-                  Cada serie cuenta
-                </FrenciaText>
-              </View>
-            </View>
-          </View>
-
           {/* Form */}
           <View style={styles.form}>
             <FrenciaText role="title" style={styles.heading}>
@@ -436,26 +415,6 @@ const makeStyles = (colors: Palette) =>
     justifyContent: 'center',
     gap: space[10],
   },
-
-  // Hero
-  hero: { alignItems: 'center', gap: space[4] },
-  brandRow: { flexDirection: 'row', alignItems: 'center', gap: space[3] },
-  mark: {
-    width: 72,
-    height: 72,
-    borderRadius: radius.lg,
-    backgroundColor: colors.accent,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  brandText: { height: 72, justifyContent: 'center' },
-  wordmark: {
-    color: colors.textPrimary,
-    fontSize: 56,
-    lineHeight: 72,
-    includeFontPadding: false,
-  },
-  tagline: { marginTop: -space[2] },
 
   // Form
   form: { gap: space[5] },
