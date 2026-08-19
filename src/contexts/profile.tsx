@@ -22,6 +22,7 @@ import { useSession } from './session';
 
 export interface ProfileData {
   name: string | null;
+  surname: string | null;
   username: string | null;
   edad: number | null;
   sexo: string | null;
@@ -91,7 +92,7 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
     for (let intento = 0; intento < 3; intento++) {
       const res = await supabase
         .from('profiles')
-        .select('name, username, fecha_nacimiento, sexo, altura, peso, avatar_path, avatar_seed, onboarding_completed, medidor_esfuerzo, unidad_peso')
+        .select('name, surname, username, fecha_nacimiento, sexo, altura, peso, avatar_path, avatar_seed, onboarding_completed, medidor_esfuerzo, unidad_peso')
         .eq('id', current.id)
         .maybeSingle();
       if (res.data) {
@@ -105,6 +106,7 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
       data
         ? {
             name: data.name,
+            surname: data.surname,
             username: data.username,
             edad: fechaNacimientoAEdad(data.fecha_nacimiento),
             sexo: data.sexo,

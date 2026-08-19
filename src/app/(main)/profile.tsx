@@ -36,6 +36,10 @@ export default function ProfileScreen() {
   const router = useRouter();
   // Datos del perfil compartidos (saludo, avatar) + reflejo de cambios.
   const { displayName, profile, applyAvatar } = useProfile();
+  // Nombre completo para la tarjeta: suma el apellido si esta cargado.
+  const fullName = [profile?.name?.trim(), profile?.surname?.trim()]
+    .filter(Boolean)
+    .join(' ') || displayName;
   const { showToast } = useToast();
   // Tema activo (oscuro/claro): lo maneja el contexto, persiste solo.
   const { mode, setMode } = useTheme();
@@ -234,7 +238,7 @@ export default function ProfileScreen() {
             </View>
           </Pressable>
           <View style={styles.userText}>
-            <FrenciaText role="subtitle">{displayName}</FrenciaText>
+            <FrenciaText role="subtitle">{fullName}</FrenciaText>
             <FrenciaText role="dataLabel" color={colors.textTertiary}>
               {busy ? 'Actualizando avatar...' : 'Tocá la foto para cambiarla'}
             </FrenciaText>
