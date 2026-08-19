@@ -215,3 +215,33 @@ export async function guardarDia(trainingDayId: string, dia: TrainingDay): Promi
 
   return !error;
 }
+
+/** Resultado de intentar borrar un dia. `ultimo` = es el unico de la rutina. */
+export type ResultadoBorrado = 'ok' | 'ultimo' | 'error';
+
+/**
+ * Borra un dia de entrenamiento con sus ejercicios y dias de semana (cascade en
+ * la base). Las sesiones ya registradas no se pierden: su vinculo al dia queda
+ * en null.
+ *
+ * No deja borrar el ultimo dia de la rutina: una rutina sin dias no sirve para
+ * nada, la misma regla que la pantalla de editar rutina.
+ */
+export async function eliminarDia(trainingDayId: string): Promise<ResultadoBorrado> {
+  const { data: dia, error: errDia } = await supabase
+    .from('training_days')
+    .select('routine_id')
+    .eq('id', trainingDayId)
+    .maybeSingle();
+  if (errDia || !dia) return 'error';
+
+  const { count, error: errCount } = await supabase
+    .from('training_days')
+    .select('id', { count: 'exact', head: true })
+    .eq('routine_id', dia.routine_id);
+  if (errCount || count === null) return 'error';
+  if (count <= 1) return 'ultimo';
+
+  const { error } = await supabase.from('training_days').delete().eq('id', trainingDayId);
+  return error ? 'error' : 'ok';
+}

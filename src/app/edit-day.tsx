@@ -15,6 +15,7 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { LinearGradient } from 'expo-linear-gradient';
 
 import { useProfile } from '@/contexts/profile';
 import { useToast } from '@/contexts/toast';
@@ -23,6 +24,7 @@ import { ExercisePickerModal } from '@/components/ExercisePickerModal';
 import {
   aplicarEjercicio,
   cargarDia,
+  eliminarDia,
   guardarDia,
   type DayExercise,
   type Medidor,
@@ -38,6 +40,16 @@ import {
   useThemedStyles,
   type Palette,
 } from '@/design';
+
+// Interpolar hacia 'transparent' no sirve: es negro con alpha 0, y en el tema
+// claro el degradado saldria gris sucio en vez de desvanecerse.
+function withAlpha(hex: string, alpha: number): string {
+  const h = hex.replace('#', '');
+  const r = parseInt(h.slice(0, 2), 16);
+  const g = parseInt(h.slice(2, 4), 16);
+  const b = parseInt(h.slice(4, 6), 16);
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+}
 
 // Firma del dia para saber si hay cambios sin guardar. Compara lo que se
 // persiste y nada mas: el uid de cada fila es de la vista, no del dato.
@@ -71,6 +83,7 @@ export default function EditDayScreen() {
   const [original, setOriginal] = useState('');
   const [cargando, setCargando] = useState(true);
   const [guardando, setGuardando] = useState(false);
+  const [borrando, setBorrando] = useState(false);
   const [pickerOpen, setPickerOpen] = useState(false);
   // Ejercicio abierto en el modal. null = se esta agregando uno nuevo.
   const [editando, setEditando] = useState<DayExercise | null>(null);
@@ -148,6 +161,43 @@ export default function EditDayScreen() {
     salir();
   }
 
+  // Borrar el dia es destructivo y no hay deshacer: la confirmacion la lleva el
+  // Alert, no el color del boton.
+  function eliminar() {
+    if (!dia || !diaId || guardando || borrando) return;
+    const n = dia.exercises.length;
+    const detalle = n > 0 ? ` y sus ${n} ${n === 1 ? 'ejercicio' : 'ejercicios'}` : '';
+    Alert.alert(
+      `Eliminar ${dia.name.trim() || 'este día'}`,
+      `Se va a borrar el día${detalle}. No se puede deshacer.`,
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        { text: 'Eliminar', style: 'destructive', onPress: confirmarEliminar },
+      ],
+    );
+  }
+
+  async function confirmarEliminar() {
+    if (!diaId) return;
+    setBorrando(true);
+    const res = await eliminarDia(diaId);
+    setBorrando(false);
+
+    if (res === 'ultimo') {
+      showToast({
+        message: 'Es el único día de la rutina. Para eliminarlo, borrá la rutina.',
+        type: 'info',
+      });
+      return;
+    }
+    if (res === 'error') {
+      showToast({ message: 'No pudimos eliminar el día. Proba de nuevo.', type: 'error' });
+      return;
+    }
+    showToast({ message: 'Día eliminado', type: 'success' });
+    salir();
+  }
+
   return (
     <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
       <KeyboardAvoidingView
@@ -160,7 +210,7 @@ export default function EditDayScreen() {
             size="sm"
             icon="chevron-left"
             onPress={volver}
-            disabled={guardando}
+            disabled={guardando || borrando}
           >
             Atrás
           </Button>
@@ -180,33 +230,43 @@ export default function EditDayScreen() {
             </FrenciaText>
           </View>
         ) : (
-          <ScrollView
-            style={styles.flex}
-            contentContainerStyle={styles.scroll}
-            keyboardShouldPersistTaps="handled"
-            keyboardDismissMode="interactive"
-            showsVerticalScrollIndicator={false}
-          >
-            <View style={styles.control}>
-              {/* El nombre de la rutina ubica el dia: el campo de abajo edita
-                 el nombre del dia, y sin este dato no se sabe de cual cuelga. */}
-              <FrenciaText role="dataLabel" color={colors.accentText}>
-                Editar día{rutina ? ` · ${rutina}` : ''}
-              </FrenciaText>
-              <FrenciaText role="subtitle">{dia.name || 'Día sin nombre'}</FrenciaText>
-              <FrenciaText role="bodySm" color={colors.textSecondary} style={styles.hint}>
-                Cambiá el nombre, cuándo lo entrenás y sus ejercicios.
-              </FrenciaText>
+          <View style={styles.scrollWrap}>
+            <ScrollView
+              style={styles.flex}
+              contentContainerStyle={styles.scroll}
+              keyboardShouldPersistTaps="handled"
+              keyboardDismissMode="interactive"
+              showsVerticalScrollIndicator={false}
+            >
+              <View style={styles.control}>
+                {/* El nombre de la rutina ubica el dia: el campo de abajo edita
+                   el nombre del dia, y sin este dato no se sabe de cual cuelga. */}
+                <FrenciaText role="dataLabel" color={colors.accentText}>
+                  Editar día{rutina ? ` · ${rutina}` : ''}
+                </FrenciaText>
+                <FrenciaText role="subtitle">{dia.name || 'Día sin nombre'}</FrenciaText>
+                <FrenciaText role="bodySm" color={colors.textSecondary} style={styles.hint}>
+                  Cambiá el nombre, cuándo lo entrenás y sus ejercicios.
+                </FrenciaText>
 
-              <DayEditor
-                dia={dia}
-                placeholderNombre="Nombre del día"
-                onChange={actualizar}
-                onAgregarEjercicio={() => abrirPicker(null)}
-                onEditarEjercicio={abrirPicker}
-              />
-            </View>
-          </ScrollView>
+                <DayEditor
+                  dia={dia}
+                  placeholderNombre="Nombre del día"
+                  onChange={actualizar}
+                  onAgregarEjercicio={() => abrirPicker(null)}
+                  onEditarEjercicio={abrirPicker}
+                />
+              </View>
+            </ScrollView>
+
+            {/* Funde el contenido contra el fondo antes de que toque el boton
+               de guardar, en lugar del corte seco. No intercepta toques. */}
+            <LinearGradient
+              colors={[withAlpha(colors.bgApp, 0), colors.bgApp]}
+              style={styles.fadeBottom}
+              pointerEvents="none"
+            />
+          </View>
         )}
 
         {dia && (
@@ -216,11 +276,22 @@ export default function EditDayScreen() {
               size="lg"
               fullWidth
               icon="check"
-              disabled={!sucio || !nombreValido}
+              disabled={!sucio || !nombreValido || borrando}
               loading={guardando}
               onPress={guardar}
             >
               Guardar cambios
+            </Button>
+            <Button
+              variant="ghost"
+              size="lg"
+              fullWidth
+              icon="trash-2"
+              disabled={guardando}
+              loading={borrando}
+              onPress={eliminar}
+            >
+              Eliminar día
             </Button>
           </View>
         )}
@@ -254,5 +325,16 @@ const makeStyles = (colors: Palette) =>
     control: { gap: space[3] },
     hint: { marginBottom: space[2], maxWidth: 320 },
 
-    nav: { paddingHorizontal: spacing.padScreen, paddingBottom: space[5] },
+    // Envuelve el scroll para colgarle el degradado encima sin sacarlo de flujo.
+    scrollWrap: { flex: 1 },
+    fadeBottom: {
+      position: 'absolute',
+      left: 0,
+      right: 0,
+      bottom: 0,
+      height: space[11],
+      pointerEvents: 'none',
+    },
+
+    nav: { paddingHorizontal: spacing.padScreen, paddingBottom: space[5], gap: space[2] },
   });
