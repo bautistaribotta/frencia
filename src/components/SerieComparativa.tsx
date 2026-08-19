@@ -12,7 +12,7 @@
    forma sea cierta. Es para lo que existe el RIR.
 
    Lo que las diferencia no es el color:
-     - la etiqueta de la izquierda, que es texto y sobrevive al modo daltonico;
+     - la etiqueta de la izquierda, que es texto y no depende del color;
      - el orden fijo plan > ultima > hoy, que es una linea de tiempo;
      - las tres filas comparten la caja redondeada, pero la de hoy es mas alta,
        editable y toma el borde de acento al cargarse: es la unica que se

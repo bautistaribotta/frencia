@@ -32,7 +32,7 @@ function contarDias(n: number): string {
 }
 
 /** "En curso · 3 días · 29 JUL 2026". El estado va en el texto y no solo en el
- *  color, que es lo unico que lo hace legible en el modo para daltonicos. */
+ *  color, para que se lea aunque el color pase desapercibido. */
 function resumen(rutina: RutinaResumen): string {
   const datos = `${contarDias(rutina.dias)} · ${fechaCorta(rutina.creadaEl)}`;
   return rutina.activa ? `En curso · ${datos}` : datos;

@@ -72,14 +72,6 @@ function RootNavigator() {
             fullScreenGestureEnabled: true,
           }}
         />
-        <Stack.Screen
-          name="colorblind"
-          options={{
-            animation: 'slide_from_right',
-            gestureEnabled: true,
-            fullScreenGestureEnabled: true,
-          }}
-        />
         {/* Wizard de creacion de rutina. Sin gesto de volver: los pasos
             manejan el retroceso con su propio boton para no perder datos. */}
         <Stack.Screen

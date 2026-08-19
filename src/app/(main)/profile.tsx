@@ -322,24 +322,6 @@ export default function ProfileScreen() {
           </View>
         </View>
 
-        {/* Configuracion: abre los filtros de daltonismo */}
-        <Pressable
-          style={styles.settingsList}
-          onPress={() => router.push('/colorblind')}
-          accessibilityRole="button"
-          accessibilityLabel="Configuracion"
-        >
-          <View style={styles.settingRow}>
-            <View style={styles.configLeft}>
-              <Icon name="settings" size={20} color={colors.textSecondary} />
-              <FrenciaText role="bodySm" style={styles.settingTitle}>
-                Configuracion
-              </FrenciaText>
-            </View>
-            <Icon name="chevron-right" size={18} color={colors.textTertiary} />
-          </View>
-        </Pressable>
-
         {/* Cerrar sesion: recuadro propio, accion destructiva */}
         <Pressable
           style={styles.settingsList}
