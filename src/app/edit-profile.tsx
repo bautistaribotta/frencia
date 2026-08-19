@@ -12,6 +12,7 @@ import {
   Pressable,
   ScrollView,
   StyleSheet,
+  TextInput,
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -51,6 +52,8 @@ export default function EditProfileScreen() {
   const router = useRouter();
   const { refresh } = useProfile();
   const { showToast } = useToast();
+  const [nombre, setNombre] = useState('');
+  const [apellido, setApellido] = useState('');
   const [edad, setEdad] = useState('');
   const [sexo, setSexo] = useState('');
   const [altura, setAltura] = useState('');
@@ -100,13 +103,15 @@ export default function EditProfileScreen() {
 
       const { data } = await supabase
         .from('profiles')
-        .select('fecha_nacimiento, sexo, altura, peso, unidad_altura, unidad_peso')
+        .select('name, surname, fecha_nacimiento, sexo, altura, peso, unidad_altura, unidad_peso')
         .eq('id', user.id)
         .single();
 
       if (!activo) return;
 
       if (data) {
+        if (data.name != null) setNombre(data.name);
+        if (data.surname != null) setApellido(data.surname);
         const edadCalc = fechaNacimientoAEdad(data.fecha_nacimiento);
         if (edadCalc != null) setEdad(String(edadCalc));
         if (data.sexo != null) setSexo(data.sexo);
@@ -155,6 +160,8 @@ export default function EditProfileScreen() {
     const { error } = await supabase
       .from('profiles')
       .update({
+        name: nombre.trim() === '' ? null : nombre.trim(),
+        surname: apellido.trim() === '' ? null : apellido.trim(),
         fecha_nacimiento: edad.trim() === '' ? null : edadAFechaNacimiento(edadNum),
         sexo: SEXO_OPTIONS.some((o) => o.value === sexo) ? sexo : null,
         altura: altura.trim() === '' ? null : alturaNum,
@@ -234,6 +241,21 @@ export default function EditProfileScreen() {
             </FrenciaText>
 
             <View style={styles.fields}>
+              <TextEntryField
+                label="Nombre"
+                icon="user"
+                value={nombre}
+                onChangeText={setNombre}
+                placeholder="Tu nombre"
+              />
+              <TextEntryField
+                label="Apellido"
+                icon="user"
+                value={apellido}
+                onChangeText={setApellido}
+                placeholder="Tu apellido"
+              />
+
               <View style={styles.segGroup}>
                 <FrenciaText role="dataLabel" color={colors.textTertiary}>
                   Sexo
@@ -318,6 +340,40 @@ export default function EditProfileScreen() {
         </View>
       </Modal>
     </SafeAreaView>
+  );
+}
+
+/* ── Campo de texto: nombre y apellido se escriben a teclado ─── */
+interface TextEntryFieldProps {
+  icon: string;
+  label: string;
+  value: string;
+  placeholder: string;
+  onChangeText: (t: string) => void;
+}
+
+function TextEntryField({ icon, label, value, placeholder, onChangeText }: TextEntryFieldProps) {
+  const colors = useColors();
+  const styles = useThemedStyles(makeStyles);
+  return (
+    <View style={styles.fieldGroup}>
+      <FrenciaText role="dataLabel" color={colors.textTertiary}>
+        {label}
+      </FrenciaText>
+      <View style={styles.field}>
+        <Icon name={icon} size={20} color={colors.textTertiary} />
+        <TextInput
+          style={styles.textInput}
+          value={value}
+          onChangeText={onChangeText}
+          placeholder={placeholder}
+          placeholderTextColor={colors.textTertiary}
+          autoCapitalize="words"
+          autoComplete="off"
+          maxLength={40}
+        />
+      </View>
+    </View>
   );
 }
 
@@ -419,6 +475,7 @@ const makeStyles = (colors: Palette) =>
     borderColor: colors.borderSubtle,
   },
   selectValue: { flex: 1 },
+  textInput: { flex: 1, fontFamily: sans.regular, fontSize: 16, color: colors.textPrimary, padding: 0 },
 
   // Sheet de la rueda
   modalBackdrop: { flex: 1, backgroundColor: 'rgba(0, 0, 0, 0.6)' },
