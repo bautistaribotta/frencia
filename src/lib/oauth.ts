@@ -38,6 +38,8 @@ function parseUrl(url: string) {
  * Devuelve { error } — si es null, la sesion quedo establecida.
  */
 export async function signInWithProvider(provider: OAuthProvider) {
+  console.log('[oauth] redirectTo =', redirectTo);
+
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider,
     options: {
@@ -49,7 +51,12 @@ export async function signInWithProvider(provider: OAuthProvider) {
   if (error) return { error };
   if (!data?.url) return { error: new Error('No se pudo iniciar OAuth.') };
 
+  console.log('[oauth] authorize url =', data.url);
+
   const result = await WebBrowser.openAuthSessionAsync(data.url, redirectTo);
+
+  console.log('[oauth] result.type =', result.type);
+  console.log('[oauth] result.url =', 'url' in result ? result.url : '(sin url)');
 
   if (result.type !== 'success' || !result.url) {
     return { error: new Error('Inicio de sesion cancelado.') };
