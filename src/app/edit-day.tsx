@@ -283,7 +283,7 @@ export default function EditDayScreen() {
               Guardar cambios
             </Button>
             <Button
-              variant="ghost"
+              variant="danger"
               size="lg"
               fullWidth
               icon="trash-2"
