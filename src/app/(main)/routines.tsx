@@ -9,11 +9,19 @@
    la tarjeta. */
 
 import React, { useCallback, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { Alert, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect, useRouter } from 'expo-router';
 
-import { cargarRutinas, fechaCorta, type RutinaResumen } from '@/lib/rutinas';
+import {
+  activarRutina,
+  cargarRutinas,
+  eliminarRutina,
+  fechaCorta,
+  type RutinaResumen,
+} from '@/lib/rutinas';
+import { useToast } from '@/contexts/toast';
+import { SwipeableRoutineRow } from '@/components/SwipeableRoutineRow';
 
 import {
   Button,
@@ -42,9 +50,19 @@ export default function RoutinesScreen() {
   const colors = useColors();
   const styles = useThemedStyles(makeStyles);
   const router = useRouter();
+  const { showToast } = useToast();
 
   const [rutinas, setRutinas] = useState<RutinaResumen[]>([]);
   const [loaded, setLoaded] = useState(false);
+  // Evita disparar dos veces la misma accion mientras la fila vuelve a su lugar
+  // y la lista se recarga.
+  const [ocupada, setOcupada] = useState(false);
+
+  const recargar = useCallback(async () => {
+    const data = await cargarRutinas();
+    setRutinas(data);
+    setLoaded(true);
+  }, []);
 
   // Relee al enfocar: volver de crear o de editar tiene que verse reflejado.
   useFocusEffect(
@@ -65,38 +83,83 @@ export default function RoutinesScreen() {
   const abrirRutina = (id: string) => router.push({ pathname: '/routine', params: { id } });
   const crearRutina = () => router.push('/create-routine');
 
+  async function activar(rutina: RutinaResumen) {
+    if (ocupada || rutina.activa) return;
+    setOcupada(true);
+    const ok = await activarRutina(rutina.id);
+    if (ok) {
+      showToast({ message: `${rutina.name} está en curso`, type: 'success' });
+      await recargar();
+    } else {
+      showToast({ message: 'No pudimos activar la rutina. Proba de nuevo.', type: 'error' });
+    }
+    setOcupada(false);
+  }
+
+  function pedirEliminar(rutina: RutinaResumen) {
+    if (ocupada) return;
+    const detalle =
+      rutina.dias > 0
+        ? ` con sus ${rutina.dias} ${rutina.dias === 1 ? 'día' : 'días'} y los ejercicios de cada uno`
+        : '';
+    Alert.alert(
+      `Eliminar ${rutina.name}`,
+      `Se va a borrar la rutina${detalle}. No se puede deshacer.`,
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        { text: 'Eliminar', style: 'destructive', onPress: () => eliminar(rutina) },
+      ],
+    );
+  }
+
+  async function eliminar(rutina: RutinaResumen) {
+    if (ocupada) return;
+    setOcupada(true);
+    const ok = await eliminarRutina(rutina.id);
+    if (ok) {
+      showToast({ message: 'Rutina eliminada', type: 'success' });
+      await recargar();
+    } else {
+      showToast({ message: 'No pudimos eliminar la rutina. Proba de nuevo.', type: 'error' });
+    }
+    setOcupada(false);
+  }
+
   const activa = rutinas.find((r) => r.activa) ?? null;
   const anteriores = rutinas.filter((r) => !r.activa);
 
   const tarjeta = (rutina: RutinaResumen) => (
-    <Pressable
+    <SwipeableRoutineRow
       key={rutina.id}
+      title={rutina.name}
       onPress={() => abrirRutina(rutina.id)}
-      accessibilityRole="button"
-      accessibilityLabel={`Abrir ${rutina.name}`}
-      style={({ pressed }) => [
-        styles.tarjeta,
-        rutina.activa && styles.tarjetaActiva,
-        pressed && styles.pressed,
-      ]}
+      onActivate={() => activar(rutina)}
+      onDelete={() => pedirEliminar(rutina)}
+      canActivate={!rutina.activa}
     >
-      <View style={styles.tarjetaTexto}>
-        <FrenciaText role="subtitle" numberOfLines={1}>
-          {rutina.name}
-        </FrenciaText>
-        <FrenciaText
-          role="dataLabel"
+      <View
+        style={[styles.tarjeta, rutina.activa && styles.tarjetaActiva]}
+        accessibilityRole="button"
+        accessibilityLabel={`Abrir ${rutina.name}`}
+      >
+        <View style={styles.tarjetaTexto}>
+          <FrenciaText role="subtitle" numberOfLines={1}>
+            {rutina.name}
+          </FrenciaText>
+          <FrenciaText
+            role="dataLabel"
+            color={rutina.activa ? colors.accentText : colors.textTertiary}
+          >
+            {resumen(rutina)}
+          </FrenciaText>
+        </View>
+        <Icon
+          name="chevron-right"
+          size={18}
           color={rutina.activa ? colors.accentText : colors.textTertiary}
-        >
-          {resumen(rutina)}
-        </FrenciaText>
+        />
       </View>
-      <Icon
-        name="chevron-right"
-        size={18}
-        color={rutina.activa ? colors.accentText : colors.textTertiary}
-      />
-    </Pressable>
+    </SwipeableRoutineRow>
   );
 
   return (
@@ -164,7 +227,6 @@ const makeStyles = (colors: Palette) =>
       gap: space[6],
     },
     centerText: { textAlign: 'center' },
-    pressed: { opacity: 0.75 },
 
     // Una sola tarjeta para todas. La activa cambia de color, no de tamanio.
     tarjeta: {
