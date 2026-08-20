@@ -8,12 +8,13 @@
    hace desde el home; aca se mira y se corrige el plan. */
 
 import React, { useCallback, useState } from 'react';
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, Alert, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 
 import { SEMANA_CORTA } from '@/lib/dia';
-import { cargarRutina, fechaCorta, type RutinaDetalle } from '@/lib/rutinas';
+import { cargarRutina, eliminarRutina, fechaCorta, type RutinaDetalle } from '@/lib/rutinas';
+import { useToast } from '@/contexts/toast';
 
 import {
   Badge,
@@ -40,11 +41,13 @@ export default function RoutineScreen() {
   const colors = useColors();
   const styles = useThemedStyles(makeStyles);
   const router = useRouter();
+  const { showToast } = useToast();
 
   const { id } = useLocalSearchParams<{ id?: string }>();
 
   const [rutina, setRutina] = useState<RutinaDetalle | null>(null);
   const [cargando, setCargando] = useState(true);
+  const [borrando, setBorrando] = useState(false);
 
   // Relee al enfocar: se vuelve aca despues de editar un dia.
   useFocusEffect(
@@ -71,24 +74,47 @@ export default function RoutineScreen() {
     else router.replace('/routines');
   }
 
+  function editar() {
+    if (!rutina) return;
+    router.push({ pathname: '/edit-routine', params: { id: rutina.id } });
+  }
+
+  // El peso destructivo va al Alert, no al color del boton.
+  function pedirEliminar() {
+    if (!rutina || borrando) return;
+    const n = rutina.dias.length;
+    const detalle =
+      n > 0 ? ` con sus ${n} ${n === 1 ? 'día' : 'días'} y los ejercicios de cada uno` : '';
+    Alert.alert(
+      `Eliminar ${rutina.name}`,
+      `Se va a borrar la rutina${detalle}. No se puede deshacer.`,
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        { text: 'Eliminar', style: 'destructive', onPress: confirmarEliminar },
+      ],
+    );
+  }
+
+  async function confirmarEliminar() {
+    if (!rutina) return;
+    setBorrando(true);
+    const ok = await eliminarRutina(rutina.id);
+    if (ok) {
+      showToast({ message: 'Rutina eliminada', type: 'success' });
+      // replace y no back: volver no tiene que aterrizar en la rutina borrada.
+      router.replace('/routines');
+    } else {
+      setBorrando(false);
+      showToast({ message: 'No pudimos eliminar la rutina. Proba de nuevo.', type: 'error' });
+    }
+  }
+
   return (
     <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
       <View style={styles.header}>
         <Button variant="ghost" size="sm" icon="chevron-left" onPress={volver}>
           Atrás
         </Button>
-        {rutina && (
-          <Button
-            variant="ghost"
-            size="sm"
-            icon="pencil"
-            onPress={() =>
-              router.push({ pathname: '/edit-routine', params: { id: rutina.id } })
-            }
-          >
-            Editar rutina
-          </Button>
-        )}
       </View>
 
       {cargando ? (
@@ -163,6 +189,33 @@ export default function RoutineScreen() {
           )}
         </ScrollView>
       )}
+
+      {/* Acciones de la rutina: al pie, a todo el ancho. Editar arriba y
+         Eliminar al fondo, la accion irreversible mas lejos del pulgar. */}
+      {!cargando && rutina && (
+        <View style={styles.acciones}>
+          <Button
+            variant="secondary"
+            size="lg"
+            icon="pencil"
+            fullWidth
+            disabled={borrando}
+            onPress={editar}
+          >
+            Editar rutina
+          </Button>
+          <Button
+            variant="danger"
+            size="lg"
+            icon="trash-2"
+            fullWidth
+            loading={borrando}
+            onPress={pedirEliminar}
+          >
+            Eliminar rutina
+          </Button>
+        </View>
+      )}
     </SafeAreaView>
   );
 }
@@ -223,5 +276,16 @@ const makeStyles = (colors: Palette) =>
       borderWidth: 1,
       borderStyle: 'dashed',
       borderColor: colors.borderSubtle,
+    },
+
+    // Pie fijo con las acciones de la rutina. El borde superior lo separa del
+    // listado que scrollea por detras.
+    acciones: {
+      gap: space[3],
+      paddingHorizontal: spacing.padScreen,
+      paddingTop: space[4],
+      paddingBottom: space[2],
+      borderTopWidth: 1,
+      borderTopColor: colors.divider,
     },
   });
