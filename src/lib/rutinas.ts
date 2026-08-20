@@ -112,6 +112,27 @@ export async function guardarRutina(
   return !error;
 }
 
+/**
+ * Deja `routineId` como la unica rutina activa: archiva la que estaba en curso
+ * y desarchiva esta. Va por RPC porque son dos updates sobre el indice unico
+ * parcial y uno solo a medias dejaria al usuario sin ninguna activa. Ver la
+ * migracion activar_rutina.
+ */
+export async function activarRutina(routineId: string): Promise<boolean> {
+  const { error } = await supabase.rpc('activar_rutina', { p_routine_id: routineId });
+  return !error;
+}
+
+/**
+ * Borra una rutina y, por cascada, sus dias, sus dias de la semana y los
+ * ejercicios de cada dia. El historial de sesiones sobrevive: apunta al dia con
+ * on delete set null. No se puede deshacer.
+ */
+export async function eliminarRutina(routineId: string): Promise<boolean> {
+  const { error } = await supabase.from('routines').delete().eq('id', routineId);
+  return !error;
+}
+
 /** Una rutina con sus dias en orden. null si no existe o no es del usuario. */
 export async function cargarRutina(routineId: string): Promise<RutinaDetalle | null> {
   const { data, error } = await supabase
