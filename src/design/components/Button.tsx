@@ -15,7 +15,7 @@ import { radius, sans, sizing, space, motion, type Palette } from '../theme';
 import { useColors } from '../theme-context';
 import { Icon } from '../Icon';
 
-type Variant = 'primary' | 'intensity' | 'secondary' | 'ghost';
+type Variant = 'primary' | 'intensity' | 'secondary' | 'ghost' | 'danger';
 type Size = 'sm' | 'md' | 'lg';
 
 export interface ButtonProps extends Omit<PressableProps, 'children' | 'style'> {
@@ -45,12 +45,16 @@ const makeFill = (colors: Palette): Record<Variant, ViewStyle> => ({
   intensity: { backgroundColor: colors.intensity },
   secondary: { backgroundColor: colors.surfaceCard, borderColor: colors.borderDefault, borderWidth: 1 },
   ghost: { backgroundColor: 'transparent' },
+  // Destructivo: rojo delineado, sin relleno pleno, para leerse claro sin
+  // volverse el elemento mas dominante de la pantalla.
+  danger: { backgroundColor: 'transparent', borderColor: colors.danger, borderWidth: 1 },
 });
 const makeLabelColor = (colors: Palette): Record<Variant, string> => ({
   primary: colors.textOnAccent,
   intensity: colors.textOnAccent,
   secondary: colors.textPrimary,
   ghost: colors.textSecondary,
+  danger: colors.danger,
 });
 
 export function Button({
