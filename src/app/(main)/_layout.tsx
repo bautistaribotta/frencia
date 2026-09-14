@@ -9,7 +9,7 @@
 
 import React, { useCallback } from 'react';
 import { Tabs, useRouter } from 'expo-router';
-import type { BottomTabBarProps } from '@react-navigation/bottom-tabs';
+import type { BottomTabBarProps } from 'expo-router/tabs';
 
 import { TabBar } from '@/design';
 

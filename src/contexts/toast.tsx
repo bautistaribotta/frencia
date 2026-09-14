@@ -124,7 +124,7 @@ export function useToast(): ToastContextValue {
 const makeStyles = (colors: Palette) =>
   StyleSheet.create({
     overlay: {
-      ...StyleSheet.absoluteFillObject,
+      ...StyleSheet.absoluteFill,
       justifyContent: 'flex-end',
       alignItems: 'center',
       paddingHorizontal: spacing.padScreen,

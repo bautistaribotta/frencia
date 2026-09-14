@@ -241,7 +241,7 @@ const makeStyles = (colors: Palette) =>
       borderColor: colors.borderSubtle,
     },
     numeric: {
-      ...StyleSheet.absoluteFillObject,
+      ...StyleSheet.absoluteFill,
       flexDirection: 'row',
       alignItems: 'center',
       justifyContent: 'center',

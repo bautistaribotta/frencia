@@ -8,6 +8,7 @@ import React, { useEffect, useRef } from 'react';
 import {
   Platform,
   StyleSheet,
+  type ScrollView,
   type NativeScrollEvent,
   type NativeSyntheticEvent,
   type TextStyle,
@@ -54,7 +55,7 @@ export function WheelPicker({
   align = 'center',
 }: WheelPickerProps) {
   const styles = useThemedStyles(makeStyles);
-  const scrollRef = useRef<React.ElementRef<typeof Animated.ScrollView>>(null);
+  const scrollRef = useRef<ScrollView>(null);
   const scrollY = useSharedValue(index * itemHeight);
   const centered = useSharedValue(index);
   const inited = useRef(false);

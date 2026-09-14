@@ -222,7 +222,7 @@ const makeStyles = (colors: Palette) =>
     // Recorta las acciones a la forma de la tarjeta: sin esto, los rectangulos
     // de color asoman por las esquinas redondeadas.
     wrap: { borderRadius: radius.lg, overflow: 'hidden' },
-    acciones: { ...StyleSheet.absoluteFillObject, flexDirection: 'row' },
+    acciones: { ...StyleSheet.absoluteFill, flexDirection: 'row' },
     accion: {
       position: 'absolute',
       top: 0,

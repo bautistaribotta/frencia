@@ -44,7 +44,9 @@
         {
           "photosPermission": "Frencia necesita acceso a tus fotos para elegir tu foto de perfil."
         }
-      ]
+      ],
+      "expo-image",
+      "expo-status-bar"
     ],
     "experiments": {
       "typedRoutes": true,
