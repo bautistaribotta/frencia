@@ -55,7 +55,9 @@
   "overrides": {
     "react-native-boring-avatars": {
       "react-native-svg": "15.12.1"
-    }
+    },
+    "postcss": "^8.5.28",
+    "brace-expansion@5": "^5.0.9"
   },
   "scripts": {
     "start": "expo start",
