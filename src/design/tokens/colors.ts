@@ -1,29 +1,24 @@
 /* ============================================================
    Frencia · Colors (React Native port of tokens/colors.css)
-   Dark-first athletic palette. Warm-black base, muted emerald
-   green as the brand signature, orange as the intensity accent.
+   Dark-first athletic palette. Warm-black base, emerald green
+   as the brand signature, orange as the intensity accent.
    ============================================================ */
 
 export const palette = {
   // Greens (emerald, the brand signature)
   green300: '#86EFAC',
-  green400: '#4ADE80',
-  green500: '#22C55E', // esmeralda brillante: uso puntual
-  green550: '#1DA95A', // PRIMARIO en oscuro: esmeralda apagado
-  green560: '#23B866', // hover sobre el primario apagado
-  green600: '#16A34A',
-  green700: '#15803D', // PRIMARIO en claro: verde bosque
-  green800: '#0E5B2C', // press en claro
-  greenDeep: '#334635',
+  green400: '#4ADE80', // highlight / hover lift
+  green500: '#22C55E', // PRIMARIO en oscuro: acciones, exito, completado
+  green600: '#16A34A', // pressed / deep
+  green700: '#15803D', // press en claro
+  greenDeep: '#334635', // bosque apagado: superficies tintadas, bordes
 
   // Orange (intensity / effort / PR heat)
   orange300: '#FFB088',
   orange400: '#FF8A4C',
-  orange500: '#FF6D29',
-  orange550: '#E85F22', // intensidad en oscuro (menos vibrante)
-  orange600: '#E85002',
-  orange700: '#C2410C',
-  orange800: '#9A340A', // press en claro
+  orange500: '#FF6D29', // SECUNDARIO en oscuro: intensidad, PRs, alertas
+  orange600: '#E85002', // pressed / deep
+  orange700: '#C2410C', // press en claro
 
   // Warm-dark neutral scale (ink)
   ink1000: '#000000',
@@ -56,6 +51,15 @@ export const palette = {
   stone800: '#2A2F2A',
   stone900: '#0A0C0A',
 
+  // Verde medio del tema claro: legible sobre claro, sin vibrar
+  greenLight: '#0F8440', // accent
+  greenLightHover: '#139447', // hover / data viz
+  greenLightText: '#11793B', // texto verde sobre claro
+
+  // Naranja del tema claro
+  orangeLight: '#D64A0E', // intensity / data viz
+  orangeLightText: '#B93D0B', // texto naranja sobre claro
+
   // Status
   danger: '#EF4444',
   dangerText: '#FCA5A5',
@@ -78,10 +82,10 @@ const darkColors = {
   surfaceInset: palette.ink950,
 
   // Tinted surfaces (brand wash)
-  surfaceGreenSoft: 'rgba(29, 169, 90, 0.10)',
-  surfaceGreenLine: 'rgba(29, 169, 90, 0.26)',
-  surfaceOrangeSoft: 'rgba(255, 109, 41, 0.09)',
-  surfaceOrangeLine: 'rgba(255, 109, 41, 0.26)',
+  surfaceGreenSoft: 'rgba(34, 197, 94, 0.10)',
+  surfaceGreenLine: 'rgba(34, 197, 94, 0.28)',
+  surfaceOrangeSoft: 'rgba(255, 109, 41, 0.10)',
+  surfaceOrangeLine: 'rgba(255, 109, 41, 0.30)',
 
   // Text
   textPrimary: palette.ink100,
@@ -97,17 +101,17 @@ const darkColors = {
   borderStrong: palette.ink500,
   divider: 'rgba(255, 255, 255, 0.07)',
 
-  // Accent — primary action (esmeralda apagado: presencia sin vibracion)
-  accent: palette.green550,
-  accentHover: palette.green560,
-  accentPress: palette.green700,
-  accentText: '#63C98E', // verde desaturado para texto sobre oscuro
+  // Accent — primary action (esmeralda)
+  accent: palette.green500,
+  accentHover: palette.green400,
+  accentPress: palette.green600,
+  accentText: palette.green400, // verde como texto sobre oscuro
 
   // Accent — intensity
-  intensity: palette.orange550,
-  intensityHover: '#F5722F',
-  intensityPress: palette.orange700,
-  intensityText: '#E8875A',
+  intensity: palette.orange500,
+  intensityHover: palette.orange400,
+  intensityPress: palette.orange600,
+  intensityText: palette.orange400,
 
   // Status
   success: palette.green500,
@@ -117,8 +121,8 @@ const darkColors = {
   info: palette.info,
 
   // Data viz
-  dataVolume: palette.green550,
-  dataIntensity: palette.orange550,
+  dataVolume: palette.green500,
+  dataIntensity: palette.orange500,
   dataTrack: palette.ink700,
 
   // Control internals (switch thumb)
@@ -128,8 +132,9 @@ const darkColors = {
 
 /* ------------------------------------------------------------------
    Tema claro "cemento". Fondo gris frio, cards blancas, tinta casi
-   negra y verde bosque como accion: sobrio, sin vibracion. El texto
-   sobre acento pasa a blanco porque el verde bosque es oscuro.
+   negra y un verde medio como accion: legible sobre claro, sin
+   vibrar. El texto sobre acento pasa a blanco porque ese verde es
+   oscuro.
    ------------------------------------------------------------------ */
 const lightColors: Palette = {
   // Surfaces
@@ -141,18 +146,18 @@ const lightColors: Palette = {
   surfaceChip: '#DADEDA',
   surfaceInset: palette.stone300,
 
-  // Tinted surfaces (brand wash) — sobre el verde bosque, no el brillante
-  surfaceGreenSoft: 'rgba(21, 128, 61, 0.09)',
-  surfaceGreenLine: 'rgba(21, 128, 61, 0.26)',
-  surfaceOrangeSoft: 'rgba(194, 65, 12, 0.09)',
-  surfaceOrangeLine: 'rgba(194, 65, 12, 0.26)',
+  // Tinted surfaces (brand wash) — sobre el verde medio, no el brillante
+  surfaceGreenSoft: 'rgba(19, 148, 71, 0.10)',
+  surfaceGreenLine: 'rgba(19, 148, 71, 0.28)',
+  surfaceOrangeSoft: 'rgba(214, 74, 14, 0.10)',
+  surfaceOrangeLine: 'rgba(214, 74, 14, 0.28)',
 
   // Text
   textPrimary: palette.stone900,
   textSecondary: palette.stone700,
   textTertiary: palette.stone600,
   textDisabled: palette.stone500,
-  textOnAccent: palette.white, // blanco sobre verde bosque
+  textOnAccent: palette.white, // blanco sobre verde medio
   textInverse: palette.stone0,
 
   // Borders / dividers
@@ -161,28 +166,28 @@ const lightColors: Palette = {
   borderStrong: 'rgba(10, 12, 10, 0.40)',
   divider: 'rgba(10, 12, 10, 0.10)',
 
-  // Accent — primary action (verde bosque)
-  accent: palette.green700,
-  accentHover: palette.green600,
-  accentPress: palette.green800,
-  accentText: palette.green700,
+  // Accent — primary action (verde medio)
+  accent: palette.greenLight,
+  accentHover: palette.greenLightHover,
+  accentPress: palette.green700,
+  accentText: palette.greenLightText,
 
   // Accent — intensity
-  intensity: palette.orange700,
+  intensity: palette.orangeLight,
   intensityHover: palette.orange600,
-  intensityPress: palette.orange800,
-  intensityText: palette.orange700,
+  intensityPress: palette.orange700,
+  intensityText: palette.orangeLightText,
 
   // Status
-  success: palette.green700,
-  warning: palette.orange700,
+  success: palette.greenLight,
+  warning: palette.orangeLight,
   danger: palette.danger,
   dangerText: palette.danger,
   info: palette.info,
 
   // Data viz
-  dataVolume: palette.green700,
-  dataIntensity: palette.orange700,
+  dataVolume: palette.greenLightHover,
+  dataIntensity: palette.orangeLight,
   dataTrack: '#CDD2CD',
 
   // Control internals (switch thumb)

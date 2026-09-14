@@ -45,10 +45,11 @@ export const shadow = {
   md: make('#000', 4, 16, 0.45, 6),
   lg: make('#000', 12, 32, 0.55, 12),
   sheet: make('#000', -8, 40, 0.6, 16),
-  // Brand glow — neon halo on active CTAs (approximated)
-  glowGreen: make('#1DA95A', 8, 28, 0.45, 10),
-  glowGreenSoft: make('#1DA95A', 6, 24, 0.3, 6),
-  glowOrange: make('#E85F22', 8, 28, 0.45, 10),
+  // Brand glow — halo retirado en el design system: el CTA se sostiene por
+  // color. Se conservan las claves para no romper consumidores.
+  glowGreen: {} as Elevation,
+  glowGreenSoft: {} as Elevation,
+  glowOrange: {} as Elevation,
 } as const;
 
 // Motion (use with Animated / Reanimated)
