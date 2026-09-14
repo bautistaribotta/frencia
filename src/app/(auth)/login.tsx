@@ -226,7 +226,7 @@ export default function LoginScreen() {
               <Button
                 variant="secondary"
                 size="lg"
-                leading={<AppleLogo width={20} height={20} />}
+                leading={<AppleLogo width={20} height={20} color={colors.textPrimary} />}
                 style={styles.socialBtn}
                 loading={oauthLoading === 'apple'}
                 disabled={oauthLoading !== null}
