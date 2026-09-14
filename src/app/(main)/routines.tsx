@@ -240,8 +240,8 @@ const makeStyles = (colors: Palette) =>
       borderColor: colors.borderSubtle,
     },
     tarjetaActiva: {
-      backgroundColor: colors.surfaceOrangeSoft,
-      borderColor: colors.surfaceOrangeLine,
+      backgroundColor: colors.surfaceGreenSoft,
+      borderColor: colors.surfaceGreenLine,
     },
     tarjetaTexto: { flex: 1, gap: space[2] },
 

@@ -1,24 +1,29 @@
 /* ============================================================
    Frencia · Colors (React Native port of tokens/colors.css)
-   Dark-first athletic palette. Warm-black base, emerald green
-   signature, orange intensity accent.
+   Dark-first athletic palette. Warm-black base, muted emerald
+   green as the brand signature, orange as the intensity accent.
    ============================================================ */
 
 export const palette = {
-  // Greens (emerald, signature)
+  // Greens (emerald, the brand signature)
   green300: '#86EFAC',
   green400: '#4ADE80',
-  green500: '#22C55E',
+  green500: '#22C55E', // esmeralda brillante: uso puntual
+  green550: '#1DA95A', // PRIMARIO en oscuro: esmeralda apagado
+  green560: '#23B866', // hover sobre el primario apagado
   green600: '#16A34A',
-  green700: '#15803D',
+  green700: '#15803D', // PRIMARIO en claro: verde bosque
+  green800: '#0E5B2C', // press en claro
   greenDeep: '#334635',
 
   // Orange (intensity / effort / PR heat)
   orange300: '#FFB088',
   orange400: '#FF8A4C',
   orange500: '#FF6D29',
+  orange550: '#E85F22', // intensidad en oscuro (menos vibrante)
   orange600: '#E85002',
   orange700: '#C2410C',
+  orange800: '#9A340A', // press en claro
 
   // Warm-dark neutral scale (ink)
   ink1000: '#000000',
@@ -37,6 +42,19 @@ export const palette = {
   ink50: '#F4F2F5',
   ink0: '#F9F9F9',
   white: '#FFFFFF',
+
+  // Cool grey neutral scale (stone) — solo tema claro "cemento"
+  stone0: '#FFFFFF',
+  stone50: '#F7F8F7',
+  stone100: '#EDEFED',
+  stone200: '#E4E7E4',
+  stone300: '#D9DDD9',
+  stone400: '#C3C9C3',
+  stone500: '#9AA19A',
+  stone600: '#737B73',
+  stone700: '#4A524A',
+  stone800: '#2A2F2A',
+  stone900: '#0A0C0A',
 
   // Status
   danger: '#EF4444',
@@ -60,17 +78,17 @@ const darkColors = {
   surfaceInset: palette.ink950,
 
   // Tinted surfaces (brand wash)
-  surfaceGreenSoft: 'rgba(255, 109, 41, 0.10)',
-  surfaceGreenLine: 'rgba(255, 109, 41, 0.28)',
-  surfaceOrangeSoft: 'rgba(255, 109, 41, 0.10)',
-  surfaceOrangeLine: 'rgba(255, 109, 41, 0.30)',
+  surfaceGreenSoft: 'rgba(29, 169, 90, 0.10)',
+  surfaceGreenLine: 'rgba(29, 169, 90, 0.26)',
+  surfaceOrangeSoft: 'rgba(255, 109, 41, 0.09)',
+  surfaceOrangeLine: 'rgba(255, 109, 41, 0.26)',
 
   // Text
   textPrimary: palette.ink100,
   textSecondary: palette.ink300,
   textTertiary: palette.ink400,
   textDisabled: palette.ink500,
-  textOnAccent: palette.ink1000, // black on green/orange
+  textOnAccent: palette.ink1000, // negro sobre verde/naranja
   textInverse: palette.ink1000,
 
   // Borders / dividers
@@ -79,17 +97,17 @@ const darkColors = {
   borderStrong: palette.ink500,
   divider: 'rgba(255, 255, 255, 0.07)',
 
-  // Accent — primary action (preview: naranja)
-  accent: palette.orange500,
-  accentHover: palette.orange400,
-  accentPress: palette.orange600,
-  accentText: palette.orange400,
+  // Accent — primary action (esmeralda apagado: presencia sin vibracion)
+  accent: palette.green550,
+  accentHover: palette.green560,
+  accentPress: palette.green700,
+  accentText: '#63C98E', // verde desaturado para texto sobre oscuro
 
   // Accent — intensity
-  intensity: palette.orange500,
-  intensityHover: palette.orange400,
-  intensityPress: palette.orange600,
-  intensityText: palette.orange400,
+  intensity: palette.orange550,
+  intensityHover: '#F5722F',
+  intensityPress: palette.orange700,
+  intensityText: '#E8875A',
 
   // Status
   success: palette.green500,
@@ -99,8 +117,8 @@ const darkColors = {
   info: palette.info,
 
   // Data viz
-  dataVolume: palette.green500,
-  dataIntensity: palette.orange500,
+  dataVolume: palette.green550,
+  dataIntensity: palette.orange550,
   dataTrack: palette.ink700,
 
   // Control internals (switch thumb)
@@ -109,63 +127,63 @@ const darkColors = {
 };
 
 /* ------------------------------------------------------------------
-   Tema claro. Derivado de la misma paleta base: superficies claras,
-   texto oscuro, mismo acento naranja de marca. El acento de texto se
-   oscurece (orange600) para mantener contraste sobre fondos claros.
+   Tema claro "cemento". Fondo gris frio, cards blancas, tinta casi
+   negra y verde bosque como accion: sobrio, sin vibracion. El texto
+   sobre acento pasa a blanco porque el verde bosque es oscuro.
    ------------------------------------------------------------------ */
 const lightColors: Palette = {
   // Surfaces
-  bgApp: palette.ink50,
-  bgAppDeep: palette.ink100,
-  surfaceRaised: palette.white,
-  surfaceCard: palette.white,
-  surfaceCardElevated: palette.white,
-  surfaceChip: palette.ink100,
-  surfaceInset: palette.ink100,
+  bgApp: palette.stone200,
+  bgAppDeep: '#D5D9D5',
+  surfaceRaised: palette.stone0,
+  surfaceCard: palette.stone0,
+  surfaceCardElevated: palette.stone0,
+  surfaceChip: '#DADEDA',
+  surfaceInset: palette.stone300,
 
-  // Tinted surfaces (brand wash)
-  surfaceGreenSoft: 'rgba(255, 109, 41, 0.10)',
-  surfaceGreenLine: 'rgba(255, 109, 41, 0.30)',
-  surfaceOrangeSoft: 'rgba(255, 109, 41, 0.10)',
-  surfaceOrangeLine: 'rgba(255, 109, 41, 0.32)',
+  // Tinted surfaces (brand wash) — sobre el verde bosque, no el brillante
+  surfaceGreenSoft: 'rgba(21, 128, 61, 0.09)',
+  surfaceGreenLine: 'rgba(21, 128, 61, 0.26)',
+  surfaceOrangeSoft: 'rgba(194, 65, 12, 0.09)',
+  surfaceOrangeLine: 'rgba(194, 65, 12, 0.26)',
 
   // Text
-  textPrimary: palette.ink900,
-  textSecondary: palette.ink500,
-  textTertiary: palette.ink400,
-  textDisabled: palette.ink300,
-  textOnAccent: palette.ink1000, // sigue siendo negro sobre naranja
-  textInverse: palette.ink0,
+  textPrimary: palette.stone900,
+  textSecondary: palette.stone700,
+  textTertiary: palette.stone600,
+  textDisabled: palette.stone500,
+  textOnAccent: palette.white, // blanco sobre verde bosque
+  textInverse: palette.stone0,
 
   // Borders / dividers
-  borderSubtle: palette.ink100,
-  borderDefault: palette.ink200,
-  borderStrong: palette.ink300,
-  divider: 'rgba(0, 0, 0, 0.07)',
+  borderSubtle: 'rgba(10, 12, 10, 0.12)',
+  borderDefault: 'rgba(10, 12, 10, 0.22)',
+  borderStrong: 'rgba(10, 12, 10, 0.40)',
+  divider: 'rgba(10, 12, 10, 0.10)',
 
-  // Accent — primary action
-  accent: palette.orange500,
-  accentHover: palette.orange400,
-  accentPress: palette.orange600,
-  accentText: palette.orange600,
+  // Accent — primary action (verde bosque)
+  accent: palette.green700,
+  accentHover: palette.green600,
+  accentPress: palette.green800,
+  accentText: palette.green700,
 
   // Accent — intensity
-  intensity: palette.orange500,
-  intensityHover: palette.orange400,
-  intensityPress: palette.orange600,
-  intensityText: palette.orange600,
+  intensity: palette.orange700,
+  intensityHover: palette.orange600,
+  intensityPress: palette.orange800,
+  intensityText: palette.orange700,
 
   // Status
-  success: palette.green600,
-  warning: palette.orange600,
+  success: palette.green700,
+  warning: palette.orange700,
   danger: palette.danger,
   dangerText: palette.danger,
   info: palette.info,
 
   // Data viz
-  dataVolume: palette.green600,
-  dataIntensity: palette.orange500,
-  dataTrack: palette.ink200,
+  dataVolume: palette.green700,
+  dataIntensity: palette.orange700,
+  dataTrack: '#CDD2CD',
 
   // Control internals (switch thumb)
   switchThumb: palette.white,

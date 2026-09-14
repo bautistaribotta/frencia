@@ -423,9 +423,9 @@ const makeStyles = (colors: Palette) =>
     borderRadius: radius.lg,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: colors.surfaceOrangeSoft,
+    backgroundColor: colors.surfaceGreenSoft,
     borderWidth: 1,
-    borderColor: colors.surfaceOrangeLine,
+    borderColor: colors.surfaceGreenLine,
   },
   heroText: { alignItems: 'center', gap: space[3] },
   heroTitle: {

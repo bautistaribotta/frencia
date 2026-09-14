@@ -271,7 +271,7 @@ const makeStyles = (colors: Palette) =>
       marginTop: space[3],
       paddingTop: space[3],
       borderTopWidth: 1,
-      borderTopColor: colors.surfaceOrangeLine,
+      borderTopColor: colors.surfaceGreenLine,
     },
 
     caja: {

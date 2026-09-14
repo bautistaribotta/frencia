@@ -20,11 +20,11 @@ export interface AvatarProps {
 
 const DIM: Record<Size, number> = { xs: 28, sm: 36, md: 44, lg: 64, xl: 120 };
 
-// Solo colores de la app: naranja (acento) + grises calidos (ink).
+// Solo colores de la app: verde (marca) + grises calidos (ink).
 const AVATAR_COLORS = [
-  palette.orange500,
-  palette.orange400,
-  palette.orange300,
+  palette.green550,
+  palette.green700,
+  palette.greenDeep,
   palette.ink700,
   palette.ink400,
 ];
