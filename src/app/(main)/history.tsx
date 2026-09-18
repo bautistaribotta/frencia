@@ -1,18 +1,21 @@
 /* Frencia · Historial — lo que ya se entreno.
    Lista las sesiones terminadas, de la mas reciente a la mas vieja, agrupadas
    por mes y paginadas: se traen de a HISTORIAL_PAGINA y se pide la siguiente
-   al llegar al final. Se recarga desde cero cada vez que la pestania recupera
-   el foco, asi aparece la sesion recien cerrada. */
+   al llegar al final. Conserva las paginas al volver del detalle; se actualiza
+   al entrar desde otra pestania o al refrescar manualmente. */
 
-import React, { useCallback, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useMemo, useRef, useSyncExternalStore } from 'react';
 import { ActivityIndicator, Pressable, SectionList, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect, useRouter } from 'expo-router';
 
 import { useSession } from '@/contexts/session';
-import { cargarHistorial, haceCuanto, type SesionTerminada } from '@/lib/session';
+import { haceCuanto, type SesionTerminada } from '@/lib/session';
+import { agruparHistorial } from '@/lib/history';
+import { crearHistorial } from '@/lib/history-store';
 
 import {
+  Button,
   FrenciaText,
   Icon,
   MetricPill,
@@ -54,95 +57,83 @@ function duracion(startedAt: number, finishedAt: number): string {
   return resto === 0 ? `${h} h` : `${h} h ${resto} min`;
 }
 
-interface SeccionMes {
-  key: string;
-  title: string;
-  data: SesionTerminada[];
-}
-
-/** Agrupa por anio-mes. La lista ya viene ordenada, asi que basta con cortar
- *  cuando cambia el mes. */
-function agruparPorMes(sesiones: SesionTerminada[]): SeccionMes[] {
-  const secciones: SeccionMes[] = [];
-  for (const s of sesiones) {
-    const d = new Date(s.finishedAt);
-    const key = `${d.getFullYear()}-${d.getMonth()}`;
-    const ultima = secciones[secciones.length - 1];
-    if (ultima && ultima.key === key) {
-      ultima.data.push(s);
-    } else {
-      secciones.push({ key, title: tituloMes(s.finishedAt), data: [s] });
-    }
-  }
-  return secciones;
-}
-
 export default function HistoryScreen() {
   const colors = useColors();
   const styles = useThemedStyles(makeStyles);
   const { user } = useSession();
   const router = useRouter();
 
-  const [sesiones, setSesiones] = useState<SesionTerminada[]>([]);
-  const [hayMas, setHayMas] = useState(false);
-  const [loaded, setLoaded] = useState(false);
-  const [cargandoMas, setCargandoMas] = useState(false);
-  // Ref y no estado: evita disparar dos pedidos de la misma pagina si
-  // onEndReached se dispara antes de que el estado se actualice.
-  const pidiendo = useRef(false);
+  const userId = user?.id ?? null;
+  const historial = useMemo(() => crearHistorial(userId), [userId]);
+  const estado = useSyncExternalStore(historial.subscribe, historial.getSnapshot, historial.getSnapshot);
+  const { sesiones, loaded, cargando, error, proximaFecha, siguiente } = estado;
+  const conservarAlVolver = useRef(false);
 
   useFocusEffect(
     useCallback(() => {
-      let cancelado = false;
-      (async () => {
-        const r = user ? await cargarHistorial(user.id, 0) : { sesiones: [], hayMas: false };
-        if (cancelado) return;
-        setSesiones(r.sesiones);
-        setHayMas(r.hayMas);
-        setLoaded(true);
-      })();
-      return () => {
-        cancelado = true;
-      };
-    }, [user]),
+      void historial.activar(conservarAlVolver.current);
+      conservarAlVolver.current = false;
+      return historial.desactivar;
+    }, [historial]),
   );
 
-  const cargarMas = useCallback(async () => {
-    if (!user || !hayMas || pidiendo.current) return;
-    pidiendo.current = true;
-    setCargandoMas(true);
-    const r = await cargarHistorial(user.id, sesiones.length);
-    setSesiones((prev) => [...prev, ...r.sesiones]);
-    setHayMas(r.hayMas);
-    setCargandoMas(false);
-    pidiendo.current = false;
-  }, [user, hayMas, sesiones.length]);
+  const secciones = useMemo(() => agruparHistorial(sesiones, proximaFecha), [sesiones, proximaFecha]);
 
-  const secciones = useMemo(() => agruparPorMes(sesiones), [sesiones]);
+  function abrirDetalle(sesion: SesionTerminada) {
+    conservarAlVolver.current = true;
+    router.push({ pathname: '/session-history', params: { id: sesion.id } });
+  }
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
       <SectionList
+        key={userId ?? 'sin-sesion'}
         sections={secciones}
         keyExtractor={(s) => s.id}
         contentContainerStyle={styles.scroll}
         showsVerticalScrollIndicator={false}
         stickySectionHeadersEnabled={false}
-        onEndReached={cargarMas}
+        onEndReached={() => { void historial.cargarMas(); }}
         onEndReachedThreshold={0.5}
+        refreshing={loaded && cargando === 'inicio'}
+        onRefresh={() => { void historial.recargar(); }}
         ListHeaderComponent={
           <View style={styles.header}>
-            <FrenciaText role="dataLabel" color={colors.textTertiary}>
-              Historial
-            </FrenciaText>
+            <View style={styles.headerRow}>
+              <FrenciaText role="dataLabel" color={colors.textTertiary}>
+                Historial
+              </FrenciaText>
+              <Button
+                variant="ghost"
+                size="sm"
+                style={styles.actualizar}
+                disabled={cargando === 'inicio'}
+                onPress={() => { void historial.recargar(); }}
+              >
+                Actualizar
+              </Button>
+            </View>
+            {error === 'inicio' && (
+              <View style={styles.error} accessibilityLiveRegion="polite">
+                <FrenciaText role="bodySm" style={styles.centerText}>
+                  {loaded ? 'No pudimos actualizar el historial.' : 'No pudimos cargar el historial.'}
+                </FrenciaText>
+                <FrenciaText role="bodySm" color={colors.textSecondary} style={styles.centerText}>
+                  Revisá tu conexión y probá de nuevo.
+                </FrenciaText>
+                <Button variant="secondary" onPress={() => { void historial.reintentar(); }}>Reintentar</Button>
+              </View>
+            )}
           </View>
         }
         renderSectionHeader={({ section }) => (
           <View style={styles.sectionHeader}>
-            <FrenciaText role="subtitle">{section.title}</FrenciaText>
-            <FrenciaText role="dataLabel" color={colors.textTertiary}>
-              {section.data.length} {section.data.length === 1 ? 'sesión' : 'sesiones'}
-            </FrenciaText>
+            <FrenciaText role="subtitle">{tituloMes(section.finishedAt)}</FrenciaText>
+            {section.completo && (
+              <FrenciaText role="dataLabel" color={colors.textTertiary}>
+                {section.data.length} {section.data.length === 1 ? 'sesión' : 'sesiones'}
+              </FrenciaText>
+            )}
           </View>
         )}
         renderItem={({ item: s }) => (
@@ -150,7 +141,7 @@ export default function HistoryScreen() {
             accessibilityRole="button"
             accessibilityLabel={`${s.dayName ?? 'Día eliminado'}, ${fechaCorta(s.finishedAt)}`}
             accessibilityHint="Ver las series realizadas en este entrenamiento"
-            onPress={() => router.push({ pathname: '/session-history', params: { id: s.id } })}
+            onPress={() => abrirDetalle(s)}
             style={({ pressed }) => [styles.card, pressed && styles.cardPressed]}
           >
             <View style={styles.cardHeader}>
@@ -180,7 +171,7 @@ export default function HistoryScreen() {
         SectionSeparatorComponent={() => <View style={styles.separadorSeccion} />}
         /* Hasta tener la primera lectura no decidimos que mostrar. */
         ListEmptyComponent={
-          !loaded ? null : (
+          !loaded || error || cargando === 'inicio' ? null : (
             <View style={styles.vacio}>
               <Icon name="history" size={26} color={colors.textTertiary} />
               <FrenciaText role="subtitle" style={styles.centerText}>
@@ -194,9 +185,23 @@ export default function HistoryScreen() {
           )
         }
         ListFooterComponent={
-          cargandoMas ? (
-            <ActivityIndicator color={colors.textTertiary} style={styles.footer} />
-          ) : null
+          <View style={styles.footer}>
+            {cargando !== null && (!loaded || cargando === 'mas') ? (
+              <View style={styles.feedback} accessibilityLiveRegion="polite">
+                <ActivityIndicator color={colors.accent} />
+                <FrenciaText role="bodySm" color={colors.textSecondary}>
+                  {cargando === 'mas' ? 'Cargando más entrenamientos…' : 'Cargando historial…'}
+                </FrenciaText>
+              </View>
+            ) : error === 'mas' ? (
+              <View style={styles.feedback} accessibilityLiveRegion="polite">
+                <FrenciaText role="bodySm" style={styles.centerText}>No pudimos cargar más entrenamientos.</FrenciaText>
+                <Button variant="secondary" onPress={() => { void historial.reintentar(); }}>Reintentar</Button>
+              </View>
+            ) : siguiente && !error && !cargando ? (
+              <Button variant="ghost" onPress={() => { void historial.cargarMas(); }}>Cargar más</Button>
+            ) : null}
+          </View>
         }
       />
     </SafeAreaView>
@@ -212,6 +217,14 @@ const makeStyles = (colors: Palette) =>
       paddingBottom: space[12],
     },
     header: { paddingHorizontal: space[1], paddingBottom: space[6] },
+    headerRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: space[3] },
+    actualizar: { minHeight: 48 },
+    feedback: { alignItems: 'center', gap: space[4] },
+    error: {
+      alignItems: 'center', gap: space[4], padding: spacing.padCard,
+      marginTop: space[4], borderRadius: radius.xl,
+      backgroundColor: colors.surfaceCard, borderColor: colors.borderSubtle, borderWidth: 1,
+    },
     centerText: { textAlign: 'center' },
 
     sectionHeader: {
