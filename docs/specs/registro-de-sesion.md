@@ -59,6 +59,14 @@ dentro del ejercicio.
 6. Una sesion en curso se retoma donde quedo. Un entrenamiento dura una hora con
    la pantalla apagandose, salir de la app es normal y no debe perder nada. Cada
    serie se escribe al pasar al paso siguiente, no al terminar la sesion.
+7. **Una serie que no se pudo escribir no se pierde.** En el gimnasio la senal
+   va y viene: si la escritura falla, la serie queda en el telefono
+   (AsyncStorage, una cola por sesion) y se reintenta en la proxima escritura
+   exitosa, al retomar la sesion y al terminarla. El usuario no se bloquea: se
+   le avisa una sola vez por sesion y sigue. Al terminar, si queda algo sin
+   sincronizar, la sesion no se cierra y se le pide reintentar: el historial y
+   las fantasmas de la proxima vez no pueden salir incompletos. Al retomar, lo
+   pendiente pisa lo que hay en la base porque es mas nuevo.
 
 ### 3.1 Ventana de 10 dias
 
