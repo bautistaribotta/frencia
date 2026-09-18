@@ -246,3 +246,48 @@ export async function descartarSesion(sessionId: string): Promise<boolean> {
   const { error } = await supabase.from('workout_sessions').delete().eq('id', sessionId);
   return !error;
 }
+
+/** Una sesion terminada, resumida para el historial. */
+export interface SesionTerminada {
+  id: string;
+  /** Nombre del dia, o null si el dia se borro (la sesion sobrevive). */
+  dayName: string | null;
+  startedAt: number;
+  finishedAt: number;
+}
+
+/** Tamanio de pagina del historial. */
+export const HISTORIAL_PAGINA = 20;
+
+/**
+ * Una pagina de sesiones terminadas del usuario, de la mas reciente a la mas
+ * vieja. `desde` es el offset (0 para la primera). Se pide una fila de mas
+ * para saber si hay otra pagina sin una consulta de conteo aparte.
+ */
+export async function cargarHistorial(
+  userId: string,
+  desde = 0,
+): Promise<{ sesiones: SesionTerminada[]; hayMas: boolean }> {
+  const { data, error } = await supabase
+    .from('workout_sessions')
+    .select('id, started_at, finished_at, training_days(name)')
+    .eq('user_id', userId)
+    .not('finished_at', 'is', null)
+    .order('finished_at', { ascending: false })
+    .range(desde, desde + HISTORIAL_PAGINA);
+
+  if (error || !data) return { sesiones: [], hayMas: false };
+
+  const hayMas = data.length > HISTORIAL_PAGINA;
+  const sesiones = data.slice(0, HISTORIAL_PAGINA).map((fila) => {
+    const dia = Array.isArray(fila.training_days) ? fila.training_days[0] : fila.training_days;
+    return {
+      id: fila.id,
+      dayName: (dia as { name?: string } | null)?.name ?? null,
+      startedAt: Date.parse(fila.started_at),
+      finishedAt: Date.parse(fila.finished_at as string),
+    };
+  });
+
+  return { sesiones, hayMas };
+}
