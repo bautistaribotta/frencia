@@ -3,7 +3,9 @@
 Estado: pendiente. Nada de lo que sigue esta implementado ni tiene fecha; falta
 definir cuando se hace cada punto.
 Fecha: 2026-09-18
-Seguimiento: https://github.com/bautistaribotta/frencia/issues/21 (issue fijado)
+Seguimiento: issues fijados
+https://github.com/bautistaribotta/frencia/issues/21 (puntos 1 a 4) y
+https://github.com/bautistaribotta/frencia/issues/22 (punto 5).
 
 Ideas acordadas para las proximas etapas. Cada una, cuando se encare, tendra su
 propio spec en esta carpeta; aca queda solo el resumen y el porque.
@@ -64,12 +66,25 @@ Nada de esto requiere esquema nuevo: `session_sets`, `exercise_muscles` y
 - Registro de peso corporal con grafico.
 - Permite relativizar los PRs (fuerza / peso corporal).
 
-## 5. Orden sugerido
+## 5. Vistas de registro segun el tipo de ejercicio
+
+Hoy toda serie se anota igual: peso, reps e intensidad. Pero un curl de biceps
+con barra no se anota como uno con mancuernas: el primero va con el anotador
+simple actual; en el segundo, que se hace a un brazo, un profesional quiere
+anotar peso, reps e intensidad **de cada brazo**, porque la asimetria entre
+lados es informacion. Tipos a contemplar: bilateral (el actual), unilateral
+(campos por lado), cardiovascular (tiempo, distancia, ritmo) y los que surjan
+del catalogo. Implica que el catalogo sepa el tipo de cada ejercicio
+(`exercises.equipment` como punto de partida), decidir como se guarda en
+`session_sets` (fila por lado o columnas extra) y que fantasmas y progresion
+comparen del mismo lado. Ver issue 22.
+
+## 6. Orden sugerido
 
 1. Compartir por link (1.1)
 2. Progresion + PRs por ejercicio (2)
 3. Notificacion de fin de descanso (3)
-4. Resto de 3, peso corporal (4) y rutina viva (1.2)
+4. Resto de 3, peso corporal (4), vistas por tipo de ejercicio (5) y rutina viva (1.2)
 
 Las dos primeras le dan valor a la app fuera del gimnasio; la tercera evita que
 se abandone adentro.
