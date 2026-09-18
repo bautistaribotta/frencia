@@ -36,6 +36,15 @@ https://docs.expo.dev/versions/v57.0.0/ antes de escribir codigo que toque el SD
   estaba usando Tailwind en el proyecto.
 - **Nunca** usar emojis en los comentarios.
 
+## Base de datos
+
+- Todo cambio de esquema va en una migracion nueva en `supabase/migrations/`.
+  Escribir el archivo **no** modifica la base remota.
+- Despues de crear o modificar una migracion, **avisar** al programador que
+  falta aplicarla con `npx supabase db push` (y que puede revisar primero con
+  `npx supabase db push --dry-run`). El agente **nunca** ejecuta el push por su
+  cuenta: la decision de tocar la base remota es del programador.
+
 ## Commits y pull requests
 
 - **Nunca** usar emojis en los commits.
