@@ -35,9 +35,11 @@ import {
   claveSerie,
   crearSesion,
   descartarSesion,
-  guardarSerie,
+  guardarSerieConRespaldo,
   haceCuanto,
+  leerPendientes,
   sesionEnCurso,
+  sincronizarPendientes,
   terminarSesion,
   type EjercicioPlan,
   type Medidor,
@@ -200,6 +202,9 @@ export default function SessionScreen() {
   const [ajustesDescanso, setAjustesDescanso] = useState<Record<string, number>>({});
   const [ahora, setAhora] = useState(() => Date.now());
   const yaVibro = useRef<Set<string>>(new Set());
+  // Se avisa una sola vez por sesion que hay series guardadas solo en el
+  // telefono; repetirlo en cada paso sin senal seria puro ruido.
+  const avisoPendientes = useRef(false);
 
   const pasos = useMemo(() => generarPasos(plan, cantidades), [plan, cantidades]);
   const paso = pasos[index] ?? null;
@@ -216,10 +221,11 @@ export default function SessionScreen() {
   /** Deja la pantalla lista para registrar contra una sesion y un dia dados. */
   const preparar = useCallback(
     async (sesId: string, diaId: string, nombre: string, planPrecargado?: EjercicioPlan[]) => {
-      const [ejercicios, ghosts, yaCargadas] = await Promise.all([
+      const [ejercicios, ghosts, yaCargadas, pendientes] = await Promise.all([
         planPrecargado ? Promise.resolve(planPrecargado) : cargarPlan(diaId),
         cargarFantasmas(diaId),
         cargarSeriesDeSesion(sesId),
+        leerPendientes(sesId),
       ]);
 
       setSessionId(sesId);
@@ -240,6 +246,15 @@ export default function SessionScreen() {
           intensidad: String(v.intensityValue),
         };
       });
+      // Lo que quedo solo en el telefono es mas nuevo que lo de la base.
+      for (const p of pendientes) {
+        previos[claveSerie(p.exerciseId, p.setIndex)] = {
+          peso: String(mostrarPeso(p.weightKg, unidad)),
+          reps: String(p.reps),
+          intensidad: String(p.intensityValue),
+        };
+      }
+      if (pendientes.length > 0) sincronizarPendientes(sesId).catch(() => {});
 
       const cant = ejercicios.map((e) => Math.max(1, e.sets));
 
@@ -437,7 +452,7 @@ export default function SessionScreen() {
     if (peso === null || reps === null || intensidad === null) return;
     if (peso < 0 || reps <= 0) return;
 
-    await guardarSerie({
+    const resultado = await guardarSerieConRespaldo({
       sessionId,
       exerciseId: ejercicioActual.exerciseId,
       setIndex: paso.serie + 1,
@@ -446,7 +461,18 @@ export default function SessionScreen() {
       intensityKind: medidor,
       intensityValue: intensidad,
     });
-  }, [paso, ejercicioActual, sessionId, claveActual, valores, unidad, medidor]);
+
+    if (resultado === 'guardada') {
+      // Volvio la conexion: aprovechamos para vaciar lo que haya quedado atras.
+      sincronizarPendientes(sessionId).catch(() => {});
+    } else if (!avisoPendientes.current) {
+      avisoPendientes.current = true;
+      showToast({
+        message: 'Sin conexión. La serie queda en el teléfono y se sincroniza sola.',
+        type: 'error',
+      });
+    }
+  }, [paso, ejercicioActual, sessionId, claveActual, valores, unidad, medidor, showToast]);
 
   async function siguiente() {
     if (guardando) return;
@@ -478,6 +504,21 @@ export default function SessionScreen() {
     if (!sessionId) return;
     setGuardando(true);
     await persistirSiCorresponde();
+
+    // No se cierra una sesion con series que todavia no llegaron a la base:
+    // el historial y las fantasmas de la proxima vez saldrian incompletos.
+    const sinSincronizar = await sincronizarPendientes(sessionId);
+    if (sinSincronizar > 0) {
+      setGuardando(false);
+      setMenuAbierto(false);
+      const cuantas = sinSincronizar === 1 ? 'Queda 1 serie' : `Quedan ${sinSincronizar} series`;
+      showToast({
+        message: `${cuantas} sin sincronizar. Revisá la conexión y probá de nuevo.`,
+        type: 'error',
+      });
+      return;
+    }
+
     const ok = await terminarSesion(sessionId);
     setGuardando(false);
     setMenuAbierto(false);

@@ -2,6 +2,8 @@
    Cubre: abrir o retomar la sesion, traer el plan del dia, traer las series
    fantasma, guardar cada serie y terminar. */
 
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
 import { supabase } from './supabase';
 
 export type Medidor = 'rir' | 'rpe';
@@ -213,6 +215,70 @@ export async function guardarSerie(params: {
   return !error;
 }
 
+// --- Series pendientes de sincronizar ----------------------------------------
+// En el gimnasio la senal va y viene. Una serie que no se pudo escribir no se
+// pierde: queda en el telefono y se reintenta en el proximo paso o al terminar.
+
+export type SeriePendiente = Parameters<typeof guardarSerie>[0];
+
+function clavePendientes(sessionId: string): string {
+  return `frencia.session.pendientes.${sessionId}`;
+}
+
+export async function leerPendientes(sessionId: string): Promise<SeriePendiente[]> {
+  try {
+    const raw = await AsyncStorage.getItem(clavePendientes(sessionId));
+    return raw ? (JSON.parse(raw) as SeriePendiente[]) : [];
+  } catch {
+    return [];
+  }
+}
+
+async function escribirPendientes(sessionId: string, lista: SeriePendiente[]): Promise<void> {
+  try {
+    if (lista.length === 0) await AsyncStorage.removeItem(clavePendientes(sessionId));
+    else await AsyncStorage.setItem(clavePendientes(sessionId), JSON.stringify(lista));
+  } catch {
+    // Sin almacenamiento local no hay respaldo posible; la escritura ya fallo.
+  }
+}
+
+/** Encola una serie que no se pudo escribir. Si ya habia una pendiente para el
+ *  mismo (ejercicio, serie), la reemplaza: vale la ultima que anoto el usuario. */
+export async function encolarPendiente(serie: SeriePendiente): Promise<void> {
+  const lista = await leerPendientes(serie.sessionId);
+  const clave = claveSerie(serie.exerciseId, serie.setIndex);
+  const resto = lista.filter((p) => claveSerie(p.exerciseId, p.setIndex) !== clave);
+  await escribirPendientes(serie.sessionId, [...resto, serie]);
+}
+
+/** Reintenta escribir todo lo pendiente. Devuelve cuantas series siguen sin
+ *  sincronizar; 0 significa que la sesion esta completa en la base. */
+export async function sincronizarPendientes(sessionId: string): Promise<number> {
+  const lista = await leerPendientes(sessionId);
+  if (lista.length === 0) return 0;
+
+  const restantes: SeriePendiente[] = [];
+  for (const serie of lista) {
+    if (!(await guardarSerie(serie))) restantes.push(serie);
+  }
+  await escribirPendientes(sessionId, restantes);
+  return restantes.length;
+}
+
+/** Guarda la serie y, si falla, la deja pendiente. */
+export async function guardarSerieConRespaldo(
+  serie: SeriePendiente,
+): Promise<'guardada' | 'pendiente'> {
+  if (await guardarSerie(serie)) return 'guardada';
+  await encolarPendiente(serie);
+  return 'pendiente';
+}
+
+export async function borrarPendientes(sessionId: string): Promise<void> {
+  await escribirPendientes(sessionId, []);
+}
+
 /** Series ya cargadas en esta sesion, para retomarla donde quedo. */
 export async function cargarSeriesDeSesion(
   sessionId: string,
@@ -244,6 +310,7 @@ export async function terminarSesion(sessionId: string): Promise<boolean> {
 /** Descarta una sesion sin terminar. Borra sus series por cascade. */
 export async function descartarSesion(sessionId: string): Promise<boolean> {
   const { error } = await supabase.from('workout_sessions').delete().eq('id', sessionId);
+  if (!error) await borrarPendientes(sessionId);
   return !error;
 }
 

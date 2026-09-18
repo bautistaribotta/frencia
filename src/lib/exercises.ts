@@ -26,9 +26,15 @@ const STORAGE_KEY = 'frencia.exercises.catalog.v2';
 // Cache en memoria compartido entre montajes del hook.
 let memoryCache: Exercise[] | null = null;
 
-async function fetchAll(): Promise<Exercise[]> {
-  const { data } = await supabase.from('exercises').select('id, name, name_en').order('name');
-  return (data ?? []).map((e) => ({ id: e.id, name: e.name, nameEn: e.name_en }));
+/** Baja el catalogo entero. Devuelve null si la consulta fallo: un error de
+ *  red no es un catalogo vacio y no tiene que pisar la copia que ya tenemos. */
+async function fetchAll(): Promise<Exercise[] | null> {
+  const { data, error } = await supabase
+    .from('exercises')
+    .select('id, name, name_en')
+    .order('name');
+  if (error || !data) return null;
+  return data.map((e) => ({ id: e.id, name: e.name, nameEn: e.name_en }));
 }
 
 /** Normaliza texto para comparar sin distinguir mayusculas ni acentos. */
@@ -68,9 +74,14 @@ export function useExerciseCatalog() {
         }
       }
 
-      // 2. Refresco desde la fuente de verdad.
+      // 2. Refresco desde la fuente de verdad. Si falla, nos quedamos con la
+      //    ultima copia valida (memoria o AsyncStorage) en vez de vaciarla.
       const fresh = await fetchAll();
       if (cancelado) return;
+      if (fresh === null) {
+        setLoading(false);
+        return;
+      }
       memoryCache = fresh;
       setExercises(fresh);
       setLoading(false);
