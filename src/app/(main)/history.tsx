@@ -5,9 +5,9 @@
    el foco, asi aparece la sesion recien cerrada. */
 
 import React, { useCallback, useMemo, useRef, useState } from 'react';
-import { ActivityIndicator, SectionList, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, Pressable, SectionList, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useFocusEffect } from 'expo-router';
+import { useFocusEffect, useRouter } from 'expo-router';
 
 import { useSession } from '@/contexts/session';
 import { cargarHistorial, haceCuanto, type SesionTerminada } from '@/lib/session';
@@ -81,6 +81,7 @@ export default function HistoryScreen() {
   const colors = useColors();
   const styles = useThemedStyles(makeStyles);
   const { user } = useSession();
+  const router = useRouter();
 
   const [sesiones, setSesiones] = useState<SesionTerminada[]>([]);
   const [hayMas, setHayMas] = useState(false);
@@ -145,7 +146,13 @@ export default function HistoryScreen() {
           </View>
         )}
         renderItem={({ item: s }) => (
-          <View style={styles.card}>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={`${s.dayName ?? 'Día eliminado'}, ${fechaCorta(s.finishedAt)}`}
+            accessibilityHint="Ver las series realizadas en este entrenamiento"
+            onPress={() => router.push({ pathname: '/session-history', params: { id: s.id } })}
+            style={({ pressed }) => [styles.card, pressed && styles.cardPressed]}
+          >
             <View style={styles.cardHeader}>
               <View style={styles.cardText}>
                 <FrenciaText role="subtitle" numberOfLines={1}>
@@ -160,8 +167,14 @@ export default function HistoryScreen() {
               </View>
             </View>
 
-            <MetricPill icon="timer" label="Duración" value={duracion(s.startedAt, s.finishedAt)} />
-          </View>
+            <View style={styles.cardFooter}>
+              <MetricPill icon="timer" label="Duración" value={duracion(s.startedAt, s.finishedAt)} />
+              <View style={styles.verSeries}>
+                <FrenciaText role="bodySm" color={colors.textSecondary}>Ver series</FrenciaText>
+                <Icon name="chevron-right" size={18} color={colors.textTertiary} />
+              </View>
+            </View>
+          </Pressable>
         )}
         ItemSeparatorComponent={() => <View style={styles.separador} />}
         SectionSeparatorComponent={() => <View style={styles.separadorSeccion} />}
@@ -224,6 +237,9 @@ const makeStyles = (colors: Palette) =>
       borderColor: colors.borderSubtle,
     },
     cardHeader: { flexDirection: 'row', alignItems: 'center', gap: space[3] },
+    cardPressed: { backgroundColor: colors.surfaceCardElevated, borderColor: colors.surfaceGreenLine },
+    cardFooter: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: space[3] },
+    verSeries: { flexDirection: 'row', alignItems: 'center', gap: space[1] },
     cardText: { flex: 1, gap: space[1] },
     doneIcon: {
       width: 32,

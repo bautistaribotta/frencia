@@ -91,6 +91,14 @@ function RootNavigator() {
             fullScreenGestureEnabled: true,
           }}
         />
+        <Stack.Screen
+          name="session-history"
+          options={{
+            animation: 'slide_from_right',
+            gestureEnabled: true,
+            fullScreenGestureEnabled: true,
+          }}
+        />
         {/* Editar una rutina y editar un dia. Sin gesto de volver: hay cambios
             sin guardar y el boton Atras es el que pregunta antes de
             descartarlos. */}
