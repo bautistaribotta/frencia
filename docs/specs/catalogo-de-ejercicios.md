@@ -91,7 +91,6 @@ existan realmente en el origen antes de generar el SQL.
 | `slug` | text unique | Identificador estable derivado del nombre, para referencias y reimportaciones |
 | `name` | text | **En espanol**. Ya existe |
 | `name_en` | text null | Nombre original del dataset. Se usa tambien para buscar |
-| `source_id` | text null | El `id` del dataset (ej "0001"), para reimportar sin duplicar |
 | `equipment` | text null | Equipamiento requerido (mancuerna, barra, peso corporal) |
 | `instructions` | text null | Instrucciones en espanol, tomadas de `instructions.es` |
 | `image_url` | text null | Vacio por ahora, ver 2.1 |
