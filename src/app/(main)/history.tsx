@@ -2,10 +2,10 @@
    Lista las sesiones terminadas, de la mas reciente a la mas vieja, agrupadas
    por mes y paginadas: se traen de a HISTORIAL_PAGINA y se pide la siguiente
    al llegar al final. Conserva las paginas al volver del detalle; se actualiza
-   al entrar desde otra pestania o al refrescar manualmente. */
+   al entrar desde otra pestania o al tirar hacia abajo desde el inicio. */
 
 import React, { useCallback, useMemo, useRef, useSyncExternalStore } from 'react';
-import { ActivityIndicator, Pressable, SectionList, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, Pressable, RefreshControl, SectionList, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect, useRouter } from 'expo-router';
 
@@ -95,24 +95,20 @@ export default function HistoryScreen() {
         stickySectionHeadersEnabled={false}
         onEndReached={() => { void historial.cargarMas(); }}
         onEndReachedThreshold={0.5}
-        refreshing={loaded && cargando === 'inicio'}
-        onRefresh={() => { void historial.recargar(); }}
+        refreshControl={
+          <RefreshControl
+            refreshing={loaded && cargando === 'inicio'}
+            onRefresh={() => { void historial.recargar(); }}
+            tintColor={colors.accent}
+            colors={[colors.accent]}
+            progressBackgroundColor={colors.surfaceCard}
+          />
+        }
         ListHeaderComponent={
           <View style={styles.header}>
-            <View style={styles.headerRow}>
-              <FrenciaText role="dataLabel" color={colors.textTertiary}>
-                Historial
-              </FrenciaText>
-              <Button
-                variant="ghost"
-                size="sm"
-                style={styles.actualizar}
-                disabled={cargando === 'inicio'}
-                onPress={() => { void historial.recargar(); }}
-              >
-                Actualizar
-              </Button>
-            </View>
+            <FrenciaText role="dataLabel" color={colors.textTertiary}>
+              Historial
+            </FrenciaText>
             {error === 'inicio' && (
               <View style={styles.error} accessibilityLiveRegion="polite">
                 <FrenciaText role="bodySm" style={styles.centerText}>
@@ -217,8 +213,6 @@ const makeStyles = (colors: Palette) =>
       paddingBottom: space[12],
     },
     header: { paddingHorizontal: space[1], paddingBottom: space[6] },
-    headerRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: space[3] },
-    actualizar: { minHeight: 48 },
     feedback: { alignItems: 'center', gap: space[4] },
     error: {
       alignItems: 'center', gap: space[4], padding: spacing.padCard,
