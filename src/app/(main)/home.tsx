@@ -2,7 +2,9 @@
    Sin rutinas: onboarding editorial (placeholder de sesion + primeros pasos).
    Con rutinas: las lista en tarjetas con sus dias y un boton "Empezar" (que
    por ahora no inicia ninguna sesion). Las rutinas se releen cada vez que la
-   pantalla recupera el foco, asi reflejan lo recien creado en el wizard. */
+   pantalla recupera el foco, asi reflejan lo recien creado en el wizard.
+   Arriba a la derecha va la racha de entrenamientos planificados cumplidos
+   (ver docs/specs/racha-de-entrenamientos.md). */
 
 import React, { useCallback, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
@@ -10,6 +12,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect, useRouter } from 'expo-router';
 
 import { useProfile } from '@/contexts/profile';
+import { cargarFechasEntrenadas } from '@/lib/history';
+import { calcularRacha, fechaLocal, type Racha } from '@/lib/streak';
 import { supabase } from '@/lib/supabase';
 
 import {
@@ -45,6 +49,13 @@ const STEPS: Step[] = [
 // Iniciales (preview) y nombres cortos (resumen) de la semana. 0 = lunes.
 const SEMANA = ['L', 'M', 'X', 'J', 'V', 'S', 'D'];
 const SEMANA_CORTA = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
+const SEMANA_LARGA = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
+const MESES = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
+
+/** "Jueves · 12 jun", la fecha de hoy en la linea del saludo. */
+function fechaSaludo(d: Date): string {
+  return `${SEMANA_LARGA[(d.getDay() + 6) % 7]} · ${d.getDate()} ${MESES[d.getMonth()]}`;
+}
 
 // Un dia de entrenamiento de la rutina activa, tal como se muestra en el home.
 interface TrainingDayCard {
@@ -69,6 +80,7 @@ export default function HomeScreen() {
 
   const [routine, setRoutine] = useState<ActiveRoutine | null>(null);
   const [loaded, setLoaded] = useState(false);
+  const [racha, setRacha] = useState<Racha | null>(null);
 
   // Relee la rutina activa al enfocar la pantalla (incluye volver del wizard).
   useFocusEffect(
@@ -81,6 +93,7 @@ export default function HomeScreen() {
         if (!user) {
           if (!cancelado) {
             setRoutine(null);
+            setRacha(null);
             setLoaded(true);
           }
           return;
@@ -116,6 +129,19 @@ export default function HomeScreen() {
             : null,
         );
         setLoaded(true);
+
+        // La racha se deriva de los weekdays de la rutina activa y de las
+        // fechas con sesion terminada. Sin weekdays no hay contra que medir.
+        const weekdays = (data?.training_days ?? []).flatMap((d) =>
+          (d.training_day_weekdays ?? []).map((w) => w.weekday),
+        );
+        if (weekdays.length === 0) {
+          setRacha(null);
+          return;
+        }
+        const fechas = await cargarFechasEntrenadas(user.id);
+        if (cancelado) return;
+        setRacha(fechas ? calcularRacha(weekdays, fechas, fechaLocal(Date.now())) : null);
       })();
       return () => {
         cancelado = true;
@@ -152,11 +178,22 @@ export default function HomeScreen() {
             <View>
               <FrenciaText role="subtitle">Hola, {first}</FrenciaText>
               <FrenciaText role="dataLabel" color={colors.textTertiary}>
-                Jueves · 12 jun
+                {fechaSaludo(new Date())}
               </FrenciaText>
             </View>
           </Pressable>
-          <Badge tone="neutral">Dia 1</Badge>
+          {/* Fuego verde con la racha viva; en gris si hoy toca y todavia no
+              entreno. Racha cero: no se muestra nada. */}
+          {racha && racha.racha > 0 && (
+            <View
+              accessibilityRole="text"
+              accessibilityLabel={`Racha de ${racha.racha} ${racha.racha === 1 ? 'entrenamiento' : 'entrenamientos'}${racha.pendienteHoy ? ', hoy pendiente' : ''}`}
+            >
+              <Badge tone={racha.pendienteHoy ? 'neutral' : 'green'} icon="flame">
+                {racha.racha}
+              </Badge>
+            </View>
+          )}
         </View>
 
         {/* Hasta tener la primera lectura no decidimos que mostrar. */}

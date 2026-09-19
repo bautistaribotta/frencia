@@ -1,5 +1,6 @@
 import { supabase } from './supabase';
 import type { SesionTerminada } from './session';
+import { fechaLocal, RACHA_TOPE_DIAS } from './streak';
 
 export const HISTORIAL_PAGINA = 20;
 
@@ -70,6 +71,26 @@ export async function cargarHistorial(
   } catch {
     return { estado: 'error' };
   }
+}
+
+/**
+ * Fechas locales ("YYYY-MM-DD") con alguna sesion terminada dentro del tope de
+ * la racha. Solo trae finished_at: es lo unico que calcularRacha necesita.
+ * Devuelve null si falla; la racha no es critica y el badge se oculta.
+ * Ver docs/specs/racha-de-entrenamientos.md
+ */
+export async function cargarFechasEntrenadas(userId: string): Promise<string[] | null> {
+  const desde = new Date();
+  desde.setDate(desde.getDate() - RACHA_TOPE_DIAS);
+  const { data, error } = await supabase
+    .from('workout_sessions')
+    .select('finished_at')
+    .eq('user_id', userId)
+    .not('finished_at', 'is', null)
+    .gte('finished_at', desde.toISOString())
+    .order('finished_at', { ascending: false });
+  if (error || !data) return null;
+  return data.map((fila) => fechaLocal(Date.parse(fila.finished_at as string)));
 }
 
 export interface MesHistorial {
