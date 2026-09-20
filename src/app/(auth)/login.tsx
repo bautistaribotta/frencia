@@ -183,7 +183,13 @@ export default function LoginScreen() {
               />
             </View>
 
-            <Pressable style={styles.forgot} hitSlop={8}>
+            <Pressable
+              style={styles.forgot}
+              hitSlop={8}
+              onPress={() =>
+                router.push({ pathname: '/forgot-password', params: { email: email.trim() } })
+              }
+            >
               <FrenciaText role="bodySm" color={colors.accentText}>
                 ¿Olvidaste tu contraseña?
               </FrenciaText>
