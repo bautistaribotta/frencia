@@ -1,15 +1,15 @@
 /* Frencia · Perfil — pantalla de perfil y ajustes.
    Es una pestania: se llega desde la barra de abajo o tocando el encabezado de
    saludo del home. Foto de perfil (Storage), editar perfil y ajustes. RIR/RPE,
-   kg/lb, cm/ft y el tema (oscuro/claro) se guardan en Supabase; el tema ademas
-   se aplica en vivo via contexto. */
+   kg/lb y cm/ft se guardan en Supabase y se aplican en vivo via el contexto de
+   perfil; el tema (oscuro/claro) igual, via el contexto de tema. */
 
 import { useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import { Modal, Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { useProfile } from '@/contexts/profile';
+import { useProfile, type Preferencias } from '@/contexts/profile';
 import { useToast } from '@/contexts/toast';
 import { pickAndUploadAvatar, signAvatarUrl, deleteAvatarFile } from '@/lib/avatar';
 import { supabase } from '@/lib/supabase';
@@ -34,8 +34,9 @@ export default function ProfileScreen() {
   const colors = useColors();
   const styles = useThemedStyles(makeStyles);
   const router = useRouter();
-  // Datos del perfil compartidos (saludo, avatar) + reflejo de cambios.
-  const { displayName, profile, applyAvatar } = useProfile();
+  // Datos del perfil compartidos (saludo, avatar, preferencias) + reflejo de
+  // cambios.
+  const { displayName, profile, applyAvatar, savePreferencias } = useProfile();
   // Nombre completo para la tarjeta: suma el apellido si esta cargado.
   const fullName = [profile?.name?.trim(), profile?.surname?.trim()]
     .filter(Boolean)
@@ -44,11 +45,12 @@ export default function ProfileScreen() {
   // Tema activo (oscuro/claro): lo maneja el contexto, persiste solo.
   const { mode, setMode } = useTheme();
   const isDark = mode === 'dark';
-  // RIR/RPE y kg/lb se persisten en Supabase (profiles).
-  const [useRpe, setUseRpe] = useState(false);
-  const [useLb, setUseLb] = useState(false);
-  // Unidad de medida corporal (altura): se persiste en profiles (cm/ft).
-  const [useFeet, setUseFeet] = useState(false);
+  // RIR/RPE, kg/lb y cm/ft se leen del contexto y se persisten en profiles.
+  // No hay estado local: el switch cambia el contexto y toda la app (sesion,
+  // historial, editar perfil) recalcula con la unidad nueva en el acto.
+  const useRpe = profile?.medidorEsfuerzo === 'rpe';
+  const useLb = profile?.unidadPeso === 'lb';
+  const useFeet = profile?.unidadAltura === 'ft';
   // Avatar: foto subida (prioridad) o semilla del avatar generado.
   const [photo, setPhoto] = useState<string | undefined>(profile?.avatarUrl ?? undefined);
   const [seed, setSeed] = useState<string | undefined>(profile?.avatarSeed ?? undefined);
@@ -60,7 +62,7 @@ export default function ProfileScreen() {
   // el picker sin aparecer y la promesa colgada.
   const [pendingPick, setPendingPick] = useState(false);
 
-  // Carga preferencias y avatar guardados del usuario al abrir el perfil.
+  // Carga el avatar guardado del usuario al abrir el perfil.
   useEffect(() => {
     let cancelado = false;
     (async () => {
@@ -70,13 +72,10 @@ export default function ProfileScreen() {
       if (!user) return;
       const { data } = await supabase
         .from('profiles')
-        .select('medidor_esfuerzo, unidad_peso, unidad_altura, avatar_path, avatar_seed')
+        .select('avatar_path, avatar_seed')
         .eq('id', user.id)
         .maybeSingle();
       if (cancelado || !data) return;
-      setUseRpe(data.medidor_esfuerzo === 'rpe');
-      setUseLb(data.unidad_peso === 'lb');
-      setUseFeet(data.unidad_altura === 'ft');
       if (data.avatar_seed) setSeed(data.avatar_seed);
       if (data.avatar_path) {
         const url = await signAvatarUrl(data.avatar_path);
@@ -184,28 +183,23 @@ export default function ProfileScreen() {
     applyAvatar({ url: null, seed: semilla });
   }
 
-  // Guarda una preferencia en profiles sin bloquear la UI (optimista).
-  async function persistPref(patch: Record<string, string>) {
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    if (!user) return;
-    await supabase.from('profiles').update(patch).eq('id', user.id);
+  // El contexto aplica el cambio en el acto y lo persiste; si no pudo, ya lo
+  // revirtio y aca solo queda avisar.
+  async function cambiarPreferencia(next: Partial<Preferencias>) {
+    const ok = await savePreferencias(next);
+    if (!ok) showToast({ message: 'No pudimos guardar el ajuste. Proba de nuevo.', type: 'error' });
   }
 
   function toggleRpe(next: boolean) {
-    setUseRpe(next);
-    persistPref({ medidor_esfuerzo: next ? 'rpe' : 'rir' });
+    cambiarPreferencia({ medidorEsfuerzo: next ? 'rpe' : 'rir' });
   }
 
   function toggleLb(next: boolean) {
-    setUseLb(next);
-    persistPref({ unidad_peso: next ? 'lb' : 'kg' });
+    cambiarPreferencia({ unidadPeso: next ? 'lb' : 'kg' });
   }
 
   function toggleFeet(next: boolean) {
-    setUseFeet(next);
-    persistPref({ unidad_altura: next ? 'ft' : 'cm' });
+    cambiarPreferencia({ unidadAltura: next ? 'ft' : 'cm' });
   }
 
   // Cierra la sesion. El cambio lo detecta SessionProvider y el gate del
@@ -298,14 +292,14 @@ export default function ProfileScreen() {
               <Switch checked={useLb} onChange={toggleLb} />
             </View>
 
-            {/* Fila: unidad de medida corporal (solo front por ahora) */}
+            {/* Fila: unidad de altura */}
             <View style={[styles.settingRow, styles.settingRowDivider]}>
               <View style={styles.settingText}>
                 <FrenciaText role="bodySm" style={styles.settingTitle}>
-                  Unidad de medida cm/in
+                  Unidad de altura cm/ft
                 </FrenciaText>
                 <FrenciaText role="bodySm" color={colors.textTertiary} style={styles.settingSub}>
-                  {useFeet ? 'En pies y pulgadas' : 'En centímetros (cm)'}
+                  {useFeet ? 'En pies y pulgadas (ft)' : 'En centímetros (cm)'}
                 </FrenciaText>
               </View>
               <Switch checked={useFeet} onChange={toggleFeet} />

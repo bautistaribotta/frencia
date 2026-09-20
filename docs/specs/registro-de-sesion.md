@@ -189,6 +189,15 @@ calculo historico (volumen, PRs) o exige arrastrar la unidad en cada fila y
 convertir en cada consulta. Guardar canonico y convertir al borde es mas simple
 y no ensucia las agregaciones.
 
+La preferencia es una sola para toda la app y cambia en el acto: el switch del
+perfil y el toggle de la rueda de peso (setup, editar perfil) escriben la misma
+`profiles.unidad_peso` y la publican por el contexto de perfil, asi que una
+serie registrada con 100 kg pasa a leerse 220.5 lb en la sesion, el historial y
+el peso corporal sin releer nada. Si la escritura falla, el contexto vuelve al
+valor anterior. La altura sigue la misma regla con `profiles.altura` en cm y
+`profiles.unidad_altura` (`cm` o `ft`); en imperial se muestra en pies y
+pulgadas (`5' 10"`), que es como se dice, no en pulgadas sueltas.
+
 ## 5. Consulta de las series fantasma
 
 Se traen **todas** las series de las sesiones terminadas de ese dia dentro de la

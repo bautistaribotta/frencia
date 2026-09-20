@@ -2,8 +2,9 @@
    Trae una sola vez los datos del perfil del usuario logueado y los
    comparte con todas las rutas (saludo, avatar, completitud para el
    flujo de setup). Reemplaza el prop-drilling que antes bajaba desde
-   el layout raiz. Expone `refresh` para releer tras editar y
-   `applyAvatar` para reflejar cambios de foto al instante. */
+   el layout raiz. Expone `refresh` para releer tras editar, `applyAvatar`
+   para reflejar cambios de foto al instante y `savePreferencias` para que
+   un cambio de unidad o de medidor se vea en toda la app en el acto. */
 
 import React, {
   createContext,
@@ -18,6 +19,7 @@ import { supabase } from '@/lib/supabase';
 import { fechaNacimientoAEdad } from '@/lib/edad';
 import { signAvatarUrl } from '@/lib/avatar';
 import type { UnidadPeso } from '@/lib/peso';
+import type { UnidadAltura } from '@/lib/altura';
 import { useSession } from './session';
 
 export interface ProfileData {
@@ -36,7 +38,20 @@ export interface ProfileData {
   // Unidad en la que se muestra y se escribe el peso. Lo guardado es siempre
   // kilo, ver seccion 4.4 de docs/specs/registro-de-sesion.md
   unidadPeso: UnidadPeso;
+  // Idem para la altura: se guarda en cm y se muestra en cm o en pies y
+  // pulgadas segun esta preferencia.
+  unidadAltura: UnidadAltura;
 }
+
+// Preferencias que se cambian desde un switch o una rueda y tienen que verse
+// al instante en toda la app, sin esperar a releer el perfil.
+export type Preferencias = Pick<ProfileData, 'medidorEsfuerzo' | 'unidadPeso' | 'unidadAltura'>;
+
+const COLUMNA_PREFERENCIA: Record<keyof Preferencias, string> = {
+  medidorEsfuerzo: 'medidor_esfuerzo',
+  unidadPeso: 'unidad_peso',
+  unidadAltura: 'unidad_altura',
+};
 
 interface ProfileContextValue {
   profile: ProfileData | null;
@@ -47,6 +62,11 @@ interface ProfileContextValue {
   needsOnboarding: boolean;
   refresh: () => Promise<void>;
   applyAvatar: (next: { url?: string | null; seed?: string | null }) => void;
+  // Cambia una o mas preferencias: primero en el contexto, para que toda la
+  // app recalcule pesos y alturas en el mismo render que el switch, y despues
+  // en profiles. Si la escritura falla vuelve al valor anterior y devuelve
+  // false, asi el contexto nunca queda distinto de la base.
+  savePreferencias: (next: Partial<Preferencias>) => Promise<boolean>;
 }
 
 const ProfileContext = createContext<ProfileContextValue>({
@@ -56,6 +76,7 @@ const ProfileContext = createContext<ProfileContextValue>({
   needsOnboarding: false,
   refresh: async () => {},
   applyAvatar: () => {},
+  savePreferencias: async () => false,
 });
 
 export function ProfileProvider({ children }: { children: React.ReactNode }) {
@@ -92,7 +113,7 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
     for (let intento = 0; intento < 3; intento++) {
       const res = await supabase
         .from('profiles')
-        .select('name, surname, username, fecha_nacimiento, sexo, altura, peso, avatar_path, avatar_seed, onboarding_completed, medidor_esfuerzo, unidad_peso')
+        .select('name, surname, username, fecha_nacimiento, sexo, altura, peso, avatar_path, avatar_seed, onboarding_completed, medidor_esfuerzo, unidad_peso, unidad_altura')
         .eq('id', current.id)
         .maybeSingle();
       if (res.data) {
@@ -118,6 +139,7 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
             onboardingCompleted: data.onboarding_completed ?? false,
             medidorEsfuerzo: data.medidor_esfuerzo === 'rpe' ? 'rpe' : 'rir',
             unidadPeso: data.unidad_peso === 'lb' ? 'lb' : 'kg',
+            unidadAltura: data.unidad_altura === 'ft' ? 'ft' : 'cm',
           }
         : null,
     );
@@ -183,6 +205,26 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
     [],
   );
 
+  const savePreferencias = useCallback(
+    async (next: Partial<Preferencias>): Promise<boolean> => {
+      if (!profile || !userId) return false;
+      const claves = Object.keys(next) as (keyof Preferencias)[];
+      // Solo se revierten las claves que se tocaron: otro cambio en vuelo sobre
+      // una preferencia distinta no tiene por que perderse si este falla.
+      const anterior = Object.fromEntries(claves.map((k) => [k, profile[k]])) as Partial<Preferencias>;
+      setProfile((prev) => (prev ? { ...prev, ...next } : prev));
+
+      const patch = Object.fromEntries(claves.map((k) => [COLUMNA_PREFERENCIA[k], next[k]]));
+      const { error } = await supabase.from('profiles').update(patch).eq('id', userId);
+      if (error) {
+        setProfile((prev) => (prev ? { ...prev, ...anterior } : prev));
+        return false;
+      }
+      return true;
+    },
+    [profile, userId],
+  );
+
   const displayName = profile?.name?.trim() || 'Atleta';
 
   return (
@@ -196,6 +238,7 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
         needsOnboarding: profile ? !profile.onboardingCompleted : true,
         refresh,
         applyAvatar,
+        savePreferencias,
       }}
     >
       {children}
