@@ -3,6 +3,7 @@
 
 import React, { useState } from 'react';
 import {
+  ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -46,7 +47,9 @@ export default function LoginScreen() {
   const [loading, setLoading] = useState(false);
   const [oauthLoading, setOauthLoading] = useState<OAuthProvider | null>(null);
   const [errorMsg, setErrorMsg] = useState('');
-  const [doneMsg, setDoneMsg] = useState('');
+  // Credenciales validadas: tapamos la pantalla con el spinner hasta que el
+  // gate del layout raiz navegue a setup u home.
+  const [entering, setEntering] = useState(false);
 
   const canSubmit = email.trim().length > 3 && password.length >= 6;
 
@@ -56,9 +59,8 @@ export default function LoginScreen() {
     if (!canSubmit || loading) return;
     setLoading(true);
     setErrorMsg('');
-    setDoneMsg('');
 
-    const { data, error } = await supabase.auth.signInWithPassword({
+    const { error } = await supabase.auth.signInWithPassword({
       email: email.trim(),
       password,
     });
@@ -74,7 +76,10 @@ export default function LoginScreen() {
       const {
         data: { session },
       } = await supabase.auth.getSession();
-      if (session) return;
+      if (session) {
+        setEntering(true);
+        return;
+      }
 
       const credencialesInvalidas =
         error.status === 400 || /invalid login credentials/i.test(error.message);
@@ -86,21 +91,23 @@ export default function LoginScreen() {
       return;
     }
 
-    const name = data.user?.user_metadata?.name as string | undefined;
-    setDoneMsg(`Ingresaste. Bienvenido de nuevo${name ? `, ${name}` : ''}.`);
+    setEntering(true);
   }
 
   async function handleOAuth(provider: OAuthProvider) {
     if (oauthLoading) return;
     setOauthLoading(provider);
     setErrorMsg('');
-    setDoneMsg('');
+    // El navegador tapa la app durante el flujo; al volver, el spinner cubre
+    // el hueco hasta que el gate redirija.
+    setEntering(true);
 
     const { error } = await signInWithProvider(provider);
 
     setOauthLoading(null);
 
     if (error) {
+      setEntering(false);
       setErrorMsg('No pudimos ingresar con ese proveedor. Proba de nuevo.');
       return;
     }
@@ -204,18 +211,12 @@ export default function LoginScreen() {
               loading={loading}
               onPress={handleLogin}
             >
-              Entrar
+              Ingresar
             </Button>
 
             {errorMsg ? (
               <FrenciaText role="bodySm" color={colors.dangerText}>
                 {errorMsg}
-              </FrenciaText>
-            ) : null}
-
-            {doneMsg ? (
-              <FrenciaText role="bodySm" color={colors.accentText}>
-                {doneMsg}
               </FrenciaText>
             ) : null}
 
@@ -267,6 +268,12 @@ export default function LoginScreen() {
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
+
+      {entering ? (
+        <View style={styles.entering}>
+          <ActivityIndicator size="large" color={colors.accent} />
+        </View>
+      ) : null}
     </SafeAreaView>
   );
 }
@@ -305,6 +312,16 @@ const makeStyles = (colors: Palette) =>
   StyleSheet.create({
   safe: { flex: 1, backgroundColor: colors.bgApp },
   flex: { flex: 1 },
+  entering: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: colors.bgApp,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   scroll: {
     flexGrow: 1,
     paddingHorizontal: spacing.padScreen,
