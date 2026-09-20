@@ -85,9 +85,14 @@ export default function SetupWizardScreen() {
     }));
   }, [profile]);
   // Sistema de medicion elegido en los pasos de altura y peso. Se guarda como
-  // preferencia (el valor del dato se persiste siempre en metrico).
-  const [unitHeight, setUnitHeight] = useState<'metric' | 'imperial'>('metric');
-  const [unitWeight, setUnitWeight] = useState<'metric' | 'imperial'>('metric');
+  // preferencia global al finalizar (el valor del dato se persiste siempre en
+  // metrico). Arranca en lo que ya tenga el perfil.
+  const [unitHeight, setUnitHeight] = useState<'metric' | 'imperial'>(
+    profile?.unidadAltura === 'ft' ? 'imperial' : 'metric',
+  );
+  const [unitWeight, setUnitWeight] = useState<'metric' | 'imperial'>(
+    profile?.unidadPeso === 'lb' ? 'imperial' : 'metric',
+  );
   const [saving, setSaving] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
 
@@ -258,6 +263,10 @@ export default function SetupWizardScreen() {
             />
           ) : (
             <MeasurePicker
+              // La rueda guarda indices y unidad en su estado: sin key, React
+              // reutiliza la misma instancia entre edad, altura y peso y el
+              // paso nuevo abre con los indices del anterior.
+              key={step.key}
               kind={step.key === 'edad' ? 'age' : step.key === 'altura' ? 'height' : 'weight'}
               initial={Number(current) || 0}
               onChange={(n) => setCurrent(String(n))}
