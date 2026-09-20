@@ -20,6 +20,8 @@ import { useRouter } from 'expo-router';
 
 import { supabase } from '@/lib/supabase';
 import { edadAFechaNacimiento, fechaNacimientoAEdad } from '@/lib/edad';
+import { mostrarAltura } from '@/lib/altura';
+import { mostrarPeso } from '@/lib/peso';
 import { useProfile } from '@/contexts/profile';
 import { useToast } from '@/contexts/toast';
 import { MeasurePicker } from '@/components/MeasurePicker';
@@ -50,7 +52,7 @@ export default function EditProfileScreen() {
   const colors = useColors();
   const styles = useThemedStyles(makeStyles);
   const router = useRouter();
-  const { refresh } = useProfile();
+  const { profile, refresh, savePreferencias } = useProfile();
   const { showToast } = useToast();
   const [nombre, setNombre] = useState('');
   const [apellido, setApellido] = useState('');
@@ -63,12 +65,13 @@ export default function EditProfileScreen() {
   // Mientras traemos el perfil mostramos un spinner para tapar la demora inicial.
   const [cargandoPerfil, setCargandoPerfil] = useState(true);
   // Rueda de altura/peso: misma experiencia que el setup inicial. `draft`
-  // guarda el valor canonico (cm o kg) mientras la rueda esta abierta. Las
-  // unidades se precargan del perfil para abrir en el sistema elegido.
+  // guarda el valor canonico (cm o kg) mientras la rueda esta abierta. La
+  // unidad sale del contexto: la rueda abre en la preferida y cambiarla ahi
+  // es lo mismo que tocar el switch del perfil, vale para toda la app.
   const [picker, setPicker] = useState<null | 'age' | 'height' | 'weight'>(null);
   const [draft, setDraft] = useState(0);
-  const [unitHeight, setUnitHeight] = useState<'metric' | 'imperial'>('metric');
-  const [unitWeight, setUnitWeight] = useState<'metric' | 'imperial'>('metric');
+  const unidadAltura = profile?.unidadAltura ?? 'cm';
+  const unidadPeso = profile?.unidadPeso ?? 'kg';
 
   function openPicker(kind: 'age' | 'height' | 'weight') {
     const source = kind === 'age' ? edad : kind === 'height' ? altura : peso;
@@ -81,6 +84,17 @@ export default function EditProfileScreen() {
     else if (picker === 'height') setAltura(String(draft));
     else if (picker === 'weight') setPeso(String(draft));
     setPicker(null);
+  }
+
+  // El toggle de la rueda cambia la preferencia global. Se persiste al toque,
+  // no con Guardar: es un ajuste, no un dato del perfil.
+  async function cambiarUnidad(unit: 'metric' | 'imperial') {
+    const ok = await savePreferencias(
+      picker === 'height'
+        ? { unidadAltura: unit === 'imperial' ? 'ft' : 'cm' }
+        : { unidadPeso: unit === 'imperial' ? 'lb' : 'kg' },
+    );
+    if (!ok) showToast({ message: 'No pudimos guardar la unidad. Proba de nuevo.', type: 'error' });
   }
 
   function goBack() {
@@ -103,7 +117,7 @@ export default function EditProfileScreen() {
 
       const { data } = await supabase
         .from('profiles')
-        .select('name, surname, fecha_nacimiento, sexo, altura, peso, unidad_altura, unidad_peso')
+        .select('name, surname, fecha_nacimiento, sexo, altura, peso')
         .eq('id', user.id)
         .single();
 
@@ -117,8 +131,6 @@ export default function EditProfileScreen() {
         if (data.sexo != null) setSexo(data.sexo);
         if (data.altura != null) setAltura(String(data.altura));
         if (data.peso != null) setPeso(String(data.peso));
-        if (data.unidad_altura === 'ft') setUnitHeight('imperial');
-        if (data.unidad_peso === 'lb') setUnitWeight('imperial');
       }
       setCargandoPerfil(false);
     }
@@ -255,17 +267,18 @@ export default function EditProfileScreen() {
                 onPress={() => openPicker('age')}
               />
 
+              {/* Guardado en cm y kg; se muestra en la unidad preferida. */}
               <SelectField
                 label="Altura"
                 icon="trending-up"
-                value={altura ? `${altura} cm` : ''}
+                value={altura ? mostrarAltura(alturaNum, unidadAltura) : ''}
                 placeholder="Elegí tu altura"
                 onPress={() => openPicker('height')}
               />
               <SelectField
                 label="Peso"
                 icon="target"
-                value={peso ? `${peso} kg` : ''}
+                value={peso ? `${mostrarPeso(pesoNum, unidadPeso)} ${unidadPeso}` : ''}
                 placeholder="Elegí tu peso"
                 onPress={() => openPicker('weight')}
               />
@@ -310,7 +323,14 @@ export default function EditProfileScreen() {
               kind={picker}
               initial={draft}
               onChange={setDraft}
-              initialUnit={picker === 'height' ? unitHeight : picker === 'weight' ? unitWeight : 'metric'}
+              initialUnit={
+                picker === 'height'
+                  ? unidadAltura === 'ft' ? 'imperial' : 'metric'
+                  : picker === 'weight'
+                    ? unidadPeso === 'lb' ? 'imperial' : 'metric'
+                    : 'metric'
+              }
+              onUnitChange={picker === 'age' ? undefined : cambiarUnidad}
             />
           ) : null}
           <Button variant="primary" size="lg" fullWidth onPress={confirmPicker}>
