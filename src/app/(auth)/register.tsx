@@ -48,6 +48,9 @@ export default function RegisterScreen() {
   const [loading, setLoading] = useState(false);
   const [oauthLoading, setOauthLoading] = useState<OAuthProvider | null>(null);
   const [errorMsg, setErrorMsg] = useState('');
+  // Supabase responde "User already registered" cuando el email ya tiene
+  // cuenta. Lo mostramos en castellano y ofrecemos recuperar la contraseña.
+  const [emailTaken, setEmailTaken] = useState(false);
 
   const passwordsMatch = password.length >= 6 && password === confirm;
   const canSubmit =
@@ -63,6 +66,7 @@ export default function RegisterScreen() {
     if (!canSubmit || loading) return;
     setLoading(true);
     setErrorMsg('');
+    setEmailTaken(false);
 
     const { error } = await supabase.auth.signUp({
       email: email.trim(),
@@ -76,7 +80,12 @@ export default function RegisterScreen() {
     setLoading(false);
 
     if (error) {
-      setErrorMsg(error.message);
+      if (/already registered/i.test(error.message)) {
+        setEmailTaken(true);
+        setErrorMsg('Email ya registrado.');
+      } else {
+        setErrorMsg(error.message);
+      }
       return;
     }
 
@@ -93,6 +102,7 @@ export default function RegisterScreen() {
     if (oauthLoading) return;
     setOauthLoading(provider);
     setErrorMsg('');
+    setEmailTaken(false);
 
     const { error } = await signInWithProvider(provider);
 
@@ -208,6 +218,20 @@ export default function RegisterScreen() {
               <FrenciaText role="bodySm" color={colors.dangerText}>
                 {errorMsg}
               </FrenciaText>
+            ) : null}
+
+            {emailTaken ? (
+              <Pressable
+                style={styles.forgot}
+                hitSlop={8}
+                onPress={() =>
+                  router.push({ pathname: '/forgot-password', params: { email: email.trim() } })
+                }
+              >
+                <FrenciaText role="bodySm" color={colors.accentText}>
+                  ¿Olvidaste tu contraseña?
+                </FrenciaText>
+              </Pressable>
             ) : null}
 
             <Button
@@ -362,6 +386,8 @@ const makeStyles = (colors: Palette) =>
     fontSize: 16,
     padding: 0,
   },
+
+  forgot: { alignSelf: 'flex-start', marginTop: -space[3] },
 
   // Divisor
   divider: { flexDirection: 'row', alignItems: 'center', gap: space[4] },
