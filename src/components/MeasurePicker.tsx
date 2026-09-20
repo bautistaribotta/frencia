@@ -1,12 +1,16 @@
 /* Frencia · MeasurePicker — eleccion de edad, altura o peso con ruedas tipo dial.
-   Para altura y peso suma el toggle de unidad (cm/ft, kg/lbs) y la conversion,
+   Para altura y peso suma el toggle de unidad (cm/ft, kg/lb) y la conversion,
    guardando siempre el valor canonico en metrico (cm o kg). La edad no tiene
    unidad: es una sola rueda en años, sin toggle. La barra de seleccion va
    centrada. Se usa tanto en el setup inicial como al editar el perfil, para que
-   el dato se actualice igual que cuando se definio. */
+   el dato se actualice igual que cuando se definio. El toggle avisa por
+   `onUnitChange`: quien lo monta lo guarda como preferencia de toda la app. */
 
 import React, { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
+
+import { cmAPiesPulgadas, piesPulgadasACm } from '@/lib/altura';
+import { kgALb, lbAKg } from '@/lib/peso';
 
 import {
   FrenciaText,
@@ -37,9 +41,6 @@ const ITEM_H = 44;
 const VISIBLE = 7;
 const STAGE_H = ITEM_H * VISIBLE;
 
-const CM_PER_IN = 2.54;
-const KG_PER_LB = 0.45359237;
-
 const range = (a: number, b: number) => Array.from({ length: b - a + 1 }, (_, i) => a + i);
 const clamp = (n: number, a: number, b: number) => Math.max(a, Math.min(b, n));
 
@@ -60,17 +61,15 @@ function toIndices(kind: Kind, unit: Unit, value: number): [number, number] {
   if (kind === 'age') return [clamp(Math.round(value), 13, 99) - 13, 0];
   if (kind === 'height') {
     if (unit === 'metric') return [clamp(Math.round(value), 120, 220) - 120, 0];
-    const totalIn = Math.round(value / CM_PER_IN);
-    const feet = clamp(Math.floor(totalIn / 12), 4, 7);
-    const inch = clamp(totalIn - feet * 12, 0, 11);
-    return [feet - 4, inch];
+    const { pies, pulgadas } = cmAPiesPulgadas(value);
+    return [clamp(pies, 4, 7) - 4, clamp(pulgadas, 0, 11)];
   }
   if (unit === 'metric') {
     const int = clamp(Math.floor(value), 30, 200);
     const dec = clamp(Math.round((value - Math.floor(value)) * 10), 0, 9);
     return [int - 30, dec];
   }
-  const lb = value / KG_PER_LB;
+  const lb = kgALb(value);
   const int = clamp(Math.floor(lb), 66, 440);
   const dec = clamp(Math.round((lb - Math.floor(lb)) * 10), 0, 9);
   return [int - 66, dec];
@@ -81,12 +80,11 @@ function compose(kind: Kind, unit: Unit, i1: number, i2: number): number {
   if (kind === 'age') return AGE[i1];
   if (kind === 'height') {
     if (unit === 'metric') return HEIGHT_CM[i1];
-    const cm = (FEET[i1] * 12 + INCH[i2]) * CM_PER_IN;
-    return Math.round(cm);
+    return piesPulgadasACm(FEET[i1], INCH[i2]);
   }
   if (unit === 'metric') return Math.round((KG_INT[i1] + DEC[i2] / 10) * 10) / 10;
   const lb = LB_INT[i1] + DEC[i2] / 10;
-  return Math.round(lb * KG_PER_LB * 10) / 10;
+  return Math.round(lbAKg(lb) * 10) / 10;
 }
 
 export function MeasurePicker({
@@ -137,7 +135,7 @@ export function MeasurePicker({
         ]
       : [
           { value: 'metric', label: 'kg' },
-          { value: 'imperial', label: 'lbs' },
+          { value: 'imperial', label: 'lb' },
         ];
 
   // Unidad mostrada al costado. En altura imperial las unidades van entre las
@@ -151,7 +149,7 @@ export function MeasurePicker({
           : null
         : unit === 'metric'
           ? 'kg'
-          : 'lbs';
+          : 'lb';
 
   return (
     <View style={styles.wrap}>
