@@ -17,7 +17,7 @@ https://docs.expo.dev/versions/v57.0.0/ antes de escribir codigo que toque el SD
      componentes en `components/`, guias en `guidelines/` y kits en
      `ui_kits/ios_app/`). Es la fuente de verdad del diseño.
   2. Su port local en `src/design/` (tokens, componentes y `README.md`) y el
-     skill `.claude/skills/heft-design/`.
+     skill `.claude/skills/frencia-design/`.
   Si el codigo y el design system difieren, manda el design system; si el
   design system no cubre el caso, avisar antes de inventar.
 - Los colores semanticos viven en `src/design/tokens/colors.ts` y se consumen

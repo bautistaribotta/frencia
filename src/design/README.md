@@ -1,6 +1,6 @@
 # Frencia Design System — React Native
 
-Port nativo del design system web (`.claude/skills/heft-design/`). Mismos tokens y
+Port nativo del design system web (`.claude/skills/frencia-design/`). Mismos tokens y
 componentes, pero en `View`/`Text`/`StyleSheet` — usables directo en la app Expo.
 
 ## Uso
@@ -50,4 +50,4 @@ está en `Icon.tsx` (`REGISTRY`) — si falta uno, importalo ahí y agregalo al 
 - **letter-spacing:** CSS en `em`, RN en px. Convertido en `tracking`.
 - **Hover:** no existe en touch; sólo se portó `press`/`active`/`selected`/`disabled`.
 
-El skill original queda como fuente de verdad de diseño en `.claude/skills/heft-design/`.
+El skill original queda como fuente de verdad de diseño en `.claude/skills/frencia-design/`.
