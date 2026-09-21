@@ -13,7 +13,7 @@ import React, {
   useState,
 } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
-import Animated, { FadeInDown, FadeOutDown } from 'react-native-reanimated';
+import Animated, { FadeInDown, FadeOutUp } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import {
@@ -96,8 +96,8 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
           <Animated.View
             key={toast.id}
             entering={FadeInDown.duration(240)}
-            exiting={FadeOutDown.duration(180)}
-            style={[styles.toast, { marginBottom: insets.bottom + space[4] }]}
+            exiting={FadeOutUp.duration(180)}
+            style={[styles.toast, { marginTop: insets.top + space[4] }]}
           >
             <Pressable
               onPress={dismiss}
@@ -126,7 +126,7 @@ const makeStyles = (colors: Palette) =>
     overlay: {
       pointerEvents: 'box-none',
       ...StyleSheet.absoluteFill,
-      justifyContent: 'flex-end',
+      justifyContent: 'flex-start',
       alignItems: 'center',
       paddingHorizontal: spacing.padScreen,
     },
