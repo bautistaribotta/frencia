@@ -255,6 +255,24 @@ export default function ProfileScreen() {
           Editar perfil
         </Button>
 
+        {/* Configuracion de la cuenta: misma fila que Cerrar sesion, en neutro */}
+        <Pressable
+          style={styles.settingsList}
+          onPress={() => router.push('/settings')}
+          accessibilityRole="button"
+          accessibilityLabel="Configuracion"
+        >
+          <View style={styles.settingRow}>
+            <View style={styles.configLeft}>
+              <Icon name="settings" size={20} color={colors.textPrimary} />
+              <FrenciaText role="bodySm" style={styles.settingTitle}>
+                Configuración
+              </FrenciaText>
+            </View>
+            <Icon name="chevron-right" size={20} color={colors.textTertiary} />
+          </View>
+        </Pressable>
+
         {/* Ajustes */}
         <View style={styles.settingsBlock}>
           <FrenciaText

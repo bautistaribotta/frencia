@@ -72,6 +72,16 @@ function RootNavigator() {
             fullScreenGestureEnabled: true,
           }}
         />
+        {/* Configuracion de la cuenta. Solo lectura por ahora: el gesto de
+            volver no puede perder nada. */}
+        <Stack.Screen
+          name="settings"
+          options={{
+            animation: 'slide_from_right',
+            gestureEnabled: true,
+            fullScreenGestureEnabled: true,
+          }}
+        />
         {/* Wizard de creacion de rutina. Sin gesto de volver: los pasos
             manejan el retroceso con su propio boton para no perder datos. */}
         <Stack.Screen
