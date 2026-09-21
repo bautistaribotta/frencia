@@ -9,6 +9,8 @@
 import * as ImagePicker from 'expo-image-picker';
 import { ImageManipulator, SaveFormat } from 'expo-image-manipulator';
 import * as Crypto from 'expo-crypto';
+import { File } from 'expo-file-system';
+import { Platform } from 'react-native';
 
 import { supabase } from './supabase';
 
@@ -52,6 +54,23 @@ function withTimeout<T>(promise: PromiseLike<T>, ms: number): Promise<T> {
       },
     );
   });
+}
+
+/**
+ * Lee el archivo reprocesado a memoria para subirlo como bytes.
+ *
+ * No se sube via FormData con `{ uri }`: eso es una extension de React Native
+ * que el fetch de Expo (el global desde SDK 57) no entiende y rechaza antes de
+ * salir a la red. Pesa a lo sumo unas decenas de KB (ver LADO_MAX), asi que
+ * tenerlo en memoria JS no es problema.
+ */
+async function leerBytes(uri: string): Promise<ArrayBuffer> {
+  if (Platform.OS === 'web') {
+    // En web el manipulador devuelve un blob: URL, que fetch lee localmente.
+    const res = await fetch(uri);
+    return res.arrayBuffer();
+  }
+  return new File(uri).arrayBuffer();
 }
 
 /**
@@ -127,18 +146,10 @@ export async function pickAndUploadAvatar(userId: string): Promise<UploadResult>
     const anterior = await rutaGuardada(userId);
     const uri = await prepararImagen(asset);
 
-    // Subimos via FormData con el uri del archivo: React Native lo sube en
-    // streaming nativo, sin leerlo a memoria JS ni mandar un body binario por
-    // fetch (ambas cosas cuelgan la subida en iOS).
-    const formData = new FormData();
-    formData.append('file', {
-      uri,
-      name: 'avatar.jpg',
-      type: contentType,
-    } as unknown as Blob);
+    const bytes = await leerBytes(uri);
 
     const { error: uploadError } = await withTimeout(
-      supabase.storage.from('avatars').upload(path, formData, { contentType }),
+      supabase.storage.from('avatars').upload(path, bytes, { contentType }),
       30000,
     );
 
