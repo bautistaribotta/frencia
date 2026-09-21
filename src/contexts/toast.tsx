@@ -91,7 +91,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
     <ToastContext.Provider value={{ showToast }}>
       {children}
       {/* Capa superior: deja pasar los toques salvo sobre el toast. */}
-      <View style={styles.overlay} pointerEvents="box-none">
+      <View style={styles.overlay}>
         {toast ? (
           <Animated.View
             key={toast.id}
@@ -124,6 +124,7 @@ export function useToast(): ToastContextValue {
 const makeStyles = (colors: Palette) =>
   StyleSheet.create({
     overlay: {
+      pointerEvents: 'box-none',
       ...StyleSheet.absoluteFill,
       justifyContent: 'flex-end',
       alignItems: 'center',

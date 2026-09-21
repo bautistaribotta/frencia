@@ -102,7 +102,7 @@ export function RestRing({
           transform={`rotate(-90 ${centro} ${centro})`}
         />
       </Svg>
-      <View style={styles.centro} pointerEvents="none">
+      <View style={styles.centro}>
         {children}
       </View>
     </View>
@@ -111,5 +111,5 @@ export function RestRing({
 
 const styles = StyleSheet.create({
   base: { alignItems: 'center', justifyContent: 'center' },
-  centro: { ...StyleSheet.absoluteFill, alignItems: 'center', justifyContent: 'center' },
+  centro: { ...StyleSheet.absoluteFill, alignItems: 'center', justifyContent: 'center', pointerEvents: 'none' },
 });

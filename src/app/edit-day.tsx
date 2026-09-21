@@ -264,7 +264,6 @@ export default function EditDayScreen() {
             <LinearGradient
               colors={[withAlpha(colors.bgApp, 0), colors.bgApp]}
               style={styles.fadeBottom}
-              pointerEvents="none"
             />
           </View>
         )}

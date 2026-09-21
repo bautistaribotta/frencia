@@ -3,7 +3,7 @@
 
 import React, { useEffect, useRef } from 'react';
 import { Animated, Pressable, StyleSheet, type ViewStyle } from 'react-native';
-import { radius, motion } from '../theme';
+import { radius, motion, shadow } from '../theme';
 import { useColors } from '../theme-context';
 
 export interface SwitchProps {
@@ -69,7 +69,7 @@ const styles = StyleSheet.create({
     width: 24,
     height: 24,
     borderRadius: 12,
-    ...StyleSheet.flatten({ shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.4, shadowRadius: 1, elevation: 1 }),
+    ...shadow.sm,
   },
   disabled: { opacity: 0.4 },
 });

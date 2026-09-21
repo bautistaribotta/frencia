@@ -190,7 +190,7 @@ export function SwipeableRoutineRow({
   return (
     <View style={styles.wrap}>
       {/* Detras de la fila: las dos acciones, cada una anclada a su lado. */}
-      <View style={styles.acciones} pointerEvents="none">
+      <View style={styles.acciones}>
         {canActivate && (
           <Animated.View style={[styles.accion, styles.accionActivar, activarStyle]}>
             <Icon name="flame" size={22} color={colors.textOnAccent} />
@@ -222,7 +222,7 @@ const makeStyles = (colors: Palette) =>
     // Recorta las acciones a la forma de la tarjeta: sin esto, los rectangulos
     // de color asoman por las esquinas redondeadas.
     wrap: { borderRadius: radius.lg, overflow: 'hidden' },
-    acciones: { ...StyleSheet.absoluteFill, flexDirection: 'row' },
+    acciones: { ...StyleSheet.absoluteFill, flexDirection: 'row', pointerEvents: 'none' },
     accion: {
       position: 'absolute',
       top: 0,

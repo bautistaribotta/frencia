@@ -160,7 +160,7 @@ export function MeasurePicker({
 
       <View style={styles.stage}>
         {/* Barra de seleccion centrada, detras de las ruedas */}
-        <View pointerEvents="none" style={styles.highlight} />
+        <View style={styles.highlight} />
 
         {/* El valor queda centrado en pantalla para que no lo tape la mano */}
         <View style={styles.numeric}>
@@ -207,7 +207,7 @@ export function MeasurePicker({
         {/* Unidad fija al costado: no desplaza el valor centrado. Usa la
            tipografia sans (Archivo) porque la mono no renderiza la ñ de "años". */}
         {sideUnit ? (
-          <View pointerEvents="none" style={styles.unitSide}>
+          <View style={styles.unitSide}>
             <FrenciaText role="bodySm" color={colors.textSecondary} style={styles.unit}>
               {sideUnit}
             </FrenciaText>
@@ -228,6 +228,7 @@ const makeStyles = (colors: Palette) =>
       justifyContent: 'center',
     },
     highlight: {
+      pointerEvents: 'none',
       position: 'absolute',
       left: space[6],
       right: space[6],
@@ -246,6 +247,7 @@ const makeStyles = (colors: Palette) =>
       gap: space[2],
     },
     unitSide: {
+      pointerEvents: 'none',
       position: 'absolute',
       right: space[7],
       top: 0,
