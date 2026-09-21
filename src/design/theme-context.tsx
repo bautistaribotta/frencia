@@ -1,13 +1,17 @@
 /* ============================================================
    Frencia · Theme context
-   Provee la paleta activa (oscuro/claro) en runtime. El modo se
-   persiste en AsyncStorage (aplica al instante al abrir) y en
+   Provee la paleta activa (oscuro/claro) en runtime. La preferencia
+   tiene tres valores: seguir al sistema (default), oscuro o claro.
+   Se persiste en AsyncStorage (aplica al instante al abrir) y en
    Supabase (profiles.tema) para que viaje entre dispositivos.
+
+   Sin sesion (login, registro) la preferencia no aplica: la app
+   sigue siempre al sistema.
 
    Uso en componentes:
      const colors = useColors();              // paleta activa
      const styles = useThemedStyles(makeStyles); // estilos memoizados
-     const { mode, setMode, toggle } = useTheme();
+     const { mode, preference, setPreference } = useTheme();
    ============================================================ */
 
 import React, {
@@ -18,6 +22,7 @@ import React, {
   useMemo,
   useState,
 } from 'react';
+import { useColorScheme } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import { supabase } from '@/lib/supabase';
@@ -25,24 +30,45 @@ import { themes, type Palette, type ThemeMode } from './tokens/colors';
 
 const STORAGE_KEY = 'frencia.theme';
 
+/** Lo que elige el usuario. `system` sigue al tema del telefono. */
+export type ThemePreference = 'system' | ThemeMode;
+
 interface ThemeContextValue {
+  /** Modo efectivo (lo que se pinta). */
   mode: ThemeMode;
+  /** Preferencia elegida por el usuario. */
+  preference: ThemePreference;
   colors: Palette;
-  setMode: (mode: ThemeMode) => void;
-  toggle: () => void;
+  setPreference: (preference: ThemePreference) => void;
 }
 
 const ThemeContext = createContext<ThemeContextValue | null>(null);
 
-/** Traduce el valor guardado en Supabase (es) al modo interno (en). */
-function temaToMode(tema?: string | null): ThemeMode | null {
+/** Traduce el valor guardado en Supabase (es) a la preferencia interna (en). */
+function temaToPreference(tema?: string | null): ThemePreference | null {
   if (tema === 'claro') return 'light';
   if (tema === 'oscuro') return 'dark';
+  if (tema === 'sistema') return 'system';
   return null;
 }
 
+const PREFERENCE_TO_TEMA: Record<ThemePreference, string> = {
+  system: 'sistema',
+  dark: 'oscuro',
+  light: 'claro',
+};
+
+function isPreference(v: unknown): v is ThemePreference {
+  return v === 'system' || v === 'dark' || v === 'light';
+}
+
 export function FrenciaThemeProvider({ children }: { children: React.ReactNode }) {
-  const [mode, setModeState] = useState<ThemeMode>('dark');
+  const [preference, setPreferenceState] = useState<ThemePreference>('system');
+  // Optimista: asumimos sesion hasta que Supabase diga lo contrario, asi la
+  // preferencia guardada aplica desde el primer frame sin parpadeo.
+  const [signedIn, setSignedIn] = useState(true);
+  const systemScheme = useColorScheme();
+  const systemMode: ThemeMode = systemScheme === 'light' ? 'light' : 'dark';
 
   // Lee el tema guardado en Supabase para el usuario y lo aplica.
   const syncFromSupabase = useCallback(async () => {
@@ -55,9 +81,9 @@ export function FrenciaThemeProvider({ children }: { children: React.ReactNode }
       .select('tema')
       .eq('id', user.id)
       .maybeSingle();
-    const remoto = temaToMode(data?.tema);
+    const remoto = temaToPreference(data?.tema);
     if (!remoto) return;
-    setModeState(remoto);
+    setPreferenceState(remoto);
     AsyncStorage.setItem(STORAGE_KEY, remoto).catch(() => {});
   }, []);
 
@@ -68,18 +94,29 @@ export function FrenciaThemeProvider({ children }: { children: React.ReactNode }
     (async () => {
       try {
         const saved = await AsyncStorage.getItem(STORAGE_KEY);
-        if (!cancelado && (saved === 'dark' || saved === 'light')) {
-          setModeState(saved);
-        }
+        if (!cancelado && isPreference(saved)) setPreferenceState(saved);
       } catch {
-        // ignoramos: cae al default oscuro
+        // ignoramos: cae al default (sistema)
       }
-      if (!cancelado) await syncFromSupabase();
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+      if (cancelado) return;
+      setSignedIn(!!session);
+      if (session) await syncFromSupabase();
     })();
 
-    // Al iniciar sesion, traemos el tema de la cuenta (login en caliente).
+    // Al iniciar sesion traemos el tema de la cuenta (login en caliente); al
+    // cerrarla volvemos al sistema para que el login no herede la preferencia.
     const { data: sub } = supabase.auth.onAuthStateChange((event) => {
-      if (event === 'SIGNED_IN') syncFromSupabase();
+      if (event === 'SIGNED_IN') {
+        setSignedIn(true);
+        syncFromSupabase();
+      } else if (event === 'SIGNED_OUT') {
+        setSignedIn(false);
+        setPreferenceState('system');
+        AsyncStorage.removeItem(STORAGE_KEY).catch(() => {});
+      }
     });
 
     return () => {
@@ -88,9 +125,9 @@ export function FrenciaThemeProvider({ children }: { children: React.ReactNode }
     };
   }, [syncFromSupabase]);
 
-  // Fija el modo: estado + AsyncStorage + Supabase (optimista, sin bloquear).
-  const setMode = useCallback((next: ThemeMode) => {
-    setModeState(next);
+  // Fija la preferencia: estado + AsyncStorage + Supabase (optimista, sin bloquear).
+  const setPreference = useCallback((next: ThemePreference) => {
+    setPreferenceState(next);
     AsyncStorage.setItem(STORAGE_KEY, next).catch(() => {});
     (async () => {
       const {
@@ -99,32 +136,16 @@ export function FrenciaThemeProvider({ children }: { children: React.ReactNode }
       if (!user) return;
       await supabase
         .from('profiles')
-        .update({ tema: next === 'light' ? 'claro' : 'oscuro' })
+        .update({ tema: PREFERENCE_TO_TEMA[next] })
         .eq('id', user.id);
     })();
   }, []);
 
-  const toggle = useCallback(() => {
-    setModeState((prev) => {
-      const next = prev === 'dark' ? 'light' : 'dark';
-      AsyncStorage.setItem(STORAGE_KEY, next).catch(() => {});
-      (async () => {
-        const {
-          data: { user },
-        } = await supabase.auth.getUser();
-        if (!user) return;
-        await supabase
-          .from('profiles')
-          .update({ tema: next === 'light' ? 'claro' : 'oscuro' })
-          .eq('id', user.id);
-      })();
-      return next;
-    });
-  }, []);
+  const mode: ThemeMode = signedIn && preference !== 'system' ? preference : systemMode;
 
   const value = useMemo<ThemeContextValue>(
-    () => ({ mode, colors: themes[mode], setMode, toggle }),
-    [mode, setMode, toggle],
+    () => ({ mode, preference, colors: themes[mode], setPreference }),
+    [mode, preference, setPreference],
   );
 
   return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>;
@@ -137,9 +158,9 @@ export function useTheme(): ThemeContextValue {
   // Fallback seguro (p. ej. prerender web o componentes aislados).
   return {
     mode: 'dark',
+    preference: 'system',
     colors: themes.dark,
-    setMode: () => {},
-    toggle: () => {},
+    setPreference: () => {},
   };
 }
 

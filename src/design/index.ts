@@ -14,6 +14,7 @@ export {
   useColors,
   useThemedStyles,
 } from './theme-context';
+export type { ThemePreference } from './theme-context';
 
 // Fonts & icons
 export { useFrenciaFonts } from './fonts';

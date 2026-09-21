@@ -21,6 +21,7 @@ import {
   Icon,
   radius,
   sans,
+  SegmentedControl,
   space,
   spacing,
   Switch,
@@ -28,7 +29,19 @@ import {
   useTheme,
   useThemedStyles,
   type Palette,
+  type ThemePreference,
 } from '@/design';
+
+const TEMA_OPTIONS = [
+  { value: 'system', label: 'Sistema' },
+  { value: 'dark', label: 'Oscuro' },
+  { value: 'light', label: 'Claro' },
+];
+const TEMA_SUB: Record<ThemePreference, string> = {
+  system: 'Sigue al tema del teléfono',
+  dark: 'Siempre oscuro',
+  light: 'Siempre claro',
+};
 
 export default function ProfileScreen() {
   const colors = useColors();
@@ -42,9 +55,8 @@ export default function ProfileScreen() {
     .filter(Boolean)
     .join(' ') || displayName;
   const { showToast } = useToast();
-  // Tema activo (oscuro/claro): lo maneja el contexto, persiste solo.
-  const { mode, setMode } = useTheme();
-  const isDark = mode === 'dark';
+  // Tema: sistema / oscuro / claro. Lo maneja el contexto, persiste solo.
+  const { preference, setPreference } = useTheme();
   // RIR/RPE, kg/lb y cm/ft se leen del contexto y se persisten en profiles.
   // No hay estado local: el switch cambia el contexto y toda la app (sesion,
   // historial, editar perfil) recalcula con la unidad nueva en el acto.
@@ -305,17 +317,23 @@ export default function ProfileScreen() {
               <Switch checked={useFeet} onChange={toggleFeet} />
             </View>
 
-            {/* Fila: tema */}
-            <View style={[styles.settingRow, styles.settingRowDivider]}>
+            {/* Fila: tema. Tres opciones, asi que va en selector en vez de switch,
+                apilado debajo del titulo para que entre en cualquier ancho. */}
+            <View style={[styles.settingRowStacked, styles.settingRowDivider]}>
               <View style={styles.settingText}>
                 <FrenciaText role="bodySm" style={styles.settingTitle}>
-                  Modo oscuro / claro
+                  Tema
                 </FrenciaText>
                 <FrenciaText role="bodySm" color={colors.textTertiary} style={styles.settingSub}>
-                  {isDark ? 'Modo oscuro' : 'Modo claro'}
+                  {TEMA_SUB[preference]}
                 </FrenciaText>
               </View>
-              <Switch checked={isDark} onChange={(next) => setMode(next ? 'dark' : 'light')} />
+              <SegmentedControl
+                fullWidth
+                options={TEMA_OPTIONS}
+                value={preference}
+                onChange={(v) => setPreference(v as ThemePreference)}
+              />
             </View>
           </View>
         </View>
@@ -478,6 +496,7 @@ const makeStyles = (colors: Palette) =>
     gap: space[4],
     padding: space[5],
   },
+  settingRowStacked: { gap: space[4], padding: space[5] },
   settingRowDivider: { borderTopWidth: 1, borderTopColor: colors.divider },
   settingText: { flex: 1, gap: space[1] },
   configLeft: { flexDirection: 'row', alignItems: 'center', gap: space[4] },
