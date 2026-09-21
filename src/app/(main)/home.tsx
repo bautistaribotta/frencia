@@ -275,14 +275,15 @@ export default function HomeScreen() {
               </View>
             ))}
 
-            {/* Solo puede haber una rutina activa, asi que crear otra archiva
-               la actual. Lo avisamos para que no sea una sorpresa. */}
+            {/* Solo puede haber una rutina activa: al crear otra el usuario elige
+               si reemplaza la actual o la guarda. Lo avisamos para que no sea
+               una sorpresa. */}
             <View style={styles.newRoutineBlock}>
               <Button variant="secondary" size="lg" icon="plus" fullWidth onPress={onCreateRoutine}>
                 Crear rutina nueva
               </Button>
               <FrenciaText role="dataLabel" color={colors.textTertiary} style={styles.centerText}>
-                Archiva la rutina actual
+                Podés reemplazar la actual o guardarla
               </FrenciaText>
             </View>
           </View>
