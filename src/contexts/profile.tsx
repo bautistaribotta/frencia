@@ -41,6 +41,9 @@ export interface ProfileData {
   // Idem para la altura: se guarda en cm y se muestra en cm o en pies y
   // pulgadas segun esta preferencia.
   unidadAltura: UnidadAltura;
+  // Fecha en que pidio eliminar la cuenta. Mientras no sea null la cuenta esta
+  // en periodo de gracia y el gate de auth solo deja ver /account-recovery.
+  deletionRequestedAt: Date | null;
 }
 
 // Preferencias que se cambian desde un switch o una rueda y tienen que verse
@@ -113,7 +116,7 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
     for (let intento = 0; intento < 3; intento++) {
       const res = await supabase
         .from('profiles')
-        .select('name, surname, username, fecha_nacimiento, sexo, altura, peso, avatar_path, avatar_seed, onboarding_completed, medidor_esfuerzo, unidad_peso, unidad_altura')
+        .select('name, surname, username, fecha_nacimiento, sexo, altura, peso, avatar_path, avatar_seed, onboarding_completed, medidor_esfuerzo, unidad_peso, unidad_altura, deletion_requested_at')
         .eq('id', current.id)
         .maybeSingle();
       if (res.data) {
@@ -140,6 +143,7 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
             medidorEsfuerzo: data.medidor_esfuerzo === 'rpe' ? 'rpe' : 'rir',
             unidadPeso: data.unidad_peso === 'lb' ? 'lb' : 'kg',
             unidadAltura: data.unidad_altura === 'ft' ? 'ft' : 'cm',
+            deletionRequestedAt: data.deletion_requested_at ? new Date(data.deletion_requested_at) : null,
           }
         : null,
     );

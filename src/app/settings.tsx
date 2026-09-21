@@ -1,10 +1,11 @@
 /* Frencia · Configuracion.
    Pantalla de configuracion de la cuenta. Se llega desde el perfil con boton
-   de volver y gesto horizontal. Por ahora solo expone la entrada de
-   eliminacion de cuenta (sin accion todavia). */
+   de volver y gesto horizontal. Expone la eliminacion de cuenta, con dos
+   confirmaciones nativas y 30 dias de gracia; ver
+   docs/specs/eliminacion-de-cuenta.md. */
 
-import React from 'react';
-import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import React, { useState } from 'react';
+import { Alert, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 
@@ -19,15 +20,56 @@ import {
   useThemedStyles,
   type Palette,
 } from '@/design';
+import { useToast } from '@/contexts/toast';
+import { supabase } from '@/lib/supabase';
+import {
+  DIAS_DE_GRACIA,
+  fechaLarga,
+  fechaPurga,
+  solicitarEliminacionCuenta,
+} from '@/lib/cuenta';
 
 export default function SettingsScreen() {
   const colors = useColors();
   const styles = useThemedStyles(makeStyles);
   const router = useRouter();
+  const { showToast } = useToast();
+  const [eliminando, setEliminando] = useState(false);
 
   function goBack() {
     if (router.canGoBack()) router.back();
     else router.replace('/profile');
+  }
+
+  // Paso 1: confirmar antes de tocar nada.
+  function pedirEliminarCuenta() {
+    if (eliminando) return;
+    Alert.alert(
+      'Eliminar cuenta',
+      `Tu cuenta y todos tus datos (rutinas, sesiones e historial) se eliminarán en ${DIAS_DE_GRACIA} días. Hasta entonces podés recuperarla iniciando sesión. Después de esa fecha los datos no se pueden recuperar.`,
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        { text: 'Eliminar cuenta', style: 'destructive', onPress: confirmarEliminarCuenta },
+      ],
+    );
+  }
+
+  // Paso 2: registrar la solicitud, informar la fecha y cerrar sesion. Si la
+  // RPC falla no cerramos nada: el usuario sigue adentro con su cuenta intacta.
+  async function confirmarEliminarCuenta() {
+    setEliminando(true);
+    const solicitadaEn = await solicitarEliminacionCuenta();
+    setEliminando(false);
+    if (!solicitadaEn) {
+      showToast({ message: 'No pudimos procesar la solicitud. Proba de nuevo.', type: 'error' });
+      return;
+    }
+    Alert.alert(
+      'Cuenta programada para eliminarse',
+      `Tu cuenta se eliminará el ${fechaLarga(fechaPurga(solicitadaEn))}. Si cambiás de idea, iniciá sesión antes de esa fecha y vas a poder recuperarla con todos tus datos.`,
+      [{ text: 'Entendido', onPress: () => supabase.auth.signOut() }],
+      { cancelable: false },
+    );
   }
 
   return (
@@ -50,11 +92,11 @@ export default function SettingsScreen() {
           <FrenciaText role="title">Configuración</FrenciaText>
         </View>
 
-        {/* Eliminacion de cuenta: recuadro propio, accion destructiva.
-            Todavia no hace nada; el flujo de borrado se conecta mas adelante. */}
+        {/* Eliminacion de cuenta: recuadro propio, accion destructiva. */}
         <Pressable
           style={styles.list}
-          onPress={() => {}}
+          onPress={pedirEliminarCuenta}
+          disabled={eliminando}
           accessibilityRole="button"
           accessibilityLabel="Eliminación de cuenta"
         >
