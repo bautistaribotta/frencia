@@ -12,7 +12,7 @@
    tanda (rutina + dias + weekdays + ejercicios), asi cancelar no deja basura. */
 
 import { useRouter } from 'expo-router';
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   KeyboardAvoidingView,
   Platform,
@@ -28,6 +28,7 @@ import { useProfile } from '@/contexts/profile';
 import { useToast } from '@/contexts/toast';
 import { DayEditor } from '@/components/DayEditor';
 import { ExercisePickerModal } from '@/components/ExercisePickerModal';
+import { ArchiveRoutineDialog } from '@/components/ArchiveRoutineDialog';
 import {
   aplicarEjercicio,
   nuevoDia,
@@ -73,6 +74,32 @@ export default function CreateRoutineScreen() {
   const [pickerOpen, setPickerOpen] = useState(false);
   // Ejercicio abierto en el modal. null = se esta agregando uno nuevo.
   const [editando, setEditando] = useState<DayExercise | null>(null);
+  // Solo puede haber una rutina activa (indice unico parcial). Si ya hay una,
+  // antes de armar nada el usuario decide que hacer con ella: archivarla y
+  // activar la nueva, crear la nueva ya archivada, o no crear nada. La
+  // decision se guarda aca y se aplica recien al persistir.
+  const [rutinaActiva, setRutinaActiva] = useState<string | null>(null);
+  const [activar, setActivar] = useState(true);
+
+  useEffect(() => {
+    let cancelado = false;
+    supabase
+      .from('routines')
+      .select('name')
+      .is('archived_at', null)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (!cancelado && data) setRutinaActiva(data.name);
+      });
+    return () => {
+      cancelado = true;
+    };
+  }, []);
+
+  function decidir(activarNueva: boolean) {
+    setActivar(activarNueva);
+    setRutinaActiva(null);
+  }
 
   // Dos pasos fijos (nombre y cantidad) y uno por cada dia.
   const totalSteps = 2 + dias.length;
@@ -160,17 +187,28 @@ export default function CreateRoutineScreen() {
       return;
     }
 
-    // Solo puede haber una rutina activa: archivamos la anterior antes de
-    // insertar, o el indice unico parcial rechaza la nueva.
-    await supabase
-      .from('routines')
-      .update({ archived_at: new Date().toISOString() })
-      .eq('user_id', user.id)
-      .is('archived_at', null);
+    await crearRutina(user.id);
+  }
+
+  async function crearRutina(userId: string) {
+    if (activar) {
+      // Archivamos la anterior antes de insertar, o el indice unico parcial
+      // rechaza la nueva.
+      await supabase
+        .from('routines')
+        .update({ archived_at: new Date().toISOString() })
+        .eq('user_id', userId)
+        .is('archived_at', null);
+    }
 
     const { data: routine, error } = await supabase
       .from('routines')
-      .insert({ user_id: user.id, name: nombreLimpio })
+      .insert({
+        user_id: userId,
+        name: nombreLimpio,
+        // Nace archivada cuando el usuario quiso conservar la actual como activa.
+        archived_at: activar ? null : new Date().toISOString(),
+      })
       .select('id')
       .single();
 
@@ -187,7 +225,7 @@ export default function CreateRoutineScreen() {
       .insert(
         dias.map((d, i) => ({
           routine_id: routine.id,
-          user_id: user.id,
+          user_id: userId,
           name: d.name.trim() || `Día ${i + 1}`,
           position: i,
         })),
@@ -229,7 +267,10 @@ export default function CreateRoutineScreen() {
     }
 
     setSaving(false);
-    showToast({ message: 'Rutina creada', type: 'success' });
+    showToast({
+      message: activar ? 'Rutina creada' : 'Rutina creada y archivada',
+      type: 'success',
+    });
     finish();
   }
 
@@ -349,6 +390,14 @@ export default function CreateRoutineScreen() {
           </Button>
         </View>
       </KeyboardAvoidingView>
+
+      <ArchiveRoutineDialog
+        visible={rutinaActiva !== null}
+        nombreActual={rutinaActiva ?? ''}
+        onContinuar={() => decidir(true)}
+        onMantener={() => decidir(false)}
+        onCancelar={finish}
+      />
 
       <ExercisePickerModal
         visible={pickerOpen}
