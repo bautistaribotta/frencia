@@ -5,7 +5,7 @@
    perfil; el tema (oscuro/claro) igual, via el contexto de tema. */
 
 import { useRouter } from 'expo-router';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Modal, Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -13,6 +13,7 @@ import { useProfile, type Preferencias } from '@/contexts/profile';
 import { useToast } from '@/contexts/toast';
 import { pickAndUploadAvatar, signAvatarUrl, deleteAvatarFile } from '@/lib/avatar';
 import { supabase } from '@/lib/supabase';
+import { useVolverArribaAlRetocar } from '@/lib/volver-arriba';
 
 import {
   Avatar,
@@ -47,6 +48,8 @@ export default function ProfileScreen() {
   const colors = useColors();
   const styles = useThemedStyles(makeStyles);
   const router = useRouter();
+  const scrollRef = useRef<ScrollView>(null);
+  useVolverArribaAlRetocar(scrollRef);
   // Datos del perfil compartidos (saludo, avatar, preferencias) + reflejo de
   // cambios.
   const { displayName, profile, applyAvatar, savePreferencias } = useProfile();
@@ -223,7 +226,7 @@ export default function ProfileScreen() {
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
-      <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
+      <ScrollView ref={scrollRef} contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
         {/* Sin boton de volver: es una pestania y se sale tocando otra. */}
         <View style={styles.header}>
           <FrenciaText role="title">Perfil</FrenciaText>

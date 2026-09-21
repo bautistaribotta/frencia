@@ -11,8 +11,9 @@ import { useFocusEffect, useRouter } from 'expo-router';
 
 import { useSession } from '@/contexts/session';
 import { haceCuanto, type SesionTerminada } from '@/lib/session';
-import { agruparHistorial } from '@/lib/history';
+import { agruparHistorial, type MesHistorial } from '@/lib/history';
 import { crearHistorial } from '@/lib/history-store';
+import { useVolverArribaAlRetocar } from '@/lib/volver-arriba';
 
 import {
   Button,
@@ -62,6 +63,8 @@ export default function HistoryScreen() {
   const styles = useThemedStyles(makeStyles);
   const { user } = useSession();
   const router = useRouter();
+  const scrollRef = useRef<SectionList<SesionTerminada, MesHistorial>>(null);
+  useVolverArribaAlRetocar(scrollRef);
 
   const userId = user?.id ?? null;
   const historial = useMemo(() => crearHistorial(userId), [userId]);
@@ -87,6 +90,7 @@ export default function HistoryScreen() {
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
       <SectionList
+        ref={scrollRef}
         key={userId ?? 'sin-sesion'}
         sections={secciones}
         keyExtractor={(s) => s.id}

@@ -6,7 +6,7 @@
    Arriba a la derecha va la racha de entrenamientos planificados cumplidos
    (ver docs/specs/racha-de-entrenamientos.md). */
 
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useRef, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect, useRouter } from 'expo-router';
@@ -15,6 +15,7 @@ import { useProfile } from '@/contexts/profile';
 import { cargarFechasEntrenadas } from '@/lib/history';
 import { calcularRacha, fechaLocal, type Racha } from '@/lib/streak';
 import { supabase } from '@/lib/supabase';
+import { useVolverArribaAlRetocar } from '@/lib/volver-arriba';
 
 import {
   Avatar,
@@ -75,6 +76,8 @@ export default function HomeScreen() {
   const colors = useColors();
   const styles = useThemedStyles(makeStyles);
   const router = useRouter();
+  const scrollRef = useRef<ScrollView>(null);
+  useVolverArribaAlRetocar(scrollRef);
   const { displayName, profile } = useProfile();
   const first = displayName.split(' ')[0];
 
@@ -158,6 +161,7 @@ export default function HomeScreen() {
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
       <ScrollView
+        ref={scrollRef}
         contentContainerStyle={styles.scroll}
         showsVerticalScrollIndicator={false}
       >

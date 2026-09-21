@@ -8,7 +8,7 @@
    cosa, y son todas lo mismo vistas en momentos distintos. Se entra tocando
    la tarjeta. */
 
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useRef, useState } from 'react';
 import { Alert, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect, useRouter } from 'expo-router';
@@ -22,6 +22,7 @@ import {
 } from '@/lib/rutinas';
 import { useToast } from '@/contexts/toast';
 import { SwipeableRoutineRow } from '@/components/SwipeableRoutineRow';
+import { useVolverArribaAlRetocar } from '@/lib/volver-arriba';
 
 import {
   Button,
@@ -50,6 +51,8 @@ export default function RoutinesScreen() {
   const colors = useColors();
   const styles = useThemedStyles(makeStyles);
   const router = useRouter();
+  const scrollRef = useRef<ScrollView>(null);
+  useVolverArribaAlRetocar(scrollRef);
   const { showToast } = useToast();
 
   const [rutinas, setRutinas] = useState<RutinaResumen[]>([]);
@@ -164,7 +167,7 @@ export default function RoutinesScreen() {
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
-      <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
+      <ScrollView ref={scrollRef} contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
         <FrenciaText role="dataLabel" color={colors.textTertiary}>
           Rutinas
         </FrenciaText>
