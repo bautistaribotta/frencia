@@ -5,7 +5,7 @@ Fecha: 2026-09-22
 
 ## 1. Decision
 
-El icono es el wordmark "FREN / CIA" con el punto verde. Hay dos versiones y
+El icono es el wordmark "FREN / CIA" con un punto. Hay dos versiones y
 se muestra una u otra segun el tema:
 
 | Tema   | Archivo                            | Fondo     | Letras    |
@@ -13,7 +13,8 @@ se muestra una u otra segun el tema:
 | Claro  | `assets/images/app-icon-light.png` | `#F9F9F9` | `#000000` |
 | Oscuro | `assets/images/app-icon-dark.png`  | `#161317` | `#E8E4E9` |
 
-El punto es `#22C55E` en las dos. **Por defecto se usa el claro.** El icono
+El punto va del mismo color que las letras en las dos versiones (sin verde).
+**Por defecto se usa el claro.** El icono
 verde con la "F" negra queda descartado y sus assets se borraron.
 
 ## 2. Donde se aplica
