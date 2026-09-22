@@ -4,7 +4,7 @@
    al llegar al final. Conserva las paginas al volver del detalle; se actualiza
    al entrar desde otra pestania o al tirar hacia abajo desde el inicio. */
 
-import React, { useCallback, useMemo, useRef, useSyncExternalStore } from 'react';
+import React, { useCallback, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import { ActivityIndicator, Pressable, RefreshControl, SectionList, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect, useRouter } from 'expo-router';
@@ -71,6 +71,14 @@ export default function HistoryScreen() {
   const estado = useSyncExternalStore(historial.subscribe, historial.getSnapshot, historial.getSnapshot);
   const { sesiones, loaded, cargando, error, proximaFecha, siguiente } = estado;
   const conservarAlVolver = useRef(false);
+  // El RefreshControl solo se muestra cuando la recarga la inicio el gesto de
+  // tirar hacia abajo. Las recargas silenciosas (al volver a la pestania) no
+  // lo activan: si lo hicieran, iOS lo despliega solo y corre la lista 60pt.
+  const [refrescandoPorGesto, setRefrescandoPorGesto] = useState(false);
+  const refrescando = refrescandoPorGesto && cargando === 'inicio';
+  // Termino (o se cancelo) la recarga del gesto: se apaga en el mismo render
+  // para que la proxima recarga silenciosa no herede el flag.
+  if (refrescandoPorGesto && cargando !== 'inicio') setRefrescandoPorGesto(false);
 
   useFocusEffect(
     useCallback(() => {
@@ -101,8 +109,11 @@ export default function HistoryScreen() {
         onEndReachedThreshold={0.5}
         refreshControl={
           <RefreshControl
-            refreshing={loaded && cargando === 'inicio'}
-            onRefresh={() => { void historial.recargar(); }}
+            refreshing={refrescando}
+            onRefresh={() => {
+              setRefrescandoPorGesto(true);
+              void historial.recargar();
+            }}
             tintColor={colors.accent}
             colors={[colors.accent]}
             progressBackgroundColor={colors.surfaceCard}
