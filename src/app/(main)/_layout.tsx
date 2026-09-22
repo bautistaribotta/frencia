@@ -56,7 +56,17 @@ function FrenciaTabBar({ state, navigation }: BottomTabBarProps) {
 
 export default function MainLayout() {
   return (
-    <Tabs screenOptions={{ headerShown: false }} tabBar={(props) => <FrenciaTabBar {...props} />}>
+    /* detachInactiveScreens en false: con el default, react-native-screens
+       saca de la jerarquia nativa la pestania que no se ve. En iOS eso
+       desengancha y vuelve a enganchar el RefreshControl del historial, y
+       UIKit deja el scroll 60pt por encima del tope al volver (se veia un
+       hueco entre el titulo y el borde superior). Son cuatro pestanias
+       livianas; dejarlas montadas no cuesta nada. */
+    <Tabs
+      screenOptions={{ headerShown: false }}
+      detachInactiveScreens={false}
+      tabBar={(props) => <FrenciaTabBar {...props} />}
+    >
       <Tabs.Screen name="home" />
       <Tabs.Screen name="routines" />
       <Tabs.Screen name="history" />

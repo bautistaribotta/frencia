@@ -19,10 +19,20 @@ interface ConScrollTo {
   scrollTo?: (opciones: { y: number; animated?: boolean }) => void;
 }
 
-interface Desplazable extends ConScrollTo {
+export interface Desplazable extends ConScrollTo {
   // En runtime devuelve el ScrollView interno; el tipo declarado por RN es un
   // mixin viejo sin scrollTo, por eso lo estrechamos a mano.
   getScrollResponder?: () => unknown;
+}
+
+/** Lleva la lista al tope. ScrollView tiene scrollTo directo; FlatList y
+ *  SectionList lo alcanzan a traves de su responder. */
+export function llevarAlTope(lista: Desplazable | null | undefined, animated: boolean) {
+  if (!lista) return;
+  const scroll: ConScrollTo | undefined = lista.scrollTo
+    ? lista
+    : (lista.getScrollResponder?.() as ConScrollTo | undefined);
+  scroll?.scrollTo?.({ y: 0, animated });
 }
 
 export function useVolverArribaAlRetocar(ref: RefObject<Desplazable | null>) {
@@ -33,14 +43,7 @@ export function useVolverArribaAlRetocar(ref: RefObject<Desplazable | null>) {
       navigation.addListener('tabPress', (e) => {
         if (!navigation.isFocused()) return;
         e.preventDefault();
-        const lista = ref.current;
-        if (!lista) return;
-        // ScrollView tiene scrollTo directo; FlatList y SectionList lo
-        // alcanzan a traves de su responder.
-        const scroll: ConScrollTo | undefined = lista.scrollTo
-          ? lista
-          : (lista.getScrollResponder?.() as ConScrollTo | undefined);
-        scroll?.scrollTo?.({ y: 0, animated: true });
+        llevarAlTope(ref.current, true);
       }),
     [navigation, ref],
   );
