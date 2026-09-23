@@ -56,17 +56,18 @@ function FrenciaTabBar({ state, navigation }: BottomTabBarProps) {
 
 export default function MainLayout() {
   return (
-    /* detachInactiveScreens en false: con el default, react-native-screens
-       saca de la jerarquia nativa la pestania que no se ve. En iOS eso
-       desengancha y vuelve a enganchar el RefreshControl del historial, y
-       UIKit deja el scroll 60pt por encima del tope al volver (se veia un
-       hueco entre el titulo y el borde superior). Son cuatro pestanias
-       livianas; dejarlas montadas no cuesta nada. */
-    <Tabs
-      screenOptions={{ headerShown: false }}
-      detachInactiveScreens={false}
-      tabBar={(props) => <FrenciaTabBar {...props} />}
-    >
+    /* No usar detachInactiveScreens={false}. Con false, la pestania que no se
+       ve queda con display: 'none', y en la Nueva Arquitectura eso desmonta
+       sus vistas nativas y las manda al pool de reciclaje aunque el componente
+       siga montado. Gesture Handler deja sus reconocedores pegados a esas
+       UIView: al reciclarlas para otra pantalla, un toque ahi disparaba el
+       gesto de la pestania oculta (tocar Configuracion abria tambien la rutina
+       activa). Con el default, react-native-screens desconecta la pestania
+       entera y sus vistas no se reciclan.
+       El hueco de 60pt del RefreshControl del historial al volver, que fue el
+       motivo para dejarlas montadas, se resuelve en history.tsx: el control
+       solo se activa cuando la recarga la inicio el gesto. */
+    <Tabs screenOptions={{ headerShown: false }} tabBar={(props) => <FrenciaTabBar {...props} />}>
       <Tabs.Screen name="home" />
       <Tabs.Screen name="routines" />
       <Tabs.Screen name="history" />
