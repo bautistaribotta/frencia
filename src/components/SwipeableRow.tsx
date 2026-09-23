@@ -1,20 +1,21 @@
-/* Frencia · SwipeableRoutineRow — una fila de rutina que se desliza.
-   En la vista de Rutinas la fila es la rutina entera, y sobre ella hay dos
-   acciones opuestas que se piden con el mismo gesto en dos sentidos:
+/* Frencia · SwipeableRow — una fila que se desliza para descubrir acciones.
+   Cada sentido del arrastre puede tener su accion, y la accion aparece
+   anclada del lado que la fila deja al descubierto:
 
-   - Arrastrar a la derecha descubre "Activar": deja esa rutina como la que esta
-     en curso. Es reversible (se puede volver a activar otra), asi que se aplica
-     al soltar sin preguntar.
-   - Arrastrar a la izquierda descubre "Eliminar": borra la rutina. Es
-     destructivo y no se puede deshacer, asi que cruzar el umbral no borra: pide
-     confirmacion (el Alert lo levanta la pantalla).
+   - `derecha`: se pide arrastrando hacia la derecha; aparece a la izquierda.
+   - `izquierda`: se pide arrastrando hacia la izquierda; aparece a la derecha.
 
-   La rutina que ya esta en curso no se puede volver a activar, asi que hacia la
-   derecha el arrastre ofrece resistencia y no descubre nada.
+   La fila nunca queda abierta: al soltar vuelve a cero y, si el arrastre cruzo
+   el umbral, dispara la accion. Las destructivas no borran directo: la
+   pantalla confirma con un Alert. Un sentido sin accion ofrece resistencia y
+   no descubre nada.
+
+   Hoy lo usan Rutinas (derecha elimina, izquierda pone en curso) e Historial
+   (derecha elimina el entrenamiento).
 
    El gesto se reconoce solo cuando el dedo va claramente en horizontal
    (activeOffsetX) y le cede el paso al scroll vertical de la lista
-   (failOffsetY). Un toque corto, en cambio, abre la rutina. */
+   (failOffsetY). Un toque corto, en cambio, abre la fila. */
 
 import React, { useMemo } from 'react';
 import { Platform, StyleSheet, View } from 'react-native';
@@ -56,27 +57,35 @@ function golpe(estilo: Haptics.ImpactFeedbackStyle) {
   Haptics.impactAsync(estilo).catch(() => {});
 }
 
-export interface SwipeableRoutineRowProps {
-  title: string;
-  /** Toque corto: abre la rutina. */
+export interface AccionDeslizable {
+  icon: string;
+  /** accent para acciones reversibles, danger para las destructivas. */
+  tono: 'accent' | 'danger';
+  /** Nombre de la accion para el lector de pantalla. */
+  label: string;
+  /** Cruzo el umbral. Si es destructiva, la pantalla confirma antes. */
+  onTrigger: () => void;
+}
+
+export interface SwipeableRowProps {
+  /** Toque corto: abre lo que representa la fila. */
   onPress: () => void;
-  /** Cruzo el umbral hacia la derecha. Solo si `canActivate`. */
-  onActivate: () => void;
-  /** Cruzo el umbral hacia la izquierda. La pantalla confirma antes de borrar. */
-  onDelete: () => void;
-  /** La rutina en curso no puede volver a activarse: sin accion a la derecha. */
-  canActivate: boolean;
+  /** Accion al arrastrar hacia la derecha. */
+  derecha?: AccionDeslizable;
+  /** Accion al arrastrar hacia la izquierda. */
+  izquierda?: AccionDeslizable;
+  /** Radio de la tarjeta que envuelve, para recortar las acciones a su forma. */
+  radio?: 'lg' | 'xl';
   children: React.ReactNode;
 }
 
-export function SwipeableRoutineRow({
-  title,
+export function SwipeableRow({
   onPress,
-  onActivate,
-  onDelete,
-  canActivate,
+  derecha,
+  izquierda,
+  radio = 'lg',
   children,
-}: SwipeableRoutineRowProps) {
+}: SwipeableRowProps) {
   const styles = useThemedStyles(makeStyles);
   const colors = useColors();
 
@@ -87,6 +96,11 @@ export function SwipeableRoutineRow({
   // 1 mientras el dedo esta apoyado sobre la fila: solo alimenta la opacidad.
   const apretada = useSharedValue(0);
 
+  const onDerecha = derecha?.onTrigger;
+  const onIzquierda = izquierda?.onTrigger;
+  const hayDerecha = onDerecha !== undefined;
+  const hayIzquierda = onIzquierda !== undefined;
+
   const pan = useMemo(
     () =>
       Gesture.Pan()
@@ -94,9 +108,10 @@ export function SwipeableRoutineRow({
         .failOffsetY([-14, 14])
         .onUpdate((e) => {
           // Resistencia progresiva pasado el umbral, y sentido sin accion
-          // bloqueado (la rutina en curso no se puede reactivar).
+          // bloqueado.
           let v = e.translationX;
-          if (v > 0 && !canActivate) v = 0;
+          if (v > 0 && !hayDerecha) v = 0;
+          if (v < 0 && !hayIzquierda) v = 0;
           if (Math.abs(v) > UMBRAL) {
             v = Math.sign(v) * (UMBRAL + (Math.abs(v) - UMBRAL) * RESISTENCIA);
           }
@@ -111,18 +126,18 @@ export function SwipeableRoutineRow({
           const paso = Math.abs(tx.value) >= UMBRAL;
           const haciaDerecha = tx.value > 0;
           armado.value = 0;
-          // Siempre vuelve a cero: la accion se ejecuta afuera (activar reordena
-          // la lista, eliminar abre un Alert), y la fila no tiene por que
-          // quedar colgada mientras tanto.
+          // Siempre vuelve a cero: la accion se ejecuta afuera (reordenar la
+          // lista, abrir un Alert), y la fila no tiene por que quedar colgada
+          // mientras tanto.
           tx.value = withTiming(0, { duration: motion.durBase });
           if (!paso) return;
           if (haciaDerecha) {
-            if (canActivate) runOnJS(onActivate)();
-          } else {
-            runOnJS(onDelete)();
+            if (onDerecha) runOnJS(onDerecha)();
+          } else if (onIzquierda) {
+            runOnJS(onIzquierda)();
           }
         }),
-    [tx, armado, canActivate, onActivate, onDelete],
+    [tx, armado, hayDerecha, hayIzquierda, onDerecha, onIzquierda],
   );
 
   const tap = useMemo(
@@ -157,7 +172,7 @@ export function SwipeableRoutineRow({
 
   // La accion crece con el arrastre en su sentido y se apaga en el otro. El
   // icono se agranda un toque al llegar al umbral, como aviso de que ya dispara.
-  const activarStyle = useAnimatedStyle(() => {
+  const derechaStyle = useAnimatedStyle(() => {
     const p = interpolate(tx.value, [0, ANCHO_ACCION], [0, 1], Extrapolation.CLAMP);
     return {
       opacity: p,
@@ -167,7 +182,7 @@ export function SwipeableRoutineRow({
     };
   });
 
-  const eliminarStyle = useAnimatedStyle(() => {
+  const izquierdaStyle = useAnimatedStyle(() => {
     const p = interpolate(tx.value, [-ANCHO_ACCION, 0], [1, 0], Extrapolation.CLAMP);
     return {
       opacity: p,
@@ -181,24 +196,29 @@ export function SwipeableRoutineRow({
   // pantalla las ofrece como acciones sobre la fila.
   const acciones = useMemo(
     () => [
-      ...(canActivate ? [{ name: 'activar', label: 'Poner en curso' }] : []),
-      { name: 'eliminar', label: 'Eliminar rutina' },
+      ...(derecha ? [{ name: 'derecha', label: derecha.label }] : []),
+      ...(izquierda ? [{ name: 'izquierda', label: izquierda.label }] : []),
     ],
-    [canActivate],
+    [derecha, izquierda],
   );
 
+  const fondo = (tono: AccionDeslizable['tono']) =>
+    tono === 'danger' ? styles.tonoDanger : styles.tonoAccent;
+
   return (
-    <View style={styles.wrap}>
-      {/* Detras de la fila: las dos acciones, cada una anclada a su lado. */}
+    <View style={[styles.wrap, radio === 'xl' ? styles.radioXl : styles.radioLg]}>
+      {/* Detras de la fila: cada accion anclada al lado que se descubre. */}
       <View style={styles.acciones}>
-        {canActivate && (
-          <Animated.View style={[styles.accion, styles.accionActivar, activarStyle]}>
-            <Icon name="flame" size={22} color={colors.textOnAccent} />
+        {derecha && (
+          <Animated.View style={[styles.accion, styles.ladoIzquierdo, fondo(derecha.tono), derechaStyle]}>
+            <Icon name={derecha.icon} size={22} color={colors.textOnAccent} />
           </Animated.View>
         )}
-        <Animated.View style={[styles.accion, styles.accionEliminar, eliminarStyle]}>
-          <Icon name="trash-2" size={22} color={colors.textOnAccent} />
-        </Animated.View>
+        {izquierda && (
+          <Animated.View style={[styles.accion, styles.ladoDerecho, fondo(izquierda.tono), izquierdaStyle]}>
+            <Icon name={izquierda.icon} size={22} color={colors.textOnAccent} />
+          </Animated.View>
+        )}
       </View>
 
       <GestureDetector gesture={gesto}>
@@ -206,8 +226,8 @@ export function SwipeableRoutineRow({
           style={cardStyle}
           accessibilityActions={acciones}
           onAccessibilityAction={(e) => {
-            if (e.nativeEvent.actionName === 'activar') onActivate();
-            else if (e.nativeEvent.actionName === 'eliminar') onDelete();
+            if (e.nativeEvent.actionName === 'derecha') derecha?.onTrigger();
+            else if (e.nativeEvent.actionName === 'izquierda') izquierda?.onTrigger();
           }}
         >
           {children}
@@ -221,7 +241,9 @@ const makeStyles = (colors: Palette) =>
   StyleSheet.create({
     // Recorta las acciones a la forma de la tarjeta: sin esto, los rectangulos
     // de color asoman por las esquinas redondeadas.
-    wrap: { borderRadius: radius.lg, overflow: 'hidden' },
+    wrap: { overflow: 'hidden' },
+    radioLg: { borderRadius: radius.lg },
+    radioXl: { borderRadius: radius.xl },
     acciones: { ...StyleSheet.absoluteFill, flexDirection: 'row', pointerEvents: 'none' },
     accion: {
       position: 'absolute',
@@ -231,6 +253,8 @@ const makeStyles = (colors: Palette) =>
       alignItems: 'center',
       justifyContent: 'center',
     },
-    accionActivar: { left: 0, backgroundColor: colors.accent },
-    accionEliminar: { right: 0, backgroundColor: colors.danger },
+    ladoIzquierdo: { left: 0 },
+    ladoDerecho: { right: 0 },
+    tonoAccent: { backgroundColor: colors.accent },
+    tonoDanger: { backgroundColor: colors.danger },
   });

@@ -2,15 +2,18 @@
    Lista las sesiones terminadas, de la mas reciente a la mas vieja, agrupadas
    por mes y paginadas: se traen de a HISTORIAL_PAGINA y se pide la siguiente
    al llegar al final. Conserva las paginas al volver del detalle; se actualiza
-   al entrar desde otra pestania o al tirar hacia abajo desde el inicio. */
+   al entrar desde otra pestania o al tirar hacia abajo desde el inicio.
+   Arrastrar una sesion hacia la derecha la elimina, previa confirmacion. */
 
 import React, { useCallback, useMemo, useRef, useState, useSyncExternalStore } from 'react';
-import { ActivityIndicator, Pressable, RefreshControl, SectionList, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, Alert, RefreshControl, SectionList, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect, useRouter } from 'expo-router';
 
 import { useSession } from '@/contexts/session';
-import { haceCuanto, type SesionTerminada } from '@/lib/session';
+import { useToast } from '@/contexts/toast';
+import { SwipeableRow } from '@/components/SwipeableRow';
+import { eliminarSesion, haceCuanto, type SesionTerminada } from '@/lib/session';
 import { agruparHistorial, type MesHistorial } from '@/lib/history';
 import { crearHistorial } from '@/lib/history-store';
 import { useVolverArribaAlRetocar } from '@/lib/volver-arriba';
@@ -63,6 +66,7 @@ export default function HistoryScreen() {
   const styles = useThemedStyles(makeStyles);
   const { user } = useSession();
   const router = useRouter();
+  const { showToast } = useToast();
   const scrollRef = useRef<SectionList<SesionTerminada, MesHistorial>>(null);
   useVolverArribaAlRetocar(scrollRef);
 
@@ -71,6 +75,8 @@ export default function HistoryScreen() {
   const estado = useSyncExternalStore(historial.subscribe, historial.getSnapshot, historial.getSnapshot);
   const { sesiones, loaded, cargando, error, proximaFecha, siguiente } = estado;
   const conservarAlVolver = useRef(false);
+  // Evita borrar dos veces la misma sesion mientras el pedido esta en vuelo.
+  const eliminando = useRef(false);
   // El RefreshControl solo se muestra cuando la recarga la inicio el gesto de
   // tirar hacia abajo. Las recargas silenciosas (al volver a la pestania) no
   // lo activan: si lo hicieran, iOS lo despliega solo y corre la lista 60pt.
@@ -93,6 +99,32 @@ export default function HistoryScreen() {
   function abrirDetalle(sesion: SesionTerminada) {
     conservarAlVolver.current = true;
     router.push({ pathname: '/session-history', params: { id: sesion.id } });
+  }
+
+  function pedirEliminar(sesion: SesionTerminada) {
+    if (eliminando.current) return;
+    const nombre = sesion.dayName ?? 'este entrenamiento';
+    Alert.alert(
+      'Eliminar entrenamiento',
+      `Se va a borrar ${nombre} del ${fechaCorta(sesion.finishedAt)} con todas sus series. No se puede deshacer.`,
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        { text: 'Eliminar', style: 'destructive', onPress: () => { void eliminar(sesion); } },
+      ],
+    );
+  }
+
+  async function eliminar(sesion: SesionTerminada) {
+    if (eliminando.current) return;
+    eliminando.current = true;
+    const ok = await eliminarSesion(sesion.id);
+    eliminando.current = false;
+    if (ok) {
+      historial.quitar(sesion.id);
+      showToast({ message: 'Entrenamiento eliminado', type: 'success' });
+    } else {
+      showToast({ message: 'No pudimos eliminar el entrenamiento. Proba de nuevo.', type: 'error' });
+    }
   }
 
   return (
@@ -148,12 +180,21 @@ export default function HistoryScreen() {
           </View>
         )}
         renderItem={({ item: s }) => (
-          <Pressable
+          <SwipeableRow
+            radio="xl"
+            onPress={() => abrirDetalle(s)}
+            derecha={{
+              icon: 'trash-2',
+              tono: 'danger',
+              label: 'Eliminar entrenamiento',
+              onTrigger: () => pedirEliminar(s),
+            }}
+          >
+          <View
             accessibilityRole="button"
             accessibilityLabel={`${s.dayName ?? 'Día eliminado'}, ${fechaCorta(s.finishedAt)}`}
             accessibilityHint="Ver las series realizadas en este entrenamiento"
-            onPress={() => abrirDetalle(s)}
-            style={({ pressed }) => [styles.card, pressed && styles.cardPressed]}
+            style={styles.card}
           >
             <View style={styles.cardHeader}>
               <View style={styles.cardText}>
@@ -176,7 +217,8 @@ export default function HistoryScreen() {
                 <Icon name="chevron-right" size={18} color={colors.textTertiary} />
               </View>
             </View>
-          </Pressable>
+          </View>
+          </SwipeableRow>
         )}
         ItemSeparatorComponent={() => <View style={styles.separador} />}
         SectionSeparatorComponent={() => <View style={styles.separadorSeccion} />}
@@ -259,7 +301,6 @@ const makeStyles = (colors: Palette) =>
       borderColor: colors.borderSubtle,
     },
     cardHeader: { flexDirection: 'row', alignItems: 'center', gap: space[3] },
-    cardPressed: { backgroundColor: colors.surfaceCardElevated, borderColor: colors.surfaceGreenLine },
     cardFooter: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: space[3] },
     verSeries: { flexDirection: 'row', alignItems: 'center', gap: space[1] },
     cardText: { flex: 1, gap: space[1] },

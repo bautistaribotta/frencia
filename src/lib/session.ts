@@ -314,6 +314,19 @@ export async function descartarSesion(sessionId: string): Promise<boolean> {
   return !error;
 }
 
+/**
+ * Borra una sesion terminada del historial y, por cascada, sus series. No se
+ * puede deshacer. Cuenta las filas borradas: si RLS la filtra, delete no da
+ * error pero no borra nada, y eso tambien es un fallo.
+ */
+export async function eliminarSesion(sessionId: string): Promise<boolean> {
+  const { error, count } = await supabase
+    .from('workout_sessions')
+    .delete({ count: 'exact' })
+    .eq('id', sessionId);
+  return !error && count === 1;
+}
+
 /** Una sesion terminada, resumida para el historial. */
 export interface SesionTerminada {
   id: string;

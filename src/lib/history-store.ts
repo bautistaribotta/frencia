@@ -21,6 +21,9 @@ export function crearHistorial(userId: string | null, consultar = cargarHistoria
   };
   let activo = false;
   let pedido: AbortController | null = null;
+  // Sesiones borradas desde esta pantalla. Un pedido que salio antes de
+  // borrar puede traerlas de vuelta; se filtran al publicar.
+  const eliminadas = new Set<string>();
   const oyentes = new Set<() => void>();
 
   function publicar(cambio: Partial<EstadoHistorial>) {
@@ -53,7 +56,7 @@ export function crearHistorial(userId: string | null, consultar = cargarHistoria
       const anteriores = tipo === 'mas' ? estado.sesiones : [];
       const vistos = new Set(anteriores.map((sesion) => sesion.id));
       const nuevas = resultado.sesiones.filter((sesion) => {
-        if (vistos.has(sesion.id)) return false;
+        if (vistos.has(sesion.id) || eliminadas.has(sesion.id)) return false;
         vistos.add(sesion.id);
         return true;
       });
@@ -86,6 +89,11 @@ export function crearHistorial(userId: string | null, consultar = cargarHistoria
       if (estado.cargando) publicar({ cargando: null });
     },
     recargar: () => pedir('inicio'),
+    /** Saca una sesion ya borrada en el servidor sin recargar las paginas. */
+    quitar: (id: string) => {
+      eliminadas.add(id);
+      publicar({ sesiones: estado.sesiones.filter((sesion) => sesion.id !== id) });
+    },
     cargarMas: () => pedir('mas'),
     reintentar: () => {
       if (!activo || pedido || !estado.error) return;

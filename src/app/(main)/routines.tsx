@@ -21,7 +21,7 @@ import {
   type RutinaResumen,
 } from '@/lib/rutinas';
 import { useToast } from '@/contexts/toast';
-import { SwipeableRoutineRow } from '@/components/SwipeableRoutineRow';
+import { SwipeableRow } from '@/components/SwipeableRow';
 import { useVolverArribaAlRetocar } from '@/lib/volver-arriba';
 
 import {
@@ -132,13 +132,22 @@ export default function RoutinesScreen() {
   const anteriores = rutinas.filter((r) => !r.activa);
 
   const tarjeta = (rutina: RutinaResumen) => (
-    <SwipeableRoutineRow
+    // Arrastrar a la derecha elimina (pide confirmacion); a la izquierda pone
+    // la rutina en curso, salvo que ya lo este.
+    <SwipeableRow
       key={rutina.id}
-      title={rutina.name}
       onPress={() => abrirRutina(rutina.id)}
-      onActivate={() => activar(rutina)}
-      onDelete={() => pedirEliminar(rutina)}
-      canActivate={!rutina.activa}
+      derecha={{
+        icon: 'trash-2',
+        tono: 'danger',
+        label: 'Eliminar rutina',
+        onTrigger: () => pedirEliminar(rutina),
+      }}
+      izquierda={
+        rutina.activa
+          ? undefined
+          : { icon: 'flame', tono: 'accent', label: 'Poner en curso', onTrigger: () => activar(rutina) }
+      }
     >
       <View
         style={[styles.tarjeta, rutina.activa && styles.tarjetaActiva]}
@@ -162,7 +171,7 @@ export default function RoutinesScreen() {
           color={rutina.activa ? colors.accentText : colors.textTertiary}
         />
       </View>
-    </SwipeableRoutineRow>
+    </SwipeableRow>
   );
 
   return (
