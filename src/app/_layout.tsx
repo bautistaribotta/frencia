@@ -82,6 +82,23 @@ function RootNavigator() {
             fullScreenGestureEnabled: true,
           }}
         />
+        {/* Textos legales. Solo lectura, accesibles con o sin sesion. */}
+        <Stack.Screen
+          name="terms"
+          options={{
+            animation: 'slide_from_right',
+            gestureEnabled: true,
+            fullScreenGestureEnabled: true,
+          }}
+        />
+        <Stack.Screen
+          name="privacy"
+          options={{
+            animation: 'slide_from_right',
+            gestureEnabled: true,
+            fullScreenGestureEnabled: true,
+          }}
+        />
         {/* Cuenta en periodo de gracia. Sin gesto de volver: no hay a donde
             volver, la unica salida es recuperar la cuenta o cerrar sesion. */}
         <Stack.Screen
@@ -147,7 +164,8 @@ function RootNavigator() {
 }
 
 /* Reglas:
-   - Sin sesion: solo el grupo (auth). Si esta afuera, lo mandamos a /login.
+   - Sin sesion: solo el grupo (auth) y los textos legales. Si esta afuera,
+     lo mandamos a /login.
    - Con sesion y eliminacion de cuenta pendiente: siempre a la pantalla de
      recuperacion, este donde este. Es la unica regla que fuerza ruta una vez
      adentro.
@@ -167,9 +185,11 @@ function useAuthRedirect() {
 
     const inAuthGroup = segments[0] === '(auth)';
     const atRoot = pathname === '/';
+    // Los textos legales se leen desde login y registro, antes de tener cuenta.
+    const esRutaPublica = pathname === '/terms' || pathname === '/privacy';
 
     if (!session) {
-      if (!inAuthGroup) router.replace('/login');
+      if (!inAuthGroup && !esRutaPublica) router.replace('/login');
       return;
     }
 

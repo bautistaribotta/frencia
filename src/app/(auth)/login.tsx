@@ -18,6 +18,7 @@ import { useRouter } from 'expo-router';
 
 import { supabase } from '@/lib/supabase';
 import { signInWithProvider, type OAuthProvider } from '@/lib/oauth';
+import { TermsNotice } from '@/components/TermsNotice';
 
 import AppleLogo from '@/assets/icons/apple.svg';
 import GoogleLogo from '@/assets/icons/google.svg';
@@ -253,6 +254,8 @@ export default function LoginScreen() {
                 Google
               </Button>
             </View>
+
+            <TermsNotice />
           </View>
 
           {/* Footer */}

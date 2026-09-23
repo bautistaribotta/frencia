@@ -1,6 +1,7 @@
 /* Frencia · Configuracion.
    Pantalla de configuracion de la cuenta. Se llega desde el perfil con boton
-   de volver y gesto horizontal. Expone la eliminacion de cuenta, con dos
+   de volver y gesto horizontal. Expone los textos legales y la eliminacion
+   de cuenta, con dos
    confirmaciones nativas y 30 dias de gracia; ver
    docs/specs/eliminacion-de-cuenta.md. */
 
@@ -92,6 +93,46 @@ export default function SettingsScreen() {
           <FrenciaText role="title">Configuración</FrenciaText>
         </View>
 
+        {/* Legal: textos de solo lectura, en un mismo recuadro. */}
+        <View style={styles.group}>
+          <FrenciaText role="dataLabel" color={colors.textTertiary}>
+            Legal
+          </FrenciaText>
+          <View style={styles.list}>
+            <Pressable
+              onPress={() => router.push('/terms')}
+              accessibilityRole="button"
+              accessibilityLabel="Términos y Condiciones"
+            >
+              <View style={styles.row}>
+                <View style={styles.rowLeft}>
+                  <Icon name="file-text" size={20} color={colors.textSecondary} />
+                  <FrenciaText role="bodySm" style={styles.rowTitle}>
+                    Términos y Condiciones
+                  </FrenciaText>
+                </View>
+                <Icon name="chevron-right" size={20} color={colors.textTertiary} />
+              </View>
+            </Pressable>
+            <View style={styles.rowDivider} />
+            <Pressable
+              onPress={() => router.push('/privacy')}
+              accessibilityRole="button"
+              accessibilityLabel="Política de Privacidad"
+            >
+              <View style={styles.row}>
+                <View style={styles.rowLeft}>
+                  <Icon name="shield" size={20} color={colors.textSecondary} />
+                  <FrenciaText role="bodySm" style={styles.rowTitle}>
+                    Política de Privacidad
+                  </FrenciaText>
+                </View>
+                <Icon name="chevron-right" size={20} color={colors.textTertiary} />
+              </View>
+            </Pressable>
+          </View>
+        </View>
+
         {/* Eliminacion de cuenta: recuadro propio, accion destructiva. */}
         <Pressable
           style={styles.list}
@@ -149,6 +190,9 @@ const makeStyles = (colors: Palette) =>
     gap: space[4],
     padding: space[5],
   },
+  group: { gap: space[3] },
   rowLeft: { flexDirection: 'row', alignItems: 'center', gap: space[4] },
+  rowTitle: { fontFamily: sans.semibold },
+  rowDivider: { height: 1, marginLeft: space[5], backgroundColor: colors.divider },
   dangerTitle: { fontFamily: sans.semibold, color: colors.dangerText },
 });
