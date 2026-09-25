@@ -60,12 +60,13 @@ export default function ProfileScreen() {
   const { showToast } = useToast();
   // Tema: sistema / oscuro / claro. Lo maneja el contexto, persiste solo.
   const { preference, setPreference } = useTheme();
-  // RIR/RPE, kg/lb y cm/ft se leen del contexto y se persisten en profiles.
+  // RIR/RPE, kg/lb, cm/ft y km/mi se leen del contexto y se persisten en profiles.
   // No hay estado local: el switch cambia el contexto y toda la app (sesion,
   // historial, editar perfil) recalcula con la unidad nueva en el acto.
   const useRpe = profile?.medidorEsfuerzo === 'rpe';
   const useLb = profile?.unidadPeso === 'lb';
   const useFeet = profile?.unidadAltura === 'ft';
+  const useMiles = profile?.unidadDistancia === 'mi';
   // Avatar: foto subida (prioridad) o semilla del avatar generado.
   const [photo, setPhoto] = useState<string | undefined>(profile?.avatarUrl ?? undefined);
   const [seed, setSeed] = useState<string | undefined>(profile?.avatarSeed ?? undefined);
@@ -217,6 +218,10 @@ export default function ProfileScreen() {
     cambiarPreferencia({ unidadAltura: next ? 'ft' : 'cm' });
   }
 
+  function toggleMiles(next: boolean) {
+    cambiarPreferencia({ unidadDistancia: next ? 'mi' : 'km' });
+  }
+
   // Cierra la sesion. El cambio lo detecta SessionProvider y el gate del
   // layout raiz redirige al login automaticamente.
   async function handleSignOut() {
@@ -318,6 +323,19 @@ export default function ProfileScreen() {
                 </FrenciaText>
               </View>
               <Switch checked={useFeet} onChange={toggleFeet} />
+            </View>
+
+            {/* Fila: unidad de distancia */}
+            <View style={[styles.settingRow, styles.settingRowDivider]}>
+              <View style={styles.settingText}>
+                <FrenciaText role="bodySm" style={styles.settingTitle}>
+                  Unidad de distancia km/mi
+                </FrenciaText>
+                <FrenciaText role="bodySm" color={colors.textTertiary} style={styles.settingSub}>
+                  {useMiles ? 'En millas (mi)' : 'En kilómetros (km)'}
+                </FrenciaText>
+              </View>
+              <Switch checked={useMiles} onChange={toggleMiles} />
             </View>
 
             {/* Fila: tema. Tres opciones, asi que va en selector en vez de switch,

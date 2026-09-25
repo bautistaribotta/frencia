@@ -20,6 +20,7 @@ import { fechaNacimientoAEdad } from '@/lib/edad';
 import { signAvatarUrl } from '@/lib/avatar';
 import type { UnidadPeso } from '@/lib/peso';
 import type { UnidadAltura } from '@/lib/altura';
+import type { UnidadDistancia } from '@/lib/distancia';
 import { useSession } from './session';
 
 export interface ProfileData {
@@ -41,6 +42,9 @@ export interface ProfileData {
   // Idem para la altura: se guarda en cm y se muestra en cm o en pies y
   // pulgadas segun esta preferencia.
   unidadAltura: UnidadAltura;
+  // Idem para la distancia de cardio e hibridos: se guarda en metros y se
+  // muestra en km o en millas.
+  unidadDistancia: UnidadDistancia;
   // Fecha en que pidio eliminar la cuenta. Mientras no sea null la cuenta esta
   // en periodo de gracia y el gate de auth solo deja ver /account-recovery.
   deletionRequestedAt: Date | null;
@@ -48,12 +52,13 @@ export interface ProfileData {
 
 // Preferencias que se cambian desde un switch o una rueda y tienen que verse
 // al instante en toda la app, sin esperar a releer el perfil.
-export type Preferencias = Pick<ProfileData, 'medidorEsfuerzo' | 'unidadPeso' | 'unidadAltura'>;
+export type Preferencias = Pick<ProfileData, 'medidorEsfuerzo' | 'unidadPeso' | 'unidadAltura' | 'unidadDistancia'>;
 
 const COLUMNA_PREFERENCIA: Record<keyof Preferencias, string> = {
   medidorEsfuerzo: 'medidor_esfuerzo',
   unidadPeso: 'unidad_peso',
   unidadAltura: 'unidad_altura',
+  unidadDistancia: 'unidad_distancia',
 };
 
 interface ProfileContextValue {
@@ -116,7 +121,7 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
     for (let intento = 0; intento < 3; intento++) {
       const res = await supabase
         .from('profiles')
-        .select('name, surname, username, fecha_nacimiento, sexo, altura, peso, avatar_path, avatar_seed, onboarding_completed, medidor_esfuerzo, unidad_peso, unidad_altura, deletion_requested_at')
+        .select('name, surname, username, fecha_nacimiento, sexo, altura, peso, avatar_path, avatar_seed, onboarding_completed, medidor_esfuerzo, unidad_peso, unidad_altura, unidad_distancia, deletion_requested_at')
         .eq('id', current.id)
         .maybeSingle();
       if (res.data) {
@@ -143,6 +148,7 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
             medidorEsfuerzo: data.medidor_esfuerzo === 'rpe' ? 'rpe' : 'rir',
             unidadPeso: data.unidad_peso === 'lb' ? 'lb' : 'kg',
             unidadAltura: data.unidad_altura === 'ft' ? 'ft' : 'cm',
+            unidadDistancia: data.unidad_distancia === 'mi' ? 'mi' : 'km',
             deletionRequestedAt: data.deletion_requested_at ? new Date(data.deletion_requested_at) : null,
           }
         : null,

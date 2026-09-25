@@ -224,6 +224,15 @@ planificacion y la sesion.
   tipo.
 - Sembrar ejercicios de cardio, isometricos e hibridos.
 
+### 6.4 Decisiones de interfaz
+
+- **Unidad de distancia.** Preferencia propia `profiles.unidad_distancia`
+  (`km` o `mi`), con su switch en Perfil debajo del de altura. La distancia se
+  guarda siempre en metros, ver `src/lib/distancia.ts`.
+- **Descanso.** El temporizador de descanso se oculta cuando el ejercicio tiene
+  una sola serie, sin importar el tipo. Cubre el cardio continuo sin atarlo a
+  `kind`.
+
 ## 7. Fuera de alcance
 
 - Ejercicios creados por el usuario. El catalogo sigue siendo cerrado y de
