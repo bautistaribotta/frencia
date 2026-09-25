@@ -6,12 +6,13 @@
    Arrastrar una sesion hacia la derecha la elimina, previa confirmacion. */
 
 import React, { useCallback, useMemo, useRef, useState, useSyncExternalStore } from 'react';
-import { ActivityIndicator, Alert, RefreshControl, SectionList, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, RefreshControl, SectionList, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect, useRouter } from 'expo-router';
 
 import { useSession } from '@/contexts/session';
 import { useToast } from '@/contexts/toast';
+import { alerta } from '@/lib/alerta';
 import { SwipeableRow } from '@/components/SwipeableRow';
 import { CargaCentrada } from '@/components/CargaCentrada';
 import { eliminarSesion, haceCuanto, type SesionTerminada } from '@/lib/session';
@@ -105,7 +106,7 @@ export default function HistoryScreen() {
   function pedirEliminar(sesion: SesionTerminada) {
     if (eliminando.current) return;
     const nombre = sesion.dayName ?? 'este entrenamiento';
-    Alert.alert(
+    alerta(
       'Eliminar entrenamiento',
       `Se va a borrar ${nombre} del ${fechaCorta(sesion.finishedAt)} con todas sus series. No se puede deshacer.`,
       [

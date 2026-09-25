@@ -7,7 +7,7 @@
 
    La fila nunca queda abierta: al soltar vuelve a cero y, si el arrastre cruzo
    el umbral, dispara la accion. Las destructivas no borran directo: la
-   pantalla confirma con un Alert. Un sentido sin accion ofrece resistencia y
+   pantalla confirma con alerta(). Un sentido sin accion ofrece resistencia y
    no descubre nada.
 
    Hoy lo usan Rutinas (derecha elimina, izquierda pone en curso) e Historial
@@ -127,7 +127,7 @@ export function SwipeableRow({
           const haciaDerecha = tx.value > 0;
           armado.value = 0;
           // Siempre vuelve a cero: la accion se ejecuta afuera (reordenar la
-          // lista, abrir un Alert), y la fila no tiene por que quedar colgada
+          // lista, abrir un alerta), y la fila no tiene por que quedar colgada
           // mientras tanto.
           tx.value = withTiming(0, { duration: motion.durBase });
           if (!paso) return;

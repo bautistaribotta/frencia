@@ -8,13 +8,14 @@
    hace desde el home; aca se mira y se corrige el plan. */
 
 import React, { useCallback, useState } from 'react';
-import { Alert, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 
 import { SEMANA_CORTA } from '@/lib/dia';
 import { cargarRutina, eliminarRutina, fechaCorta, type RutinaDetalle } from '@/lib/rutinas';
 import { useToast } from '@/contexts/toast';
+import { alerta } from '@/lib/alerta';
 import { CargaCentrada } from '@/components/CargaCentrada';
 
 import {
@@ -80,13 +81,13 @@ export default function RoutineScreen() {
     router.push({ pathname: '/edit-routine', params: { id: rutina.id } });
   }
 
-  // El peso destructivo va al Alert, no al color del boton.
+  // El peso destructivo va al modal de alerta, no al color del boton.
   function pedirEliminar() {
     if (!rutina || borrando) return;
     const n = rutina.dias.length;
     const detalle =
       n > 0 ? ` con sus ${n} ${n === 1 ? 'día' : 'días'} y los ejercicios de cada uno` : '';
-    Alert.alert(
+    alerta(
       `Eliminar ${rutina.name}`,
       `Se va a borrar la rutina${detalle}. No se puede deshacer.`,
       [

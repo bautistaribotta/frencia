@@ -14,6 +14,7 @@ import { FrenciaThemeProvider, useColors, useFrenciaFonts, useTheme } from '@/de
 import { SessionProvider, useSession } from '@/contexts/session';
 import { ProfileProvider, useProfile } from '@/contexts/profile';
 import { ToastProvider } from '@/contexts/toast';
+import { AlertaProvider } from '@/contexts/alerta';
 
 export default function RootLayout() {
   const [fontsLoaded, fontError] = useFrenciaFonts();
@@ -29,7 +30,9 @@ export default function RootLayout() {
             <ProfileProvider>
               <ToastProvider>
                 <AnimatedSplashOverlay />
-                <RootNavigator />
+                <AlertaProvider>
+                  <RootNavigator />
+                </AlertaProvider>
               </ToastProvider>
             </ProfileProvider>
           </SessionProvider>

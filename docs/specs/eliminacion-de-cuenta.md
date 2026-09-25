@@ -74,7 +74,8 @@ tabla tiene una fila por usuario.
 5. **El plazo se cuenta en el servidor.** La fecha de purga que muestra la app
    es `deletion_requested_at + 30 dias` calculada del valor que viene de la
    base, nunca del reloj del telefono.
-6. **La confirmacion es en dos pasos**, ambos con `Alert` nativo, consistente
+6. **La confirmacion es en dos pasos**, ambos con el modal de alerta de la app
+   (`alerta()` de `src/lib/alerta.ts`, igual en iOS, Android y web), consistente
    con borrar rutina y borrar dia:
    - Paso 1 (antes de hacer nada): titulo "Eliminar cuenta", texto que explica
      el plazo de 30 dias y que despues los datos no se recuperan. Botones
@@ -159,10 +160,10 @@ molesta, la purga se muda a una edge function que use la API de Storage.
 ### 6.1 Solicitar (Configuracion)
 
 1. Toca "Eliminacion de cuenta".
-2. Alert paso 1. Cancelar no hace nada.
+2. Alerta paso 1. Cancelar no hace nada.
 3. Confirmar llama `solicitar_eliminacion_cuenta()`.
    - Error: toast de error, se queda en Configuracion.
-   - Ok: Alert paso 2 con la fecha (`deletion_requested_at + 30 dias`,
+   - Ok: Alerta paso 2 con la fecha (`deletion_requested_at + 30 dias`,
      formateada en espaniol, ej. "21 de octubre de 2026").
 4. "Entendido" cierra la sesion. El gate del layout raiz lleva al login.
 

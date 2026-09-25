@@ -1,12 +1,11 @@
 /* Frencia · Configuracion.
    Pantalla de configuracion de la cuenta. Se llega desde el perfil con boton
    de volver y gesto horizontal. Expone los textos legales y la eliminacion
-   de cuenta, con dos
-   confirmaciones nativas y 30 dias de gracia; ver
-   docs/specs/eliminacion-de-cuenta.md. */
+   de cuenta, con dos confirmaciones en el modal de alerta de la app y 30 dias
+   de gracia; ver docs/specs/eliminacion-de-cuenta.md. */
 
 import React, { useState } from 'react';
-import { Alert, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 
@@ -22,6 +21,7 @@ import {
   type Palette,
 } from '@/design';
 import { useToast } from '@/contexts/toast';
+import { alerta } from '@/lib/alerta';
 import { supabase } from '@/lib/supabase';
 import {
   DIAS_DE_GRACIA,
@@ -45,7 +45,7 @@ export default function SettingsScreen() {
   // Paso 1: confirmar antes de tocar nada.
   function pedirEliminarCuenta() {
     if (eliminando) return;
-    Alert.alert(
+    alerta(
       'Eliminar cuenta',
       `Tu cuenta y todos tus datos (rutinas, sesiones e historial) se eliminarán en ${DIAS_DE_GRACIA} días. Hasta entonces podés recuperarla iniciando sesión. Después de esa fecha los datos no se pueden recuperar.`,
       [
@@ -65,7 +65,7 @@ export default function SettingsScreen() {
       showToast({ message: 'No pudimos procesar la solicitud. Proba de nuevo.', type: 'error' });
       return;
     }
-    Alert.alert(
+    alerta(
       'Cuenta programada para eliminarse',
       `Tu cuenta se eliminará el ${fechaLarga(fechaPurga(solicitadaEn))}. Si cambiás de idea, iniciá sesión antes de esa fecha y vas a poder recuperarla con todos tus datos.`,
       [{ text: 'Entendido', onPress: () => supabase.auth.signOut() }],

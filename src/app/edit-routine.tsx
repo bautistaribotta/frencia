@@ -14,7 +14,6 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
-  Alert,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
@@ -25,6 +24,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { useToast } from '@/contexts/toast';
+import { alerta } from '@/lib/alerta';
 import { DraggableRowList } from '@/components/DraggableRowList';
 import { SEMANA_CORTA } from '@/lib/dia';
 import { cargarRutina, guardarRutina } from '@/lib/rutinas';
@@ -131,7 +131,7 @@ export default function EditRoutineScreen() {
       salir();
       return;
     }
-    Alert.alert('Descartar cambios', 'Lo que editaste en esta rutina se va a perder.', [
+    alerta('Descartar cambios', 'Lo que editaste en esta rutina se va a perder.', [
       { text: 'Seguir editando', style: 'cancel' },
       { text: 'Descartar', style: 'destructive', onPress: salir },
     ]);
@@ -163,7 +163,7 @@ export default function EditRoutineScreen() {
       }
       // Sacar un dia con ejercicios se los lleva puestos, y no hay deshacer.
       if (d.ejercicios > 0) {
-        Alert.alert(
+        alerta(
           `Quitar ${d.name}`,
           `Se van a borrar sus ${d.ejercicios} ${d.ejercicios === 1 ? 'ejercicio' : 'ejercicios'} cuando guardes.`,
           [

@@ -7,7 +7,6 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
-  Alert,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
@@ -19,6 +18,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 
 import { useProfile } from '@/contexts/profile';
 import { useToast } from '@/contexts/toast';
+import { alerta } from '@/lib/alerta';
 import { DayEditor } from '@/components/DayEditor';
 import { ExercisePickerModal } from '@/components/ExercisePickerModal';
 import {
@@ -125,7 +125,7 @@ export default function EditDayScreen() {
     }
     // Salir sin guardar tira el trabajo: no hay borrador, la pantalla edita en
     // memoria y recien escribe al confirmar.
-    Alert.alert('Descartar cambios', 'Lo que editaste en este día se va a perder.', [
+    alerta('Descartar cambios', 'Lo que editaste en este día se va a perder.', [
       { text: 'Seguir editando', style: 'cancel' },
       { text: 'Descartar', style: 'destructive', onPress: salir },
     ]);
@@ -162,12 +162,12 @@ export default function EditDayScreen() {
   }
 
   // Borrar el dia es destructivo y no hay deshacer: la confirmacion la lleva el
-  // Alert, no el color del boton.
+  // modal de alerta, no el color del boton.
   function eliminar() {
     if (!dia || !diaId || guardando || borrando) return;
     const n = dia.exercises.length;
     const detalle = n > 0 ? ` y sus ${n} ${n === 1 ? 'ejercicio' : 'ejercicios'}` : '';
-    Alert.alert(
+    alerta(
       `Eliminar ${dia.name.trim() || 'este día'}`,
       `Se va a borrar el día${detalle}. No se puede deshacer.`,
       [

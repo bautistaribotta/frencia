@@ -12,7 +12,7 @@
    como el historial, y se pide la siguiente al llegar al final. */
 
 import React, { useCallback, useMemo, useRef, useState, useSyncExternalStore } from 'react';
-import { ActivityIndicator, Alert, FlatList, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, FlatList, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect, useRouter } from 'expo-router';
 
@@ -25,6 +25,7 @@ import {
 import { crearRutinas } from '@/lib/rutinas-store';
 import { useSession } from '@/contexts/session';
 import { useToast } from '@/contexts/toast';
+import { alerta } from '@/lib/alerta';
 import { SwipeableRow } from '@/components/SwipeableRow';
 import { CargaCentrada } from '@/components/CargaCentrada';
 import { useVolverArribaAlRetocar } from '@/lib/volver-arriba';
@@ -100,7 +101,7 @@ export default function RoutinesScreen() {
       rutina.dias > 0
         ? ` con sus ${rutina.dias} ${rutina.dias === 1 ? 'día' : 'días'} y los ejercicios de cada uno`
         : '';
-    Alert.alert(
+    alerta(
       `Eliminar ${rutina.name}`,
       `Se va a borrar la rutina${detalle}. No se puede deshacer.`,
       [
