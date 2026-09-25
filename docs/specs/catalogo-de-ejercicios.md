@@ -181,7 +181,50 @@ ejercicio, que es como se habla en el gimnasio.
 La clave del cache en AsyncStorage subio a `v2` al sumar `name_en`: con la `v1`
 los usuarios existentes hubieran quedado con objetos sin ese campo.
 
-## 6. Fuera de alcance
+## 6. Tipos de ejercicio
+
+Estado: esquema del catalogo escrito (`add_kind_and_metrics_to_exercises`);
+falta extender las tablas de planificacion y registro.
+
+### 6.1 Una sola tabla
+
+Cardio, isometricos e hibridos viven en `exercises`, no en tablas propias.
+`training_day_exercises.exercise_id` y `session_sets.exercise_id` apuntan a un
+solo catalogo, y el buscador, los musculos y las instrucciones no se duplican.
+Lo que cambia entre tipos es **que se mide**, no que es el ejercicio.
+
+### 6.2 Tipo mas datos declarados
+
+| Columna | Rol |
+|---|---|
+| `kind` | Categoria: `fuerza`, `isometrico`, `cardio`, `hibrido`. Para filtrar y agrupar |
+| `tracks_weight`, `tracks_reps`, `tracks_duration`, `tracks_distance` | Que campos se piden en cada serie. La interfaz lee esto, no el tipo |
+
+Un tipo solo no alcanza para los hibridos: el paseo de granjero registra peso y
+distancia, el colgado con lastre peso y tiempo. Y los flags solos pierden la
+categoria para filtrar. Por eso se usan los dos, y un `check` los mantiene
+coherentes:
+
+| | Peso | Reps | Duracion | Distancia | Intensidad |
+|---|---|---|---|---|---|
+| Fuerza | si | si | no | no | RIR o RPE |
+| Isometrico | segun ejercicio | no | si | no | RIR o RPE |
+| Cardio | no | no | si | segun ejercicio | RPE opcional |
+| Hibrido | libre, minimo dos datos | | | | a definir |
+
+La intensidad no se guarda en el catalogo: se valida al guardar la
+planificacion y la sesion.
+
+### 6.3 Pendiente
+
+- `training_day_exercises` y `session_sets`: sumar `duration_seconds` y
+  `distance_m`, y volver opcionales `reps`, `weight_kg` e `intensity_*`.
+- `guardar_dia_entrenamiento`: validar cada ejercicio contra sus `tracks_*`.
+- Volumen, PRs y progresion: filtrar por `kind` o definir la metrica de cada
+  tipo.
+- Sembrar ejercicios de cardio, isometricos e hibridos.
+
+## 7. Fuera de alcance
 
 - Ejercicios creados por el usuario. El catalogo sigue siendo cerrado y de
   escritura administrada.
