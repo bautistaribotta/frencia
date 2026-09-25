@@ -108,6 +108,12 @@ function RootNavigator() {
           name="account-recovery"
           options={{ animation: 'fade', gestureEnabled: false }}
         />
+        {/* No se pudo leer el perfil. Sin gesto de volver por lo mismo: las
+            salidas son reintentar o volver al login. */}
+        <Stack.Screen
+          name="profile-error"
+          options={{ animation: 'fade', gestureEnabled: false }}
+        />
         {/* Wizard de creacion de rutina. Sin gesto de volver: los pasos
             manejan el retroceso con su propio boton para no perder datos. */}
         <Stack.Screen
@@ -169,6 +175,9 @@ function RootNavigator() {
 /* Reglas:
    - Sin sesion: solo el grupo (auth) y los textos legales. Si esta afuera,
      lo mandamos a /login.
+   - Con sesion pero sin poder leer el perfil (error o limite de tiempo): a
+     la pantalla de error, que ofrece reintentar o volver al login. Nunca al
+     setup: una lectura fallida no es una cuenta nueva.
    - Con sesion y eliminacion de cuenta pendiente: siempre a la pantalla de
      recuperacion, este donde este. Es la unica regla que fuerza ruta una vez
      adentro.
@@ -177,7 +186,7 @@ function RootNavigator() {
      mas: el usuario puede saltar el setup y navegar libre. */
 function useAuthRedirect() {
   const { session, initializing } = useSession();
-  const { needsOnboarding, loading, profile } = useProfile();
+  const { needsOnboarding, loading, loadError, profile } = useProfile();
   const eliminacionPendiente = profile?.deletionRequestedAt != null;
   const segments = useSegments();
   const pathname = usePathname();
@@ -198,15 +207,21 @@ function useAuthRedirect() {
 
     if (loading) return;
 
+    if (loadError) {
+      if (pathname !== '/profile-error') router.replace('/profile-error');
+      return;
+    }
+
     // Cuenta marcada para eliminar: no se entra a la app hasta recuperarla.
     if (eliminacionPendiente) {
       if (pathname !== '/account-recovery') router.replace('/account-recovery');
       return;
     }
 
-    // Sesion activa: decidimos destino al entrar desde auth o desde la raiz.
-    if (inAuthGroup || atRoot) {
+    // Sesion activa: decidimos destino al entrar desde auth o desde la raiz, o
+    // al salir de la pantalla de error cuando el reintento anduvo.
+    if (inAuthGroup || atRoot || pathname === '/profile-error') {
       router.replace(needsOnboarding ? '/setup' : '/home');
     }
-  }, [session, initializing, loading, needsOnboarding, eliminacionPendiente, segments, pathname, router]);
+  }, [session, initializing, loading, loadError, needsOnboarding, eliminacionPendiente, segments, pathname, router]);
 }

@@ -61,6 +61,25 @@ const COLUMNA_PREFERENCIA: Record<keyof Preferencias, string> = {
   unidadDistancia: 'unidad_distancia',
 };
 
+// Tiempo maximo de cada ida a Supabase al leer el perfil. Con la red colgada
+// la consulta puede no volver nunca, y la app quedaba en la pantalla de carga
+// sin salida. Pasado el limite se trata como un error de lectura.
+const LIMITE_LECTURA_MS = 8000;
+
+/** Resuelve con el resultado de la promesa, o con null si tarda mas que el
+ *  limite. No la cancela: la respuesta tardia simplemente se ignora. */
+async function conLimite<T>(promesa: PromiseLike<T>): Promise<T | null> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const limite = new Promise<null>((resolve) => {
+    timer = setTimeout(() => resolve(null), LIMITE_LECTURA_MS);
+  });
+  try {
+    return await Promise.race([Promise.resolve(promesa), limite]);
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 interface ProfileContextValue {
   profile: ProfileData | null;
   loading: boolean;
@@ -68,7 +87,12 @@ interface ProfileContextValue {
   displayName: string;
   // El usuario todavia no paso por el setup inicial (primer ingreso).
   needsOnboarding: boolean;
-  refresh: () => Promise<void>;
+  // La lectura del perfil fallo (red, Supabase caido, consulta rota) y no hay
+  // una copia previa que mostrar. No es lo mismo que una cuenta sin perfil: el
+  // gate manda a /profile-error en vez de al setup, que pisaria los datos.
+  loadError: boolean;
+  // Relee el perfil. Devuelve false si la lectura fallo.
+  refresh: () => Promise<boolean>;
   applyAvatar: (next: { url?: string | null; seed?: string | null }) => void;
   // Cambia una o mas preferencias: primero en el contexto, para que toda la
   // app recalcule pesos y alturas en el mismo render que el switch, y despues
@@ -82,7 +106,8 @@ const ProfileContext = createContext<ProfileContextValue>({
   loading: true,
   displayName: 'Atleta',
   needsOnboarding: false,
-  refresh: async () => {},
+  loadError: false,
+  refresh: async () => false,
   applyAvatar: () => {},
   savePreferencias: async () => false,
 });
@@ -99,36 +124,78 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
   // Ultimo usuario leido. Lo usa la firma del avatar, que resuelve tarde, para
   // no pisar el perfil de otra cuenta si el usuario cambio mientras tanto.
   const ultimoUsuario = useRef<string | null>(null);
+  const [loadError, setLoadError] = useState(false);
+  // Perfil vigente, para decidir sin depender del render si un error de
+  // lectura tiene una copia previa que conservar.
+  const profileRef = useRef(profile);
+  useEffect(() => {
+    profileRef.current = profile;
+  }, [profile]);
 
-  const refresh = useCallback(async () => {
-    const {
-      data: { user: current },
-    } = await supabase.auth.getUser();
+  const refresh = useCallback(async (): Promise<boolean> => {
+    const auth = await conLimite(supabase.auth.getUser());
+
+    // Un error de lectura no es un perfil vacio. Si ya habia un perfil de este
+    // usuario se conserva (un refresco fallido despues de editar no tiene por
+    // que sacarlo de la app); si no, se marca el error para que el gate no lo
+    // confunda con un primer ingreso.
+    const marcarFallo = (conservar: boolean) => {
+      if (conservar && profileRef.current) return;
+      setProfile(null);
+      setLoadError(true);
+    };
+
+    // Sin red getUser tambien falla, y devuelve el mismo user null que un
+    // usuario deslogueado. Por eso se mira el error (o el limite de tiempo)
+    // antes de concluir que no hay sesion.
+    if (!auth || auth.error) {
+      marcarFallo(ultimoUsuario.current !== null);
+      return false;
+    }
+    const current = auth.data.user;
 
     if (!current) {
       ultimoUsuario.current = null;
       setProfile(null);
       setLoadedFor(null);
-      return;
+      setLoadError(false);
+      return false;
     }
 
+    const mismoUsuario = ultimoUsuario.current === current.id;
     ultimoUsuario.current = current.id;
 
     // Recien creada la cuenta, la fila del profile la inserta un trigger. Si la
     // leemos demasiado pronto puede no estar todavia: reintentamos unas veces
     // para no asumir por error que el usuario ya hizo el onboarding.
     let data = null;
+    let fallo = false;
     for (let intento = 0; intento < 3; intento++) {
-      const res = await supabase
-        .from('profiles')
-        .select('name, surname, username, fecha_nacimiento, sexo, altura, peso, avatar_path, avatar_seed, onboarding_completed, medidor_esfuerzo, unidad_peso, unidad_altura, unidad_distancia, deletion_requested_at')
-        .eq('id', current.id)
-        .maybeSingle();
+      const res = await conLimite(
+        supabase
+          .from('profiles')
+          .select('name, surname, username, fecha_nacimiento, sexo, altura, peso, avatar_path, avatar_seed, onboarding_completed, medidor_esfuerzo, unidad_peso, unidad_altura, unidad_distancia, deletion_requested_at')
+          .eq('id', current.id)
+          .maybeSingle(),
+      );
+      // Se paso del limite: ya se espero bastante, no se reintenta.
+      if (!res) {
+        fallo = true;
+        break;
+      }
       if (res.data) {
         data = res.data;
         break;
       }
+      // Un error tambien se reintenta: puede ser un corte de red pasajero.
+      fallo = res.error !== null;
       await new Promise((r) => setTimeout(r, 400));
+    }
+
+    if (!data && fallo) {
+      marcarFallo(mismoUsuario);
+      setLoadedFor(current.id);
+      return false;
     }
 
     setProfile(
@@ -157,6 +224,7 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
     // sesion: si el usuario cambio a mitad de la lectura, el perfil viejo no
     // cuenta como cargado para el nuevo.
     setLoadedFor(current.id);
+    setLoadError(false);
 
     // Firmar el avatar es otra ida a Storage. Va despues de publicar el perfil
     // y sin bloquearlo: el nombre no tiene por que esperar a una foto, ni
@@ -169,6 +237,7 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
         setProfile((prev) => (prev ? { ...prev, avatarUrl: url } : prev));
       });
     }
+    return true;
   }, []);
 
   // Recarga el perfil cada vez que cambia el usuario (login/logout).
@@ -177,6 +246,7 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
     if (!userId) {
       setProfile(null);
       setLoadedFor(null);
+      setLoadError(false);
       return;
     }
     let cancelado = false;
@@ -184,7 +254,10 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
       try {
         await refresh();
       } catch {
-        if (!cancelado) setProfile(null);
+        if (!cancelado) {
+          setProfile(null);
+          setLoadError(true);
+        }
       } finally {
         // Falle o no la lectura, damos el perfil por resuelto: el gate de auth
         // espera a que `loading` sea false para decidir ruta, y sin esto una
@@ -243,9 +316,10 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
         profile,
         loading,
         displayName,
-        // Con sesion pero sin fila legible lo tratamos como primer ingreso:
-        // mejor mandar al setup que saltarlo por una lectura fallida.
-        needsOnboarding: profile ? !profile.onboardingCompleted : true,
+        // Sin fila de perfil es un primer ingreso. Con la lectura fallida no se
+        // sabe, y mandar al setup pisaria los datos de una cuenta existente.
+        needsOnboarding: profile ? !profile.onboardingCompleted : !loadError,
+        loadError,
         refresh,
         applyAvatar,
         savePreferencias,
