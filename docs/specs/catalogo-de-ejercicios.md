@@ -94,7 +94,7 @@ existan realmente en el origen antes de generar el SQL.
 | `equipment` | text null | Equipamiento requerido (mancuerna, barra, peso corporal) |
 | `instructions` | text null | Instrucciones en espanol, tomadas de `instructions.es` |
 | `image_url` | text null | Vacio por ahora, ver 2.1 |
-| `gif_url` | text null | Vacio por ahora, ver 2.1 |
+| `gif_url` | text null | Vacio por ahora, ver 2.1. Eliminada despues (`drop_gif_url_from_exercises`) |
 
 ### 4.2 Nombres en espanol
 
