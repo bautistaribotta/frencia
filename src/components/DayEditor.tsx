@@ -13,13 +13,14 @@ import { DraggableRowList } from '@/components/DraggableRowList';
 import {
   SEMANA,
   SEMANA_NOMBRES,
-  resumenEjercicio,
+  partesResumen,
   type DayExercise,
   type TrainingDay,
 } from '@/lib/dia';
 
 import {
   Button,
+  ExerciseSummary,
   FrenciaText,
   Icon,
   radius,
@@ -95,7 +96,7 @@ export function DayEditor({
       dia.exercises.map((ex) => ({
         key: ex.uid,
         title: ex.name,
-        detail: resumenEjercicio(ex),
+        detail: <ExerciseSummary {...partesResumen(ex)} />,
       })),
     [dia.exercises],
   );

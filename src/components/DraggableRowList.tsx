@@ -60,7 +60,8 @@ function tick() {
 export interface RowData {
   key: string;
   title: string;
-  detail: string;
+  /** Texto plano, o un nodo ya armado (por ejemplo un ExerciseSummary). */
+  detail: React.ReactNode;
 }
 
 export interface DraggableRowListProps {
@@ -296,9 +297,13 @@ function Row({
             <FrenciaText role="bodySm" style={styles.name} numberOfLines={1}>
               {item.title}
             </FrenciaText>
-            <FrenciaText role="dataLabel" color={colors.textTertiary}>
-              {item.detail}
-            </FrenciaText>
+            {typeof item.detail === 'string' ? (
+              <FrenciaText role="dataLabel" color={colors.textTertiary}>
+                {item.detail}
+              </FrenciaText>
+            ) : (
+              item.detail
+            )}
           </View>
         </View>
       </GestureDetector>

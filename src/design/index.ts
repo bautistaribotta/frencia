@@ -51,6 +51,12 @@ export type { WheelPickerProps } from './components/WheelPicker';
 export { SetRow } from './components/SetRow';
 export type { SetRowProps } from './components/SetRow';
 
+// Components — log
+export { ExerciseSummary } from './components/ExerciseSummary';
+export type { ExerciseSummaryProps } from './components/ExerciseSummary';
+export { SeriesTable } from './components/SeriesTable';
+export type { SeriesTableProps, SeriesTableColumn } from './components/SeriesTable';
+
 // Components — navigation
 export { SegmentedControl } from './components/SegmentedControl';
 export type { SegmentedControlProps, SegOption } from './components/SegmentedControl';

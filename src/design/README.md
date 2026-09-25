@@ -24,6 +24,7 @@ hasta que cargan. Si creás otro root, hacé lo mismo.
 ### Componentes
 core: `Button` `IconButton` `Card` `Badge` `Tag` `Avatar` `FrenciaText`
 data: `StatTile` `MetricPill` `ProgressBar` `Stepper` `SetRow`
+log: `ExerciseSummary` `SeriesTable`
 nav: `SegmentedControl` `TabBar`
 feedback: `Switch`
 

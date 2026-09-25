@@ -74,7 +74,7 @@ export function defaultIntensity(medidor: Medidor): number {
 }
 
 export function intensityLabel(kind: Medidor, value: number): string {
-  if (kind === 'rir') return value < 0 ? 'Al fallo' : `${value} RIR`;
+  if (kind === 'rir') return value < 0 ? 'Al fallo' : `RIR ${value}`;
   return `RPE ${value}`;
 }
 
@@ -107,17 +107,33 @@ export function restLabel(seconds: number | null): string {
   return `${m}:${String(s).padStart(2, '0')}`;
 }
 
-/** Linea de resumen de un ejercicio ya agregado: "3x10 · 2 RIR · 2:00". */
-export function resumenEjercicio(ex: DayExercise): string {
-  return [
-    `${ex.sets}x${ex.reps}`,
-    intensityLabel(ex.intensityKind, ex.intensityValue),
+/** Duracion compacta para resumenes, segun el design system: "30 s",
+ *  "2 min", "1:30". */
+export function duracionCompacta(seconds: number): string {
+  if (seconds < 60) return `${seconds} s`;
+  if (seconds % 60 === 0) return `${seconds / 60} min`;
+  return restLabel(seconds);
+}
+
+/** Partes del resumen de un ejercicio ya agregado, para ExerciseSummary. */
+export function partesResumen(ex: DayExercise): {
+  volume: string;
+  intensity: string;
+  rest: string | null;
+} {
+  return {
+    volume: `${ex.sets}x${ex.reps}`,
+    intensity: intensityLabel(ex.intensityKind, ex.intensityValue),
     // Sin descanso no suma nada al resumen: se omite en vez de ocupar una
     // linea con la ausencia del dato.
-    ex.restSeconds === null ? null : restLabel(ex.restSeconds),
-  ]
-    .filter(Boolean)
-    .join(' · ');
+    rest: ex.restSeconds === null ? null : duracionCompacta(ex.restSeconds),
+  };
+}
+
+/** Linea de resumen en texto plano: "3x10 · RIR 2 · 2 min". */
+export function resumenEjercicio(ex: DayExercise): string {
+  const { volume, intensity, rest } = partesResumen(ex);
+  return [volume, intensity, rest].filter(Boolean).join(' · ');
 }
 
 /**
