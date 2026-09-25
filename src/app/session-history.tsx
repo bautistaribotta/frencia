@@ -3,12 +3,13 @@
    actual ni ofrecer controles que puedan cambiar un registro historico. */
 
 import React, { useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, SectionList, StyleSheet, View } from 'react-native';
+import { SectionList, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 
 import { useProfile } from '@/contexts/profile';
 import { useSession } from '@/contexts/session';
+import { CargaCentrada } from '@/components/CargaCentrada';
 import { mostrarPeso } from '@/lib/peso';
 import {
   cargarDetalleSesion,
@@ -144,12 +145,7 @@ export default function SessionHistoryScreen() {
           </Button>
         </View>
       ) : !sesion ? (
-        <View style={styles.centro} accessibilityLiveRegion="polite">
-          <ActivityIndicator color={colors.accent} />
-          <FrenciaText role="bodySm" color={colors.textSecondary}>
-            Cargando entrenamiento…
-          </FrenciaText>
-        </View>
+        <CargaCentrada texto="Cargando entrenamiento…" />
       ) : (
         <SectionList<SerieRealizada, SeccionEjercicio>
           key={`${userId}:${sessionId}`}

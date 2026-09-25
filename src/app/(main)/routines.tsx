@@ -26,6 +26,7 @@ import { crearRutinas } from '@/lib/rutinas-store';
 import { useSession } from '@/contexts/session';
 import { useToast } from '@/contexts/toast';
 import { SwipeableRow } from '@/components/SwipeableRow';
+import { CargaCentrada } from '@/components/CargaCentrada';
 import { useVolverArribaAlRetocar } from '@/lib/volver-arriba';
 
 import {
@@ -167,6 +168,21 @@ export default function RoutinesScreen() {
     </SwipeableRow>
   );
 
+  // Primera lectura: la carga ocupa la pantalla, como en el detalle de un
+  // entrenamiento. El titulo queda en el mismo lugar que tendra en la lista.
+  if (!loaded && error !== 'inicio') {
+    return (
+      <SafeAreaView style={styles.safe} edges={['top']}>
+        <View style={styles.tituloCarga}>
+          <FrenciaText role="dataLabel" color={colors.textTertiary}>
+            Rutinas
+          </FrenciaText>
+        </View>
+        <CargaCentrada texto="Cargando rutinas…" />
+      </SafeAreaView>
+    );
+  }
+
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
       <FlatList
@@ -246,11 +262,11 @@ export default function RoutinesScreen() {
         ItemSeparatorComponent={() => <View style={styles.separador} />}
         ListFooterComponent={
           <View style={styles.footer}>
-            {cargando !== null && (!loaded || cargando === 'mas') ? (
+            {cargando === 'mas' ? (
               <View style={styles.feedback} accessibilityLiveRegion="polite">
                 <ActivityIndicator color={colors.accent} />
                 <FrenciaText role="bodySm" color={colors.textSecondary}>
-                  {cargando === 'mas' ? 'Cargando más rutinas…' : 'Cargando rutinas…'}
+                  Cargando más rutinas…
                 </FrenciaText>
               </View>
             ) : error === 'mas' ? (
@@ -279,6 +295,7 @@ const makeStyles = (colors: Palette) =>
     // Mismo aire que tenia el ScrollView entre bloques; el paddingBottom separa
     // el titulo "Anteriores" de la primera tarjeta.
     header: { gap: space[6], paddingBottom: space[3] },
+    tituloCarga: { paddingHorizontal: spacing.padScreen, paddingTop: space[7] },
     centerText: { textAlign: 'center' },
     feedback: { alignItems: 'center', gap: space[4] },
     error: {

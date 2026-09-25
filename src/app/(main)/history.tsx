@@ -13,6 +13,7 @@ import { useFocusEffect, useRouter } from 'expo-router';
 import { useSession } from '@/contexts/session';
 import { useToast } from '@/contexts/toast';
 import { SwipeableRow } from '@/components/SwipeableRow';
+import { CargaCentrada } from '@/components/CargaCentrada';
 import { eliminarSesion, haceCuanto, type SesionTerminada } from '@/lib/session';
 import { agruparHistorial, type MesHistorial } from '@/lib/history';
 import { crearHistorial } from '@/lib/history-store';
@@ -127,6 +128,21 @@ export default function HistoryScreen() {
     }
   }
 
+  // Primera lectura: la carga ocupa la pantalla, como en el detalle de un
+  // entrenamiento. El titulo queda en el mismo lugar que tendra en la lista.
+  if (!loaded && error !== 'inicio') {
+    return (
+      <SafeAreaView style={styles.safe} edges={['top']}>
+        <View style={styles.tituloCarga}>
+          <FrenciaText role="dataLabel" color={colors.textTertiary}>
+            Historial
+          </FrenciaText>
+        </View>
+        <CargaCentrada texto="Cargando historial…" />
+      </SafeAreaView>
+    );
+  }
+
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
       <SectionList
@@ -239,11 +255,11 @@ export default function HistoryScreen() {
         }
         ListFooterComponent={
           <View style={styles.footer}>
-            {cargando !== null && (!loaded || cargando === 'mas') ? (
+            {cargando === 'mas' ? (
               <View style={styles.feedback} accessibilityLiveRegion="polite">
                 <ActivityIndicator color={colors.accent} />
                 <FrenciaText role="bodySm" color={colors.textSecondary}>
-                  {cargando === 'mas' ? 'Cargando más entrenamientos…' : 'Cargando historial…'}
+                  Cargando más entrenamientos…
                 </FrenciaText>
               </View>
             ) : error === 'mas' ? (
@@ -270,6 +286,7 @@ const makeStyles = (colors: Palette) =>
       paddingBottom: space[12],
     },
     header: { paddingHorizontal: space[1], paddingBottom: space[6] },
+    tituloCarga: { paddingHorizontal: spacing.padScreen + space[1], paddingTop: space[7] },
     feedback: { alignItems: 'center', gap: space[4] },
     error: {
       alignItems: 'center', gap: space[4], padding: spacing.padCard,

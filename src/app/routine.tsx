@@ -8,13 +8,14 @@
    hace desde el home; aca se mira y se corrige el plan. */
 
 import React, { useCallback, useState } from 'react';
-import { ActivityIndicator, Alert, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { Alert, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 
 import { SEMANA_CORTA } from '@/lib/dia';
 import { cargarRutina, eliminarRutina, fechaCorta, type RutinaDetalle } from '@/lib/rutinas';
 import { useToast } from '@/contexts/toast';
+import { CargaCentrada } from '@/components/CargaCentrada';
 
 import {
   Badge,
@@ -118,9 +119,7 @@ export default function RoutineScreen() {
       </View>
 
       {cargando ? (
-        <View style={styles.centro}>
-          <ActivityIndicator color={colors.accent} />
-        </View>
+        <CargaCentrada texto="Cargando rutina…" />
       ) : !rutina ? (
         <View style={styles.centro}>
           <FrenciaText role="subtitle" style={styles.centerText}>
