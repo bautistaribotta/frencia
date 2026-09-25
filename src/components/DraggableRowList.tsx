@@ -30,6 +30,7 @@ import Animated, {
   type SharedValue,
 } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
+import { MarqueeText } from '@/components/MarqueeText';
 
 import {
   FrenciaText,
@@ -294,9 +295,7 @@ function Row({
             <Icon name="grip-vertical" size={18} color={colors.textTertiary} />
           )}
           <View style={styles.info}>
-            <FrenciaText role="bodySm" style={styles.name} numberOfLines={1}>
-              {item.title}
-            </FrenciaText>
+            <MarqueeText text={item.title} role="bodySm" style={styles.name} />
             {typeof item.detail === 'string' ? (
               <FrenciaText role="dataLabel" color={colors.textTertiary}>
                 {item.detail}

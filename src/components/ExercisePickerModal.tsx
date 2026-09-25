@@ -24,6 +24,7 @@ import {
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 
+import { MarqueeText } from '@/components/MarqueeText';
 import { useExerciseCatalog, foldText, type Exercise } from '@/lib/exercises';
 import {
   DESCANSOS,
@@ -164,9 +165,7 @@ export function ExercisePickerModal({
         style={({ pressed }) => [styles.resultRow, pressed && styles.resultRowPressed]}
       >
         <Icon name="dumbbell" size={18} color={colors.textSecondary} />
-        <FrenciaText role="bodySm" style={styles.resultName} numberOfLines={1}>
-          {item.name}
-        </FrenciaText>
+        <MarqueeText text={item.name} role="bodySm" style={styles.resultName} boxStyle={styles.nombre} />
         <Icon name="plus" size={18} color={colors.accentText} />
       </Pressable>
     ),
@@ -232,9 +231,7 @@ export function ExercisePickerModal({
 
                 <View style={styles.selectedCard}>
                   <Icon name="dumbbell" size={20} color={colors.accent} />
-                  <FrenciaText role="subtitle" style={styles.flex} numberOfLines={2}>
-                    {selected.name}
-                  </FrenciaText>
+                  <MarqueeText text={selected.name} role="subtitle" boxStyle={styles.nombre} />
                 </View>
 
                 <Stepper label="Series" value={sets} onChange={setSets} min={1} max={20} size="lg" />
@@ -396,6 +393,8 @@ const makeStyles = (colors: Palette) =>
   StyleSheet.create({
     safe: { flex: 1, backgroundColor: colors.bgApp },
     flex: { flex: 1, paddingHorizontal: spacing.padScreen, paddingVertical: space[5] },
+    // Caja del nombre dentro de una fila: ocupa lo que dejan los iconos.
+    nombre: { flex: 1, minWidth: 0 },
 
     centerText: { textAlign: 'center' },
     input: { flex: 1, fontFamily: sans.regular, fontSize: 16, color: colors.textPrimary },
@@ -469,5 +468,5 @@ const makeStyles = (colors: Palette) =>
       marginBottom: space[2],
     },
     resultRowPressed: { opacity: 0.75 },
-    resultName: { flex: 1, color: colors.textPrimary },
+    resultName: { color: colors.textPrimary },
   });

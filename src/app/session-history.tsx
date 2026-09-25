@@ -10,6 +10,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useProfile } from '@/contexts/profile';
 import { useSession } from '@/contexts/session';
 import { CargaCentrada } from '@/components/CargaCentrada';
+import { MarqueeText } from '@/components/MarqueeText';
 import { mostrarPeso } from '@/lib/peso';
 import {
   cargarDetalleSesion,
@@ -193,9 +194,7 @@ export default function SessionHistoryScreen() {
           }
           renderSectionHeader={({ section }) => (
             <View style={styles.ejercicio}>
-              <FrenciaText role="subtitle" style={styles.ejercicioNombre} accessibilityRole="header">
-                {section.name}
-              </FrenciaText>
+              <MarqueeText text={section.name} role="subtitle" boxStyle={styles.ejercicioNombre} />
               <FrenciaText role="dataLabel" color={colors.textSecondary}>
                 {section.data.length} {section.data.length === 1 ? 'serie' : 'series'}
               </FrenciaText>

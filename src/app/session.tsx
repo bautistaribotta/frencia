@@ -47,6 +47,7 @@ import {
 } from '@/lib/session';
 import { useProfile } from '@/contexts/profile';
 import { useToast } from '@/contexts/toast';
+import { MarqueeText } from '@/components/MarqueeText';
 import { RestRing } from '@/components/RestRing';
 import { SerieComparativa } from '@/components/SerieComparativa';
 
@@ -690,7 +691,7 @@ export default function SessionScreen() {
             <FrenciaText role="dataLabel" color={colors.accentText}>
               {nombreDia} · Ejercicio {nroEjercicio} de {totalEjercicios}
             </FrenciaText>
-            <FrenciaText role="title">{ejercicioActual.name}</FrenciaText>
+            <MarqueeText text={ejercicioActual.name} role="title" />
             {/* En el descanso, lo que importa es cuanto del ejercicio ya quedo
                atras. En la serie el objetivo ya no vive aca: es la primera fila
                de la grilla, al lado de lo que se hizo y de lo que se esta
@@ -826,7 +827,7 @@ export default function SessionScreen() {
       <Modal visible={menuAbierto} transparent animationType="fade" onRequestClose={() => setMenuAbierto(false)}>
         <View style={styles.menuFondo}>
           <View style={styles.menu}>
-            <FrenciaText role="subtitle">{ejercicioActual.name}</FrenciaText>
+            <MarqueeText text={ejercicioActual.name} role="subtitle" />
             <Button variant="secondary" size="lg" icon="plus" fullWidth onPress={sumarSerie}>
               Sumar una serie
             </Button>
