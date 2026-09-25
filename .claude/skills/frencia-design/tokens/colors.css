@@ -92,4 +92,81 @@
   --data-volume: var(--green-500);
   --data-intensity: var(--orange-500);
   --data-track: var(--ink-700);
+
+  /* Stage — backdrop behind device frames / canvases */
+  --stage-bg: var(--ink-950);
+}
+
+/* ============================================================
+   LIGHT THEME — "cemento": cool grey ground, white cards,
+   blunt near-black ink, forest green for action.
+   Apply with <html data-theme="light">.
+   ============================================================ */
+:root[data-theme="light"], [data-theme="light"] {
+  /* ---- Cool grey neutral scale (concrete) ---- */
+  --stone-0:   #FFFFFF;
+  --stone-50:  #F7F8F7;
+  --stone-100: #EDEFED;
+  --stone-200: #E4E7E4;   /* BASE background */
+  --stone-300: #D9DDD9;
+  --stone-400: #C3C9C3;
+  --stone-500: #9AA19A;
+  --stone-600: #737B73;
+  --stone-700: #4A524A;
+  --stone-800: #2A2F2A;
+  --stone-900: #0A0C0A;   /* primary ink */
+
+  /* Surfaces */
+  --bg-app: var(--stone-200);
+  --bg-app-deep: #D5D9D5;
+  --surface-raised: var(--stone-0);
+  --surface-card: var(--stone-0);
+  --surface-card-elevated: var(--stone-0);
+  --surface-chip: #DADEDA;
+  --surface-inset: var(--stone-300);
+
+  /* Tinted surfaces — keyed to the mid green */
+  --surface-green-soft: rgba(19, 148, 71, 0.10);
+  --surface-green-line: rgba(19, 148, 71, 0.28);
+  --surface-orange-soft: rgba(214, 74, 14, 0.10);
+  --surface-orange-line: rgba(214, 74, 14, 0.28);
+
+  /* Text */
+  --text-primary: var(--stone-900);
+  --text-secondary: var(--stone-700);
+  --text-tertiary: var(--stone-600);
+  --text-disabled: var(--stone-500);
+  --text-on-accent: #FFFFFF;           /* white sits on forest green */
+  --text-inverse: var(--stone-0);
+
+  /* Borders / dividers */
+  --border-subtle: rgba(10, 12, 10, 0.12);
+  --border-default: rgba(10, 12, 10, 0.22);
+  --border-strong: rgba(10, 12, 10, 0.40);
+  --divider: rgba(10, 12, 10, 0.10);
+
+  /* Accents — primary action (verde medio: legible sobre claro, sin vibrar) */
+  --accent: #0F8440;
+  --accent-hover: #139447;
+  --accent-press: var(--green-700);
+  --accent-text: #11793B;
+
+  /* Accents — intensity */
+  --intensity: #D64A0E;
+  --intensity-hover: #E85002;
+  --intensity-press: var(--orange-700);
+  --intensity-text: #B93D0B;
+
+  /* Data viz */
+  --data-volume: #139447;
+  --data-intensity: #D64A0E;
+  --data-track: #CDD2CD;
+
+  /* Stage */
+  --stage-bg: #9EA69E;
+
+  /* Brand glow — keyed to este tema, no al esmeralda brillante */
+  --glow-green: 0 0 0 1px rgba(15, 132, 64, 0.30);
+  --glow-green-soft: none;   /* @kind shadow */
+  --glow-orange: 0 0 0 1px rgba(214, 74, 14, 0.30);
 }

@@ -1,0 +1,85 @@
+<!-- @dsCard group="Components" viewport="1180x860" name="Registro — tipos de ejercicio" subtitle="DurationField · DistanceField · IsoTimer · RestRing · SerieComparativa (2/3/4 col) · SeriesTable · ExerciseSummary · ExerciseTypeTag" -->
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="../../styles.css">
+<style>
+body{padding:24px;margin:0}
+.g{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:24px 28px;align-items:start}
+.c{display:flex;flex-direction:column;gap:12px;min-width:0}
+.cap{font:11px var(--font-mono);letter-spacing:var(--ls-wider);text-transform:uppercase;color:var(--text-tertiary)}
+.w375{max-width:335px}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script src="../../_ds_bundle.js"></script>
+<script src="https://unpkg.com/lucide@latest"></script>
+<script src="../../ui_kits/ios_app/log-fallback.js" data-base="./"></script>
+<script type="text/babel">
+const prefs = { weight: 'kg', dist: 'km' };
+const EX = {
+  plancha: { name: 'Plancha', kind: 'isometrico', metrics: ['tiempo'] },
+  cinta: { name: 'Cinta', kind: 'cardio', metrics: ['tiempo', 'distancia'] },
+  granjero: { name: 'Paseo de granjero', kind: 'hibrido', metrics: ['peso', 'distancia'], distScale: 'corta' },
+  trineo: { name: 'Trineo por tiempo', kind: 'hibrido', metrics: ['peso', 'tiempo', 'distancia'], distScale: 'corta' },
+};
+function Demo() {
+  const { DurationField, DistanceField, IsoTimer, RestRing, SerieComparativa, SeriesTable, ExerciseSummary, ExerciseTypeTag } = window.FrenciaDesignSystem_377129;
+  const [t, setT] = React.useState(45);
+  const [tc, setTc] = React.useState(3900);
+  const [dm, setDm] = React.useState(40);
+  const [dk, setDk] = React.useState(5);
+  React.useEffect(() => { window.lucide && lucide.createIcons(); });
+  return (
+    <div className="g">
+      <div className="c">
+        <span className="cap">DurationField · isométrico ±5 s</span>
+        <DurationField label="Tiempo por serie" value={t} onChange={setT} size="lg" fullWidth />
+        <span className="cap">DurationField · cardio h:mm:ss ±1 min</span>
+        <DurationField label="Tiempo" value={tc} onChange={setTc} step={60} allowHours size="lg" fullWidth />
+        <span className="cap">DistanceField · corta (m) · larga (km)</span>
+        <DistanceField label="Distancia" value={dm} onChange={setDm} unit="m" fullWidth />
+        <DistanceField label="Distancia" value={dk} onChange={setDk} unit="km" fullWidth />
+      </div>
+      <div className="c">
+        <span className="cap">IsoTimer · contando</span>
+        <IsoTimer target={45} initialPhase="running" initialElapsed={28} />
+        <span className="cap">RestRing</span>
+        <RestRing total={90} remaining={64} next="Sigue la serie 3 de 4." />
+      </div>
+      <div className="c w375">
+        <span className="cap">SerieComparativa · 2 col</span>
+        <SerieComparativa exercise={EX.plancha} plan={{ tiempo: 45, intensity: 'RIR', intensityValue: 1 }} previous={{ tiempo: 42, intensityValue: 1 }} today={{ tiempo: 47 }} activeKey="int" prefs={prefs} />
+        <span className="cap">3 col</span>
+        <SerieComparativa exercise={EX.cinta} plan={{ tiempo: 1800, distancia: 5, intensity: 'RPE', intensityValue: 6 }} previous={{ tiempo: 1800, distancia: 4.82, intensityValue: 6 }} today={{}} activeKey="tiempo" prefs={prefs} />
+        <span className="cap">4 col · caso de estrés (no es un ejemplo pedido)</span>
+        <SerieComparativa exercise={EX.trineo} plan={{ tiempo: 30, distancia: 20, intensity: 'RPE', intensityValue: 8 }} previous={{ peso: 120, tiempo: 32, distancia: 20, intensityValue: 8.5 }} today={{ peso: 130 }} activeKey="tiempo" prefs={prefs} />
+      </div>
+      <div className="c">
+        <span className="cap">SeriesTable · historial</span>
+        <SeriesTable exercise={EX.granjero} sets={[{ peso: 32, distancia: 40 }, { peso: 36, distancia: 40 }, { peso: 36, distancia: 35 }]} prefs={prefs} />
+      </div>
+      <div className="c">
+        <span className="cap">ExerciseSummary</span>
+        <ExerciseSummary exercise={EX.plancha} plan={{ sets: 3, tiempo: 45, intensity: 'RIR', intensityValue: 1, rest: 60 }} />
+        <ExerciseSummary exercise={EX.cinta} plan={{ sets: 1, tiempo: 1800, distancia: 5, intensity: 'RPE', intensityValue: 6 }} prefs={prefs} />
+        <ExerciseSummary exercise={EX.granjero} plan={{ sets: 3, distancia: 40, rest: 90 }} />
+      </div>
+      <div className="c">
+        <span className="cap">ExerciseTypeTag · inline · chip</span>
+        <ExerciseTypeTag exercise={EX.granjero} />
+        <ExerciseTypeTag exercise={EX.cinta} variant="chip" />
+        <ExerciseTypeTag kind="fuerza" variant="chip" />
+      </div>
+    </div>
+  );
+}
+window.__frenciaLogReady.then(() => ReactDOM.createRoot(document.getElementById('root')).render(<Demo />));
+</script>
+</body>
+</html>

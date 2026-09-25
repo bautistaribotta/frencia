@@ -1,0 +1,124 @@
+<!-- @dsCard group="iOS App" viewport="1440x900" name="Tipos de ejercicio" subtitle="Catálogo, lista del día, configurar ×7, sesión, esfuerzo vs descanso, historial" -->
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Frencia · Tipos de ejercicio</title>
+<script>(function(){try{var t=localStorage.getItem('frencia-theme');document.documentElement.dataset.theme=(t==='light'||t==='dark')?t:'dark';}catch(e){document.documentElement.dataset.theme='dark';}})();</script>
+<link rel="stylesheet" href="../../styles.css">
+<style>
+html,body{margin:0}
+body{background-color:var(--stage-bg);color:var(--text-primary);font-family:var(--font-sans);padding:32px 40px 80px}
+a{color:var(--accent-text)}a:hover{color:var(--accent-hover)}
+.top{display:flex;justify-content:space-between;align-items:flex-end;gap:24px;flex-wrap:wrap;margin-bottom:28px}
+.top h1{font-family:var(--font-display);font-weight:400;text-transform:uppercase;font-size:44px;line-height:1;margin:6px 0 0;letter-spacing:var(--ls-display)}
+.sec{margin-top:40px}
+.sec h2{font:var(--fw-bold) 20px var(--font-sans);margin:0 0 4px}
+.sec p{margin:0 0 18px;font-size:14px;color:var(--text-secondary);max-width:760px;line-height:1.5}
+.row{display:flex;gap:28px;align-items:flex-start;overflow-x:auto;padding-bottom:12px}
+.ph{flex:none;display:flex;flex-direction:column;gap:10px}
+.ph__cap{font:var(--fw-semibold) 11px var(--font-mono);letter-spacing:var(--ls-wider);text-transform:uppercase;color:var(--text-secondary)}
+.ph__cap b{color:var(--text-primary)}
+.ph__dev{width:375px;border-radius:44px;background:var(--bg-app);border:1px solid var(--border-subtle);overflow:hidden;box-shadow:0 10px 30px rgba(0,0,0,.18)}
+.ph__sb{height:44px;display:flex;align-items:center;justify-content:space-between;padding:0 28px;font:var(--fw-semibold) 15px var(--font-sans);color:var(--text-primary)}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script src="../../_ds_bundle.js"></script>
+<script src="https://unpkg.com/lucide@latest"></script>
+<script src="tipos.data.js"></script>
+<script src="log-fallback.js"></script>
+<script type="text/babel" src="theme-toggle.jsx"></script>
+<script type="text/babel" src="CatalogScreen.jsx"></script>
+<script type="text/babel" src="SessionTypedScreen.jsx"></script>
+<script type="text/babel" src="HistoryDetailScreen.jsx"></script>
+<script type="text/babel" data-presets="react">
+const D = window.FRENCIA_TIPOS;
+
+function Phone({ cap, sub, children }) {
+  return (
+    <div className="ph" data-screen-label={cap}>
+      <span className="ph__cap"><b>{cap}</b>{sub ? ' · ' + sub : ''}</span>
+      <div className="ph__dev">
+        <div className="ph__sb"><span>9:41</span><span style={{ display: 'inline-flex', gap: 6 }}><i data-lucide="signal" style={{ width: 16, height: 16 }}></i><i data-lucide="battery-full" style={{ width: 18, height: 18 }}></i></span></div>
+        {children}
+      </div>
+    </div>
+  );
+}
+
+const CONFIGS = [
+  ['press', 'Fuerza', 'actual · peso + reps', 'edit'],
+  ['plancha', 'Isométrico', 'solo tiempo', 'add'],
+  ['sentIso', 'Isométrico', 'tiempo + peso', 'add'],
+  ['cinta', 'Cardio', 'tiempo + distancia · 1 serie', 'add'],
+  ['soga', 'Cardio', 'solo tiempo · 5 series', 'add'],
+  ['granjero', 'Híbrido', 'peso + distancia', 'add'],
+  ['colgado', 'Híbrido', 'peso + tiempo', 'add'],
+];
+
+function Page() {
+  const { ExerciseConfig } = window.FrenciaDesignSystem_377129;
+  const [theme, setTheme] = useTheme();
+  React.useEffect(() => { window.lucide && lucide.createIcons(); });
+  return (
+    <div key={theme}>
+      <div className="top">
+        <div><span className="frencia-label">Frencia · iOS</span><h1>Tipos de ejercicio</h1></div>
+        <ThemeToggle theme={theme} onChange={setTheme} />
+      </div>
+
+      <div className="sec">
+        <h2>Catálogo</h2>
+        <p>El tipo va con ícono y nombre, sin color propio, y al lado los datos que registra el ejercicio. El filtro seleccionado cambia su ícono por una marca y pasa a negrita, además del verde.</p>
+        <div className="row">
+          <Phone cap="Buscador" sub="todos"><CatalogScreen /></Phone>
+          <Phone cap="Buscador" sub="filtro isométrico"><CatalogScreen initialFilter="isometrico" /></Phone>
+        </div>
+      </div>
+
+      <div className="sec">
+        <h2>Lista del día</h2>
+        <p>Una línea por ejercicio: volumen · intensidad · descanso. El descanso lleva ícono de reloj para no confundirse con un tiempo de trabajo. Cardio de una sola serie no cuenta series ni muestra descanso.</p>
+        <div className="row"><Phone cap="Día 1" sub="siete tipos"><DayPlanScreen /></Phone></div>
+      </div>
+
+      <div className="sec">
+        <h2>Configurar ejercicio</h2>
+        <p>Segunda cara de ExercisePickerModal. Los campos salen de los datos del ejercicio; el peso nunca se planifica; el descanso desaparece en cardio de una sola serie (cinta) y vuelve si hay más de una (soga).</p>
+        <div className="row">
+          {CONFIGS.map(([k, t, s, mode]) => (
+            <Phone key={k} cap={t} sub={s}><ExerciseConfig exercise={D.exercises[k]} plan={D.plans[k]} mode={mode} prefs={D.prefs} /></Phone>
+          ))}
+        </div>
+      </div>
+
+      <div className="sec">
+        <h2>Sesión</h2>
+        <p>SerieComparativa arma sus columnas con los datos del ejercicio: plancha 2, cinta 3, granjero 2 (sin intensidad). La de 4 columnas está en la card de componentes. En la fila Plan el peso siempre queda en "—" porque el plan no lo dice. Las pantallas son interactivas: cargá valores y registrá.</p>
+        <div className="row">
+          <Phone cap="Plancha" sub="cronómetro listo"><SessionTypedScreen exKey="plancha" /></Phone>
+          <Phone cap="Plancha" sub="contando"><SessionTypedScreen exKey="plancha" timerPhase="running" timerElapsed={31} /></Phone>
+          <Phone cap="Cinta" sub="serie única, sin descanso"><SessionTypedScreen exKey="cinta" index="7 / 7" /></Phone>
+          <Phone cap="Paseo de granjero" sub="peso + distancia"><SessionTypedScreen exKey="granjero" index="4 / 7" /></Phone>
+          <Phone cap="Esfuerzo vs descanso" sub="IsoTimer · RestRing"><TimerCompareScreen /></Phone>
+        </div>
+      </div>
+
+      <div className="sec">
+        <h2>Historial</h2>
+        <p>Cada ejercicio conserva sus propias columnas. El volumen en kg suma solo fuerza (peso × reps); ver casos abiertos en la guía.</p>
+        <div className="row"><Phone cap="Detalle de sesión" sub="tipos mezclados"><HistoryDetailScreen /></Phone></div>
+      </div>
+    </div>
+  );
+}
+window.__frenciaLogReady.then(() => ReactDOM.createRoot(document.getElementById('root')).render(<Page />));
+</script>
+</body>
+</html>

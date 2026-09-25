@@ -4,12 +4,14 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>FRENCIA · iOS</title>
+<title>Frencia · iOS</title>
+<script>/* tema antes del primer paint: evita el flash y el color varado */(function(){try{var t=localStorage.getItem('frencia-theme');document.documentElement.dataset.theme=(t==='light'||t==='dark')?t:'dark';}catch(e){document.documentElement.dataset.theme='dark';}})();</script>
 <link rel="stylesheet" href="../../styles.css">
 <style>
   html, body { height: 100%; }
-  body { display: flex; align-items: center; justify-content: center; min-height: 100vh; padding: 24px; background: radial-gradient(120% 80% at 50% 0%, #1d1a20 0%, var(--ink-950) 70%); }
+  body { display: flex; align-items: flex-start; justify-content: center; min-height: 100vh; padding: 24px; background-color: var(--stage-bg); }
   #root { transform-origin: center; }
+  .stage { display: flex; flex-direction: column; align-items: center; gap: 18px; }
 </style>
 </head>
 <body>
@@ -23,9 +25,11 @@
 
 <script src="data.js"></script>
 <script type="text/babel" src="ios-frame.jsx"></script>
+<script type="text/babel" src="theme-toggle.jsx"></script>
 <script type="text/babel" src="HomeScreen.jsx"></script>
 <script type="text/babel" src="WorkoutLogScreen.jsx"></script>
 <script type="text/babel" src="ProgressScreen.jsx"></script>
+<script type="text/babel" src="RoutinesScreen.jsx"></script>
 <script type="text/babel" src="SessionStub.jsx"></script>
 
 <script type="text/babel" data-presets="react">
@@ -92,6 +96,7 @@ function ProfileScreen() {
 function App() {
   const [view, setView] = React.useState('tabs'); // tabs | workout | stub
   const [tab, setTab] = React.useState('home');
+  const [theme, setTheme] = useTheme();
 
   React.useEffect(() => { window.lucide && lucide.createIcons(); });
 
@@ -100,14 +105,15 @@ function App() {
   else if (view === 'stub') content = <SessionStub onDone={() => { setView('tabs'); setTab('home'); }} />;
   else if (tab === 'home') content = <HomeScreen onStart={() => setView('workout')} />;
   else if (tab === 'hist') content = <HistoryScreen />;
-  else if (tab === 'prog') content = <ProgressScreen />;
+  else if (tab === 'rutinas') content = <RoutinesScreen onStart={() => setView('workout')} />;
   else content = <ProfileScreen />;
 
   const showTabs = view === 'tabs';
 
   return (
-    <IOSDevice dark width={402} height={812}>
-      <div style={{ position: 'relative', minHeight: '100%' }}>
+    <div className="stage">
+    <IOSDevice key={theme} dark={theme === 'dark'} width={402} height={812}>
+      <div style={{ position: 'relative', minHeight: '100%', background: 'var(--bg-app)' }}>
         {content}
         {showTabs ? (
           <div style={{ position: 'absolute', left: 0, right: 0, bottom: 0, zIndex: 40 }}>
@@ -115,7 +121,7 @@ function App() {
               items={[
                 { value: 'home', label: 'Hoy', icon: 'home' },
                 { value: 'hist', label: 'Historial', icon: 'calendar' },
-                { value: 'prog', label: 'Progreso', icon: 'trending-up' },
+                { value: 'rutinas', label: 'Rutinas', icon: 'list' },
                 { value: 'perfil', label: 'Perfil', icon: 'user' },
               ]}
               fab={{ icon: 'play', label: 'Empezar', onClick: () => setView('workout') }} />
@@ -123,6 +129,8 @@ function App() {
         ) : null}
       </div>
     </IOSDevice>
+    <ThemeToggle theme={theme} onChange={setTheme} />
+    </div>
   );
 }
 

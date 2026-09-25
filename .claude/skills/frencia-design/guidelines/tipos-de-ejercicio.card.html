@@ -1,0 +1,162 @@
+<!-- @dsCard group="Registro" viewport="1200x2200" name="Tipos de ejercicio — reglas" subtitle="Qué se muestra según los datos, formatos de tiempo y distancia, uso del guion, casos abiertos" -->
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Frencia · Reglas de tipos de ejercicio</title>
+<link rel="stylesheet" href="../styles.css">
+<style>
+html,body{margin:0}
+body{background:var(--bg-app);color:var(--text-primary);font-family:var(--font-sans);padding:48px 56px 72px;box-sizing:border-box;max-width:1200px}
+a{color:var(--accent-text)}a:hover{color:var(--accent-hover)}
+h1{font-family:var(--font-display);font-weight:400;text-transform:uppercase;font-size:52px;line-height:.95;margin:8px 0 14px;letter-spacing:var(--ls-display)}
+.lede{font-size:17px;line-height:1.5;color:var(--text-secondary);max-width:720px;margin:0;text-wrap:pretty}
+.lede b{color:var(--text-primary)}
+.cap{font:var(--fw-medium) 11px var(--font-mono);letter-spacing:var(--ls-wider);text-transform:uppercase;color:var(--text-tertiary)}
+section{margin-top:44px;padding-top:26px;border-top:1px solid var(--divider)}
+h2{font:var(--fw-bold) 22px var(--font-sans);margin:6px 0 14px}
+p,li{font-size:15px;line-height:1.55;color:var(--text-secondary);text-wrap:pretty}
+p{margin:0 0 12px;max-width:780px}
+ul{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:6px;max-width:820px}
+b{color:var(--text-primary);font-weight:var(--fw-semibold)}
+code,.m{font-family:var(--font-mono);font-size:13.5px;color:var(--text-primary)}
+.int{color:var(--intensity-text);font-family:var(--font-mono);font-weight:600}
+.dash{color:var(--text-disabled);font-family:var(--font-mono)}
+table{width:100%;border-collapse:collapse;margin-top:6px}
+th{font:var(--fw-medium) 10.5px var(--font-mono);letter-spacing:var(--ls-wider);text-transform:uppercase;color:var(--text-tertiary);text-align:left;padding:0 12px 10px 0;border-bottom:1px solid var(--border-subtle)}
+td{font-size:14px;line-height:1.45;color:var(--text-secondary);padding:11px 12px 11px 0;border-bottom:1px solid var(--divider);vertical-align:top}
+td:first-child{color:var(--text-primary);font-weight:var(--fw-semibold)}
+.two{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:28px}
+.box{background:var(--surface-card);border:1px solid var(--border-subtle);border-radius:var(--radius-xl);padding:20px 22px}
+.ex{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1.4fr);gap:6px 16px;align-items:baseline}
+.ex span:nth-child(odd){font-size:14px;color:var(--text-secondary)}
+.ex span:nth-child(even){font-family:var(--font-mono);font-size:14px;color:var(--text-primary)}
+.flag{display:grid;grid-template-columns:34px minmax(0,1fr);gap:12px;padding:14px 0;border-bottom:1px solid var(--divider)}
+.flag:last-child{border-bottom:0}
+.flag__n{font:var(--fw-bold) 12px var(--font-mono);color:var(--text-primary);background:var(--surface-chip);border-radius:var(--radius-xs);height:26px;display:flex;align-items:center;justify-content:center}
+.flag b{display:block;margin-bottom:3px;font-size:15px}
+.flag p{margin:0;font-size:14px}
+</style>
+</head>
+<body>
+<span class="cap">Registro · guía</span>
+<h1>Tipos de ejercicio</h1>
+<p class="lede">Las vistas no se arman por tipo sino por <b>los datos que registra cada ejercicio</b>. Lo que el ejercicio nunca registra no tiene columna, campo ni espacio reservado. El tipo sirve para buscar, filtrar y decidir defaults; no decide qué se dibuja.</p>
+
+<section>
+<span class="cap">01</span><h2>Qué registra cada tipo</h2>
+<table>
+<tr><th>Tipo</th><th>Datos por serie</th><th>El plan prescribe</th><th>Intensidad</th><th>Ejemplos</th></tr>
+<tr><td>Fuerza</td><td>Peso · Reps</td><td>Reps</td><td>RIR o RPE, obligatoria</td><td>Press banca</td></tr>
+<tr><td>Isométrico</td><td>Tiempo, y Peso si el ejercicio lo declara</td><td>Tiempo</td><td>RIR o RPE, obligatoria</td><td>Plancha · Sentadilla isométrica con barra</td></tr>
+<tr><td>Cardio</td><td>Tiempo, y Distancia si el ejercicio la declara</td><td>Tiempo y/o Distancia</td><td>RPE opcional</td><td>Cinta · Soga</td></tr>
+<tr><td>Híbrido</td><td>Al menos dos datos, combinación libre</td><td>Los datos que no son peso</td><td>RIR o RPE opcional</td><td>Paseo de granjero · Colgado con lastre</td></tr>
+</table>
+<p style="margin-top:14px">La rutina <b>nunca prescribe peso</b>. Cuando el ejercicio registra peso, la configuración lo avisa con una nota y el peso se elige serie por serie en la sesión.</p>
+</section>
+
+<section>
+<span class="cap">02</span><h2>Columnas</h2>
+<ul>
+<li>Orden fijo: <span class="m">Peso · Reps · Tiempo · Dist. · Intensidad</span>. Cada ejercicio usa solo las que registra, siempre en ese orden.</li>
+<li>Dentro de un ejercicio las columnas no cambian entre plan, anterior, hoy e historial.</li>
+<li>La columna de intensidad existe si el plan eligió escala (RIR o RPE). Si en cardio o híbrido se eligió "Sin intensidad", no hay columna.</li>
+<li>Las unidades van en el encabezado (<span class="m">PESO kg</span>, <span class="m">DIST. m</span>), no en cada celda. Así entran 4 columnas en 375 px; desde 4 la grilla pasa a modo denso (14 px, menos padding).</li>
+<li>Los valores de intensidad van en naranja. El naranja no se usa para nada más en estas vistas.</li>
+</ul>
+</section>
+
+<section>
+<span class="cap">03</span><h2>El guion</h2>
+<p><span class="dash">—</span> significa una sola cosa: <b>no hay valor</b>. Se usa cuando el plan no lo dice (el peso en la fila Plan, siempre), cuando no hay registro anterior o cuando todavía no se cargó. Nunca significa "no aplica": lo que no aplica no tiene columna.</p>
+</section>
+
+<section class="two">
+<div>
+<span class="cap">04</span><h2>Tiempo</h2>
+<ul>
+<li><b>Grillas y campos:</b> reloj. <span class="m">m:ss</span> por debajo de una hora, <span class="m">h:mm:ss</span> desde una hora, sin cero inicial en la primera cifra: <span class="m">0:45</span>, <span class="m">30:00</span>, <span class="m">1:05:00</span>.</li>
+<li><b>Resúmenes:</b> compacto. Menos de un minuto <span class="m">45 s</span>; minutos exactos <span class="m">2 min</span>; horas <span class="m">1 h</span>, <span class="m">1 h 15 min</span>; el resto <span class="m">1:30</span>.</li>
+<li><b>Entrada:</b> los dígitos entran por la derecha, como el temporizador de iOS: 4, 5 → <span class="m">0:45</span>; 1, 3, 0 → <span class="m">1:30</span>; 9, 0 → <span class="m">1:30</span> al confirmar.</li>
+<li><b>Ajuste rápido:</b> ±5 s en isométricos e híbridos, ±1 min en cardio.</li>
+<li><b>Tope:</b> 59:59, salvo cardio, que acepta h:mm:ss.</li>
+</ul>
+</div>
+<div>
+<span class="cap">05</span><h2>Distancia</h2>
+<ul>
+<li>La escala la declara <b>el ejercicio</b>, no el valor, para que la columna no cambie de unidad.</li>
+<li><b>Corta</b> (paseo de granjero, trineo, remo ergómetro): metros, enteros, ±10 m.</li>
+<li><b>Larga</b> (cinta, bici, correr): km o mi según la preferencia del usuario, 2 decimales en grillas y campos, ±0.1.</li>
+<li>Un valor chico en escala larga sigue en km: <span class="m">0.80 km</span>, no 800 m.</li>
+<li>En resúmenes se recortan los ceros: <span class="m">5 km</span>, <span class="m">4.82 km</span>, <span class="m">40 m</span>.</li>
+<li>Los campos aceptan coma o punto.</li>
+</ul>
+</div>
+</section>
+
+<section>
+<span class="cap">06</span><h2>Resumen en la lista del día</h2>
+<p>Formato: <span class="m">[Nx]volumen · intensidad · descanso</span>. El descanso lleva ícono de reloj para no confundirse con un tiempo de trabajo. El prefijo <span class="m">Nx</span> y el descanso se omiten en el mismo caso: cardio de una sola serie.</p>
+<div class="box ex">
+<span>Press banca</span><span>4x10 · <span class="int">RIR 2</span> · 2 min</span>
+<span>Plancha</span><span>3x45 s · <span class="int">RIR 1</span> · 1 min</span>
+<span>Sentadilla isométrica con barra</span><span>4x30 s · <span class="int">RIR 2</span> · 2 min</span>
+<span>Cinta</span><span>30 min · 5 km · <span class="int">RPE 6</span></span>
+<span>Soga</span><span>5x1 min · <span class="int">RPE 8</span> · 30 s</span>
+<span>Paseo de granjero</span><span>3x40 m · 1:30</span>
+<span>Colgado en barra con lastre</span><span>3x30 s · <span class="int">RIR 1</span> · 2 min</span>
+</div>
+</section>
+
+<section class="two">
+<div>
+<span class="cap">07</span><h2>Configurar ejercicio</h2>
+<ul>
+<li>Series siempre. Después, un campo por cada dato que el plan puede prescribir: Reps (Stepper), Tiempo (DurationField), Distancia (DistanceField).</li>
+<li>Con más de una serie, el caption dice "por serie".</li>
+<li>Si registra peso: nota "El peso no va en el plan".</li>
+<li>Intensidad obligatoria: RIR / RPE. Opcional: "Sin intensidad" (o "Sin RPE" en cardio) como primera opción.</li>
+<li>Descanso: chips de 30 s a 5 min. No aparece en cardio de una sola serie; vuelve al subir las series.</li>
+<li>Abajo, el resumen tal como va a quedar en la lista del día.</li>
+</ul>
+</div>
+<div>
+<span class="cap">08</span><h2>Esfuerzo y descanso</h2>
+<table>
+<tr><th></th><th>IsoTimer</th><th>RestRing</th></tr>
+<tr><td>Mide</td><td>El esfuerzo</td><td>La pausa</td></tr>
+<tr><td>Forma</td><td>Barra con marca de objetivo</td><td>Anillo que se vacía</td></tr>
+<tr><td>Sentido</td><td>Sube desde 0:00</td><td>Baja hasta 0:00</td></tr>
+<tr><td>Color</td><td>Naranja</td><td>Verde</td></tr>
+<tr><td>Etiqueta</td><td>ESFUERZO</td><td>DESCANSO</td></tr>
+<tr><td>Resultado</td><td>Completa la duración, editable</td><td>No se registra</td></tr>
+</table>
+</div>
+</section>
+
+<section>
+<span class="cap">09</span><h2>Tipo en el catálogo</h2>
+<p>Cada fila muestra ícono y nombre del tipo, sin color propio, seguido de los datos que registra (<span class="m">Híbrido · PESO · DIST.</span>). El filtro es una fila de chips con conteo; el seleccionado cambia su ícono por una marca, pasa a negrita y toma el verde de selección, así que no depende solo del color. Íconos: fuerza <code>dumbbell</code>, isométrico <code>hourglass</code>, cardio <code>heart-pulse</code>, híbrido <code>combine</code>.</p>
+</section>
+
+<section>
+<span class="cap">10</span><h2>Casos abiertos</h2>
+<p>Casos que estas reglas no resuelven. Para poder dibujar las pantallas asumí algo en cada uno, pero hay que confirmarlo.</p>
+<div class="box" style="padding:6px 22px">
+<div class="flag"><span class="flag__n">1</span><div><b>RestRing, SerieComparativa y ExercisePickerModal no estaban en el proyecto</b><p>Los creé desde cero en <code>components/log/</code>. El descanso actual de la app era un banner con MetricPill. Si esos componentes existen en otro lado, hay que conciliar las APIs.</p></div></div>
+<div class="flag"><span class="flag__n">2</span><div><b>Ninguno de los ejemplos llega a 4 columnas</b><p>Plancha da 2 (tiempo, RIR), cinta 3 (tiempo, distancia, RPE) y paseo de granjero 2 (peso, distancia, sin intensidad). Con RIR serían 3. Para 4 hace falta un híbrido de tres datos más intensidad; lo probé con un caso inventado ("Trineo por tiempo") en la card de componentes.</p></div></div>
+<div class="flag"><span class="flag__n">3</span><div><b>Dos datos de volumen en el mismo ejercicio</b><p>En cinta (tiempo + distancia) o en un híbrido reps + tiempo, ¿el plan prescribe uno, los dos, o uno es objetivo y el otro resultado ("máximas reps en 60 s")? Asumí que se pueden cargar los dos y que hace falta al menos uno.</p></div></div>
+<div class="flag"><span class="flag__n">4</span><div><b>Nx con dos datos de volumen y varias series</b><p>"6x1 min · 200 m" no deja claro si los 200 m son por serie o en total. Hoy el prefijo aplica solo al primer dato.</p></div></div>
+<div class="flag"><span class="flag__n">5</span><div><b>RIR en ejercicios por tiempo o distancia</b><p>"Repeticiones en reserva" no se aplica tal cual a una plancha o un colgado. ¿Se lee como segundos en reserva? Mantuve la etiqueta RIR y cambié el prompt a "cuánto te quedó".</p></div></div>
+<div class="flag"><span class="flag__n">6</span><div><b>Descanso en texto plano</b><p>En pantalla el descanso lleva ícono de reloj. En contextos sin ícono (compartir, notificaciones) "3x45 s · RIR 1 · 1 min" es ambiguo. Propuesta sin aplicar: "desc. 1 min".</p></div></div>
+<div class="flag"><span class="flag__n">7</span><div><b>Distancia corta con preferencia en millas</b><p>¿Metros o yardas? Dejé metros.</p></div></div>
+<div class="flag"><span class="flag__n">8</span><div><b>Volumen de sesión y PR fuera de fuerza</b><p>No está definido si el paseo de granjero suma tonelaje (¿peso × distancia?), si hay PR de tiempo en plancha o si se suman distancias. El historial muestra kg solo de fuerza y no suma m con km.</p></div></div>
+<div class="flag"><span class="flag__n">9</span><div><b>Cronómetro en cardio</b><p>El pedido lo define solo para isométricos. En cardio el tiempo se carga a mano con DurationField. Los híbridos con tiempo (colgado con lastre) usan IsoTimer.</p></div></div>
+<div class="flag"><span class="flag__n">10</span><div><b>Peso precargado en la sesión</b><p>La carga arranca con el peso de la serie anterior y la fila Hoy lo muestra como valor. ¿Es un valor o una sugerencia que debería verse distinta hasta confirmarla?</p></div></div>
+<div class="flag"><span class="flag__n">11</span><div><b>Voz y decimales</b><p>El readme define tuteo ("Registra tu serie"); este pedido usa voseo. Las pantallas nuevas están en voseo y las existentes no se tocaron. El sistema usa punto decimal (82.5), aunque en es-AR lo habitual es la coma. Mantuve el punto y los campos aceptan los dos.</p></div></div>
+<div class="flag"><span class="flag__n">12</span><div><b>oklch</b><p>No hizo falta ningún color nuevo: todo sale de los tokens existentes, que siguen en hex. Migrarlos a oklch queda fuera de este trabajo.</p></div></div>
+</div>
+</section>
+</body>
+</html>

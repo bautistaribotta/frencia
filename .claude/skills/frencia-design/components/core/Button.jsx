@@ -8,7 +8,8 @@ const CSS = `
   border: 1px solid transparent; border-radius: var(--radius-md);
   cursor: pointer; white-space: nowrap; text-decoration: none;
   transition: transform var(--dur-fast) var(--ease-spring),
-              background var(--dur-base) var(--ease-out),
+              background-color var(--dur-base) var(--ease-out),
+              color var(--dur-base) var(--ease-out),
               box-shadow var(--dur-base) var(--ease-out),
               border-color var(--dur-base) var(--ease-out);
   -webkit-tap-highlight-color: transparent; user-select: none;

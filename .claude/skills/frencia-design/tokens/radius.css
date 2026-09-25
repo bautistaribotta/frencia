@@ -23,10 +23,10 @@
   --shadow-lg: 0 12px 32px rgba(0, 0, 0, 0.55);
   --shadow-sheet: 0 -8px 40px rgba(0, 0, 0, 0.6);
 
-  /* ---- Brand glow (active CTAs, the neon energy) ---- */
-  --glow-green: 0 0 0 1px rgba(34, 197, 94, 0.30), 0 8px 28px rgba(34, 197, 94, 0.28);
-  --glow-green-soft: 0 6px 24px rgba(34, 197, 94, 0.20);
-  --glow-orange: 0 0 0 1px rgba(255, 109, 41, 0.32), 0 8px 28px rgba(255, 109, 41, 0.30);
+  /* ---- Brand glow — halo retirado a pedido; el CTA se sostiene por color ---- */
+  --glow-green: 0 0 0 1px rgba(34, 197, 94, 0.30);
+  --glow-green-soft: none;   /* @kind shadow */
+  --glow-orange: 0 0 0 1px rgba(255, 109, 41, 0.32);
 
   /* ---- Inner / inset (data wells, progress tracks) ---- */
   --shadow-inset: inset 0 1px 2px rgba(0, 0, 0, 0.5);

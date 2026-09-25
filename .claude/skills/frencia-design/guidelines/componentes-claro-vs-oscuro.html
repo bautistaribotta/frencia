@@ -1,0 +1,100 @@
+<!-- @dsCard group="Components" viewport="1440x980" name="Componentes — claro vs oscuro" subtitle="Vista partida: botones, chips, métricas, progreso y filas de serie" -->
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Frencia · Componentes en ambos temas</title>
+<link rel="stylesheet" href="../styles.css">
+<style>
+html,body{margin:0}
+body{background:#8E948E;font-family:var(--font-sans);padding:36px;display:flex;gap:28px;align-items:stretch;min-height:100vh;box-sizing:border-box}
+.pane{flex:1;border-radius:22px;padding:30px;box-sizing:border-box;display:flex;flex-direction:column;gap:22px;background:var(--bg-app);color:var(--text-primary)}
+.tag{font:var(--text-data-label);letter-spacing:var(--ls-wider);text-transform:uppercase;color:var(--text-tertiary)}
+.group{display:flex;flex-direction:column;gap:11px}
+.label{font:var(--text-data-label);letter-spacing:var(--ls-wide);text-transform:uppercase;color:var(--text-tertiary)}
+.mount{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.stack{display:flex;flex-direction:column;gap:10px}
+</style>
+</head>
+<body>
+<div id="dark" class="pane" data-theme="dark"></div>
+<div id="light" class="pane" data-theme="light"></div>
+
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script src="../_ds_bundle.js"></script>
+<script src="https://unpkg.com/lucide@latest"></script>
+
+<script type="text/babel" data-presets="react">
+const { Button, IconButton, Badge, Tag, MetricPill, ProgressBar, StatTile, Card, Avatar, SetRow, Switch } = window.FrenciaDesignSystem_377129;
+
+function Group({ label, children }) {
+  return (
+    <div className="group">
+      <span className="label">{label}</span>
+      <div className="mount">{children}</div>
+    </div>
+  );
+}
+
+function Specimen({ theme }) {
+  return (
+    <React.Fragment>
+      <span className="tag">{theme === 'dark' ? 'Tema oscuro' : 'Tema claro'}</span>
+
+      <Group label="Botones">
+        <Button variant="primary" size="md" icon="play">Empezar</Button>
+        <Button variant="secondary" size="md">Ver rutina</Button>
+        <Button variant="ghost" size="md">Saltar</Button>
+        <Button variant="primary" size="md" disabled>Bloqueado</Button>
+      </Group>
+
+      <Group label="Controles de icono">
+        <IconButton icon="chevron-left" variant="ghost" size="md" aria-label="Volver" />
+        <IconButton icon="plus" variant="primary" size="md" aria-label="Agregar" />
+        <IconButton icon="settings" variant="secondary" size="md" aria-label="Ajustes" />
+        <Switch checked onChange={() => {}} />
+      </Group>
+
+      <Group label="Etiquetas y estados">
+        <Badge tone="green">PR nuevo</Badge>
+        <Badge tone="neutral">Día 1</Badge>
+        <Tag>Empuje</Tag>
+        <Tag>Tracción</Tag>
+        <MetricPill label="RIR" value="2" />
+      </Group>
+
+      <Group label="Datos">
+        <StatTile label="Volumen" value="12 480" unit="kg" />
+        <StatTile label="Sesiones" value="18" unit="sem" />
+      </Group>
+
+      <div className="group">
+        <span className="label">Progreso</span>
+        <div className="stack">
+          <ProgressBar value={64} />
+          <ProgressBar value={28} />
+        </div>
+      </div>
+
+      <div className="group">
+        <span className="label">Identidad y tarjeta</span>
+        <div className="mount">
+          <Avatar name="Marco Ríos" size="md" ring />
+          <Card style={{ flex: 1, minWidth: 200, padding: 16 }}>
+            <SetRow index={1} load="82.5" reps={8} rir={2} state="done" />
+            <SetRow index={2} load="82.5" reps={8} rir={2} state="pending" />
+          </Card>
+        </div>
+      </div>
+    </React.Fragment>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('dark')).render(<Specimen theme="dark" />);
+ReactDOM.createRoot(document.getElementById('light')).render(<Specimen theme="light" />);
+setInterval(() => { window.lucide && lucide.createIcons(); }, 400);
+</script>
+</body>
+</html>

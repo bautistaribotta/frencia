@@ -1,0 +1,52 @@
+<!-- @dsCard group="Type" viewport="1440x900" name="Tipografía — claro vs oscuro" subtitle="Vista partida: Anton display, Archivo UI, JetBrains Mono para datos" -->
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Frencia · Tipografía en ambos temas</title>
+<link rel="stylesheet" href="../styles.css">
+<style>
+html,body{margin:0}
+body{background:#8E948E;font-family:var(--font-sans);padding:36px;display:flex;gap:28px;align-items:stretch}
+.pane{flex:1;border-radius:22px;padding:30px;box-sizing:border-box;display:flex;flex-direction:column;gap:26px;background:var(--bg-app);color:var(--text-primary)}
+.tag{font:var(--text-data-label);letter-spacing:var(--ls-wider);text-transform:uppercase;color:var(--text-tertiary)}
+.row{display:flex;flex-direction:column;gap:7px}
+.meta{font:var(--text-data-label);letter-spacing:var(--ls-wide);text-transform:uppercase;color:var(--text-tertiary)}
+.hero{font-family:var(--font-display);font-weight:var(--fw-regular);font-size:84px;line-height:var(--lh-tight);letter-spacing:var(--ls-display);color:var(--accent-text)}
+.hero small{font:var(--fw-semibold) 22px var(--font-mono);color:var(--text-tertiary);margin-left:6px}
+.poster{font-family:var(--font-display);font-weight:var(--fw-regular);font-size:40px;line-height:.94;letter-spacing:var(--ls-display);text-transform:uppercase;color:var(--text-primary)}
+.title{font:var(--text-title);color:var(--text-primary)}
+.body{font:var(--text-body);color:var(--text-secondary);max-width:42ch;text-wrap:pretty}
+.data{display:flex;gap:10px;flex-wrap:wrap}
+.pill{font:var(--text-data);background:var(--surface-chip);border:1px solid var(--border-subtle);color:var(--text-primary);border-radius:8px;padding:8px 12px}
+hr{border:none;border-top:1px solid var(--divider);margin:0}
+</style>
+</head>
+<body>
+
+<section class="pane" data-theme="dark">
+  <span class="tag">Tema oscuro</span>
+  <div class="row"><div class="hero">82.5<small>KG</small></div><span class="meta">Anton · 84px · hero stat</span></div>
+  <hr>
+  <div class="row"><div class="poster">Del primer squat<br>a para siempre</div><span class="meta">Anton · 40px · titular</span></div>
+  <hr>
+  <div class="row"><div class="title">Rutina de hoy</div><span class="meta">Archivo Bold · 24px · title</span></div>
+  <div class="row"><p class="body">Registrá cada serie con el peso, las reps y el RIR. El historial se arma solo.</p><span class="meta">Archivo · 17px · body</span></div>
+  <hr>
+  <div class="row"><div class="data"><span class="pill">RIR 2</span><span class="pill">4 × 8</span><span class="pill">AMRAP</span></div><span class="meta">JetBrains Mono · 15px · data</span></div>
+</section>
+
+<section class="pane" data-theme="light">
+  <span class="tag">Tema claro</span>
+  <div class="row"><div class="hero">82.5<small>KG</small></div><span class="meta">Anton · 84px · hero stat</span></div>
+  <hr>
+  <div class="row"><div class="poster">Del primer squat<br>a para siempre</div><span class="meta">Anton · 40px · titular</span></div>
+  <hr>
+  <div class="row"><div class="title">Rutina de hoy</div><span class="meta">Archivo Bold · 24px · title</span></div>
+  <div class="row"><p class="body">Registrá cada serie con el peso, las reps y el RIR. El historial se arma solo.</p><span class="meta">Archivo · 17px · body</span></div>
+  <hr>
+  <div class="row"><div class="data"><span class="pill">RIR 2</span><span class="pill">4 × 8</span><span class="pill">AMRAP</span></div><span class="meta">JetBrains Mono · 15px · data</span></div>
+</section>
+
+</body>
+</html>
