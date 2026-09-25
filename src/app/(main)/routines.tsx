@@ -6,20 +6,24 @@
    Todas las rutinas ocupan la misma tarjeta: lo unico que separa a la que esta
    en curso es el color. Que la activa sea mas grande la convertiria en otra
    cosa, y son todas lo mismo vistas en momentos distintos. Se entra tocando
-   la tarjeta. */
+   la tarjeta.
 
-import React, { useCallback, useRef, useState } from 'react';
-import { Alert, ScrollView, StyleSheet, View } from 'react-native';
+   La activa va siempre arriba; las anteriores se traen de a RUTINAS_PAGINA,
+   como el historial, y se pide la siguiente al llegar al final. */
+
+import React, { useCallback, useMemo, useRef, useState, useSyncExternalStore } from 'react';
+import { ActivityIndicator, Alert, FlatList, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect, useRouter } from 'expo-router';
 
 import {
   activarRutina,
-  cargarRutinas,
   eliminarRutina,
   fechaCorta,
   type RutinaResumen,
 } from '@/lib/rutinas';
+import { crearRutinas } from '@/lib/rutinas-store';
+import { useSession } from '@/contexts/session';
 import { useToast } from '@/contexts/toast';
 import { SwipeableRow } from '@/components/SwipeableRow';
 import { useVolverArribaAlRetocar } from '@/lib/volver-arriba';
@@ -51,36 +55,26 @@ export default function RoutinesScreen() {
   const colors = useColors();
   const styles = useThemedStyles(makeStyles);
   const router = useRouter();
-  const scrollRef = useRef<ScrollView>(null);
+  const { user } = useSession();
+  const scrollRef = useRef<FlatList<RutinaResumen>>(null);
   useVolverArribaAlRetocar(scrollRef);
   const { showToast } = useToast();
 
-  const [rutinas, setRutinas] = useState<RutinaResumen[]>([]);
-  const [loaded, setLoaded] = useState(false);
+  const userId = user?.id ?? null;
+  const lista = useMemo(() => crearRutinas(userId), [userId]);
+  const estado = useSyncExternalStore(lista.subscribe, lista.getSnapshot, lista.getSnapshot);
+  const { activa, anteriores, siguiente, loaded, cargando, error } = estado;
   // Evita disparar dos veces la misma accion mientras la fila vuelve a su lugar
   // y la lista se recarga.
   const [ocupada, setOcupada] = useState(false);
 
-  const recargar = useCallback(async () => {
-    const data = await cargarRutinas();
-    setRutinas(data);
-    setLoaded(true);
-  }, []);
-
   // Relee al enfocar: volver de crear o de editar tiene que verse reflejado.
+  // Despues de la primera carga la relectura es silenciosa.
   useFocusEffect(
     useCallback(() => {
-      let cancelado = false;
-      (async () => {
-        const data = await cargarRutinas();
-        if (cancelado) return;
-        setRutinas(data);
-        setLoaded(true);
-      })();
-      return () => {
-        cancelado = true;
-      };
-    }, []),
+      void lista.activar();
+      return lista.desactivar;
+    }, [lista]),
   );
 
   const abrirRutina = (id: string) => router.push({ pathname: '/routine', params: { id } });
@@ -92,7 +86,7 @@ export default function RoutinesScreen() {
     const ok = await activarRutina(rutina.id);
     if (ok) {
       showToast({ message: `${rutina.name} está en curso`, type: 'success' });
-      await recargar();
+      await lista.recargar();
     } else {
       showToast({ message: 'No pudimos activar la rutina. Proba de nuevo.', type: 'error' });
     }
@@ -120,16 +114,15 @@ export default function RoutinesScreen() {
     setOcupada(true);
     const ok = await eliminarRutina(rutina.id);
     if (ok) {
+      lista.quitar(rutina.id);
       showToast({ message: 'Rutina eliminada', type: 'success' });
-      await recargar();
     } else {
       showToast({ message: 'No pudimos eliminar la rutina. Proba de nuevo.', type: 'error' });
     }
     setOcupada(false);
   }
 
-  const activa = rutinas.find((r) => r.activa) ?? null;
-  const anteriores = rutinas.filter((r) => !r.activa);
+  const vacia = loaded && !error && !cargando && !activa && anteriores.length === 0;
 
   const tarjeta = (rutina: RutinaResumen) => (
     // Arrastrar a la derecha elimina (pide confirmacion); a la izquierda pone
@@ -176,55 +169,101 @@ export default function RoutinesScreen() {
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
-      <ScrollView ref={scrollRef} contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
-        <FrenciaText role="dataLabel" color={colors.textTertiary}>
-          Rutinas
-        </FrenciaText>
+      <FlatList
+        ref={scrollRef}
+        key={userId ?? 'sin-sesion'}
+        data={anteriores}
+        keyExtractor={(r) => r.id}
+        contentContainerStyle={styles.scroll}
+        showsVerticalScrollIndicator={false}
+        onEndReached={() => { void lista.cargarMas(); }}
+        onEndReachedThreshold={0.5}
+        ListHeaderComponent={
+          <View style={styles.header}>
+            <FrenciaText role="dataLabel" color={colors.textTertiary}>
+              Rutinas
+            </FrenciaText>
 
-        {!loaded ? null : rutinas.length === 0 ? (
-          <View style={styles.vacio}>
-            <Icon name="layers" size={26} color={colors.textTertiary} />
-            <FrenciaText role="subtitle" style={styles.centerText}>
-              Todavía no tenés rutinas
-            </FrenciaText>
-            <FrenciaText role="bodySm" color={colors.textSecondary} style={styles.vacioPara}>
-              Cuando crees una, va a aparecer acá junto con las que archives más adelante.
-            </FrenciaText>
-            <Button variant="primary" size="lg" icon="plus" onPress={crearRutina}>
-              Crear rutina
-            </Button>
-          </View>
-        ) : (
-          <>
-            {activa ? (
-              tarjeta(activa)
-            ) : (
-              <View style={styles.sinActiva}>
-                <FrenciaText role="bodySm" color={colors.textSecondary}>
-                  No tenés ninguna rutina en curso.
+            {error === 'inicio' && (
+              <View style={styles.error} accessibilityLiveRegion="polite">
+                <FrenciaText role="bodySm" style={styles.centerText}>
+                  {loaded ? 'No pudimos actualizar tus rutinas.' : 'No pudimos cargar tus rutinas.'}
                 </FrenciaText>
-                <Button variant="secondary" size="md" icon="plus" onPress={crearRutina}>
+                <FrenciaText role="bodySm" color={colors.textSecondary} style={styles.centerText}>
+                  Revisá tu conexión y probá de nuevo.
+                </FrenciaText>
+                <Button variant="secondary" onPress={() => { void lista.reintentar(); }}>Reintentar</Button>
+              </View>
+            )}
+
+            {/* Hasta tener la primera lectura no decidimos que mostrar. */}
+            {!loaded ? null : vacia ? (
+              <View style={styles.vacio}>
+                <Icon name="layers" size={26} color={colors.textTertiary} />
+                <FrenciaText role="subtitle" style={styles.centerText}>
+                  Todavía no tenés rutinas
+                </FrenciaText>
+                <FrenciaText role="bodySm" color={colors.textSecondary} style={styles.vacioPara}>
+                  Cuando crees una, va a aparecer acá junto con las que archives más adelante.
+                </FrenciaText>
+                <Button variant="primary" size="lg" icon="plus" onPress={crearRutina}>
                   Crear rutina
                 </Button>
               </View>
-            )}
+            ) : (
+              <>
+                {activa ? (
+                  tarjeta(activa)
+                ) : (
+                  <View style={styles.sinActiva}>
+                    <FrenciaText role="bodySm" color={colors.textSecondary}>
+                      No tenés ninguna rutina en curso.
+                    </FrenciaText>
+                    <Button variant="secondary" size="md" icon="plus" onPress={crearRutina}>
+                      Crear rutina
+                    </Button>
+                  </View>
+                )}
 
-            {anteriores.length > 0 && (
-              <View style={styles.anteriores}>
-                <View style={styles.seccionHeader}>
-                  <FrenciaText role="dataLabel" color={colors.textTertiary}>
-                    Anteriores
-                  </FrenciaText>
-                  <FrenciaText role="dataLabel" color={colors.textTertiary}>
-                    {anteriores.length}
-                  </FrenciaText>
-                </View>
-                <View style={styles.pila}>{anteriores.map(tarjeta)}</View>
-              </View>
+                {anteriores.length > 0 && (
+                  <View style={styles.seccionHeader}>
+                    <FrenciaText role="dataLabel" color={colors.textTertiary}>
+                      Anteriores
+                    </FrenciaText>
+                    {/* El total solo se conoce cuando no quedan paginas por traer. */}
+                    {!siguiente && (
+                      <FrenciaText role="dataLabel" color={colors.textTertiary}>
+                        {anteriores.length}
+                      </FrenciaText>
+                    )}
+                  </View>
+                )}
+              </>
             )}
-          </>
-        )}
-      </ScrollView>
+          </View>
+        }
+        renderItem={({ item }) => tarjeta(item)}
+        ItemSeparatorComponent={() => <View style={styles.separador} />}
+        ListFooterComponent={
+          <View style={styles.footer}>
+            {cargando !== null && (!loaded || cargando === 'mas') ? (
+              <View style={styles.feedback} accessibilityLiveRegion="polite">
+                <ActivityIndicator color={colors.accent} />
+                <FrenciaText role="bodySm" color={colors.textSecondary}>
+                  {cargando === 'mas' ? 'Cargando más rutinas…' : 'Cargando rutinas…'}
+                </FrenciaText>
+              </View>
+            ) : error === 'mas' ? (
+              <View style={styles.feedback} accessibilityLiveRegion="polite">
+                <FrenciaText role="bodySm" style={styles.centerText}>No pudimos cargar más rutinas.</FrenciaText>
+                <Button variant="secondary" onPress={() => { void lista.reintentar(); }}>Reintentar</Button>
+              </View>
+            ) : siguiente && !error && !cargando ? (
+              <Button variant="ghost" onPress={() => { void lista.cargarMas(); }}>Cargar más</Button>
+            ) : null}
+          </View>
+        }
+      />
     </SafeAreaView>
   );
 }
@@ -236,9 +275,18 @@ const makeStyles = (colors: Palette) =>
       paddingHorizontal: spacing.padScreen,
       paddingTop: space[7],
       paddingBottom: space[12],
-      gap: space[6],
     },
+    // Mismo aire que tenia el ScrollView entre bloques; el paddingBottom separa
+    // el titulo "Anteriores" de la primera tarjeta.
+    header: { gap: space[6], paddingBottom: space[3] },
     centerText: { textAlign: 'center' },
+    feedback: { alignItems: 'center', gap: space[4] },
+    error: {
+      alignItems: 'center', gap: space[4], padding: spacing.padCard,
+      borderRadius: radius.xl,
+      backgroundColor: colors.surfaceCard, borderColor: colors.borderSubtle, borderWidth: 1,
+    },
+    footer: { paddingVertical: space[6] },
 
     // Una sola tarjeta para todas. La activa cambia de color, no de tamanio.
     tarjeta: {
@@ -267,14 +315,13 @@ const makeStyles = (colors: Palette) =>
       borderColor: colors.borderSubtle,
     },
 
-    anteriores: { gap: space[3] },
     seccionHeader: {
       flexDirection: 'row',
       alignItems: 'center',
       justifyContent: 'space-between',
       paddingHorizontal: space[1],
     },
-    pila: { gap: space[3] },
+    separador: { height: space[3] },
 
     // Estado vacio
     vacio: {
