@@ -429,7 +429,7 @@ export default function ProfileScreen() {
               </Button>
             ) : null}
             <Button variant="ghost" size="md" fullWidth onPress={() => setShowOptions(false)}>
-              Volver atras
+              Cancelar
             </Button>
           </Pressable>
         </Pressable>
