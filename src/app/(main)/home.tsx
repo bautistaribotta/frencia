@@ -2,12 +2,13 @@
    Sin rutinas: onboarding editorial (placeholder de sesion + primeros pasos).
    Con rutinas: las lista en tarjetas con sus dias y un boton "Empezar" (que
    por ahora no inicia ninguna sesion). Las rutinas se releen cada vez que la
-   pantalla recupera el foco, asi reflejan lo recien creado en el wizard.
+   pantalla recupera el foco, asi reflejan lo recien creado en el wizard, y al
+   tirar hacia abajo desde el inicio.
    Arriba a la derecha va la racha de entrenamientos planificados cumplidos
    (ver docs/specs/racha-de-entrenamientos.md). */
 
 import React, { useCallback, useRef, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { Pressable, RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect, useRouter } from 'expo-router';
 
@@ -84,73 +85,94 @@ export default function HomeScreen() {
   const [routine, setRoutine] = useState<ActiveRoutine | null>(null);
   const [loaded, setLoaded] = useState(false);
   const [racha, setRacha] = useState<Racha | null>(null);
+  // Como en rutinas e historial: el RefreshControl solo se muestra cuando la
+  // recarga la inicio el gesto de tirar hacia abajo, no en la del foco.
+  const [refrescando, setRefrescando] = useState(false);
+  // Numera las cargas: solo la ultima publica, asi una recarga del gesto y una
+  // del foco que se pisan no dejan datos viejos.
+  const ultimaCarga = useRef(0);
+
+  // Lee la rutina activa y la racha. vigente() deja de ser verdadero si llego
+  // otra carga despues o, en la del foco, si la pantalla lo perdio.
+  const cargar = useCallback(async (vigente: () => boolean) => {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) {
+      if (vigente()) {
+        setRoutine(null);
+        setRacha(null);
+        setLoaded(true);
+      }
+      return;
+    }
+    // Solo hay una rutina activa (archived_at nulo); traemos sus dias con
+    // los weekdays y la cuenta de ejercicios en una sola consulta.
+    const { data } = await supabase
+      .from('routines')
+      .select(
+        'id, name, training_days(id, name, position, training_day_weekdays(weekday), training_day_exercises(id))',
+      )
+      .eq('user_id', user.id)
+      .is('archived_at', null)
+      .maybeSingle();
+    if (!vigente()) return;
+    setRoutine(
+      data
+        ? {
+            id: data.id,
+            name: data.name,
+            days: (data.training_days ?? [])
+              .slice()
+              .sort((a, b) => a.position - b.position)
+              .map((d) => ({
+                id: d.id,
+                name: d.name,
+                weekdays: (d.training_day_weekdays ?? [])
+                  .map((w) => w.weekday)
+                  .sort((a, b) => a - b),
+                exerciseCount: (d.training_day_exercises ?? []).length,
+              })),
+          }
+        : null,
+    );
+    setLoaded(true);
+
+    // La racha se deriva de los weekdays de la rutina activa y de las
+    // fechas con sesion terminada. Sin weekdays no hay contra que medir.
+    const weekdays = (data?.training_days ?? []).flatMap((d) =>
+      (d.training_day_weekdays ?? []).map((w) => w.weekday),
+    );
+    if (weekdays.length === 0) {
+      setRacha(null);
+      return;
+    }
+    const fechas = await cargarFechasEntrenadas(user.id);
+    if (!vigente()) return;
+    setRacha(fechas ? calcularRacha(weekdays, fechas, fechaLocal(Date.now())) : null);
+  }, []);
 
   // Relee la rutina activa al enfocar la pantalla (incluye volver del wizard).
   useFocusEffect(
     useCallback(() => {
       let cancelado = false;
-      (async () => {
-        const {
-          data: { user },
-        } = await supabase.auth.getUser();
-        if (!user) {
-          if (!cancelado) {
-            setRoutine(null);
-            setRacha(null);
-            setLoaded(true);
-          }
-          return;
-        }
-        // Solo hay una rutina activa (archived_at nulo); traemos sus dias con
-        // los weekdays y la cuenta de ejercicios en una sola consulta.
-        const { data } = await supabase
-          .from('routines')
-          .select(
-            'id, name, training_days(id, name, position, training_day_weekdays(weekday), training_day_exercises(id))',
-          )
-          .eq('user_id', user.id)
-          .is('archived_at', null)
-          .maybeSingle();
-        if (cancelado) return;
-        setRoutine(
-          data
-            ? {
-                id: data.id,
-                name: data.name,
-                days: (data.training_days ?? [])
-                  .slice()
-                  .sort((a, b) => a.position - b.position)
-                  .map((d) => ({
-                    id: d.id,
-                    name: d.name,
-                    weekdays: (d.training_day_weekdays ?? [])
-                      .map((w) => w.weekday)
-                      .sort((a, b) => a - b),
-                    exerciseCount: (d.training_day_exercises ?? []).length,
-                  })),
-              }
-            : null,
-        );
-        setLoaded(true);
-
-        // La racha se deriva de los weekdays de la rutina activa y de las
-        // fechas con sesion terminada. Sin weekdays no hay contra que medir.
-        const weekdays = (data?.training_days ?? []).flatMap((d) =>
-          (d.training_day_weekdays ?? []).map((w) => w.weekday),
-        );
-        if (weekdays.length === 0) {
-          setRacha(null);
-          return;
-        }
-        const fechas = await cargarFechasEntrenadas(user.id);
-        if (cancelado) return;
-        setRacha(fechas ? calcularRacha(weekdays, fechas, fechaLocal(Date.now())) : null);
-      })();
+      const id = ++ultimaCarga.current;
+      void cargar(() => !cancelado && id === ultimaCarga.current);
       return () => {
         cancelado = true;
       };
-    }, []),
+    }, [cargar]),
   );
+
+  async function refrescar() {
+    setRefrescando(true);
+    const id = ++ultimaCarga.current;
+    try {
+      await cargar(() => id === ultimaCarga.current);
+    } finally {
+      setRefrescando(false);
+    }
+  }
 
   // navigate y no push: el perfil es una pestania, asi que se cambia a ella en
   // vez de apilar otra copia encima.
@@ -164,6 +186,15 @@ export default function HomeScreen() {
         ref={scrollRef}
         contentContainerStyle={styles.scroll}
         showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={refrescando}
+            onRefresh={() => { void refrescar(); }}
+            tintColor={colors.accent}
+            colors={[colors.accent]}
+            progressBackgroundColor={colors.surfaceCard}
+          />
+        }
       >
         {/* Saludo */}
         <View style={styles.greeting}>
@@ -394,7 +425,10 @@ export default function HomeScreen() {
 const makeStyles = (colors: Palette) =>
   StyleSheet.create({
   safe: { flex: 1, backgroundColor: colors.bgApp },
+  // flexGrow: el contenido ocupa toda la altura aunque sea corto, asi el gesto
+  // de tirar hacia abajo se toma desde cualquier punto.
   scroll: {
+    flexGrow: 1,
     paddingHorizontal: spacing.padScreen,
     paddingTop: space[7],
     paddingBottom: space[12],
