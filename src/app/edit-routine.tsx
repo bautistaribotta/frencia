@@ -10,7 +10,7 @@
 
    Nada se toca hasta Guardar. Ver docs/specs/rutinas-y-dias.md seccion 5.6 */
 
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useLocalSearchParams } from 'expo-router';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
@@ -25,6 +25,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { useToast } from '@/contexts/toast';
 import { alerta } from '@/lib/alerta';
+import { useDescartarAlSalir } from '@/lib/descartar-al-salir';
 import { DraggableRowList } from '@/components/DraggableRowList';
 import { SEMANA_CORTA } from '@/lib/dia';
 import { cargarRutina, guardarRutina } from '@/lib/rutinas';
@@ -72,7 +73,6 @@ function firma(nombre: string, dias: DiaFila[]): string {
 export default function EditRoutineScreen() {
   const colors = useColors();
   const styles = useThemedStyles(makeStyles);
-  const router = useRouter();
   const { showToast } = useToast();
 
   const { id: routineId } = useLocalSearchParams<{ id?: string }>();
@@ -120,22 +120,14 @@ export default function EditRoutineScreen() {
   const nombreValido = nombre.trim() !== '';
   const cargada = original !== null;
 
-  const salir = useCallback(() => {
-    if (router.canGoBack()) router.back();
-    else router.replace('/routines');
-  }, [router]);
-
-  function volver() {
-    if (guardando) return;
-    if (!sucio) {
-      salir();
-      return;
-    }
-    alerta('Descartar cambios', 'Lo que editaste en esta rutina se va a perder.', [
-      { text: 'Seguir editando', style: 'cancel' },
-      { text: 'Descartar', style: 'destructive', onPress: salir },
-    ]);
-  }
+  // Pregunta antes de salir con cambios sin guardar, sea por Atras o por el
+  // gesto de volver.
+  const salir = useDescartarAlSalir({
+    sucio,
+    ocupado: guardando,
+    mensaje: 'Lo que editaste en esta rutina se va a perder.',
+    respaldo: '/routines',
+  });
 
   // --- Dias ------------------------------------------------------------------
 
@@ -213,7 +205,7 @@ export default function EditRoutineScreen() {
       message: nuevos > 0 ? 'Rutina guardada. Entrá a los días nuevos para cargarlos' : 'Rutina guardada',
       type: 'success',
     });
-    salir();
+    salir({ sinPreguntar: true });
   }
 
   const items = dias.map((d) => ({ key: d.key, title: d.name, detail: detalleDia(d) }));
@@ -225,7 +217,7 @@ export default function EditRoutineScreen() {
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
         <View style={styles.header}>
-          <Button variant="ghost" size="sm" icon="chevron-left" onPress={volver} disabled={guardando}>
+          <Button variant="ghost" size="sm" icon="chevron-left" onPress={() => salir()} disabled={guardando}>
             Atrás
           </Button>
         </View>

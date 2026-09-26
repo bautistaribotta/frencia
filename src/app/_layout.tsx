@@ -141,21 +141,23 @@ function RootNavigator() {
             fullScreenGestureEnabled: true,
           }}
         />
-        {/* Editar una rutina y editar un dia. Sin gesto de volver: hay cambios
-            sin guardar y el boton Atras es el que pregunta antes de
-            descartarlos. */}
+        {/* Editar una rutina y editar un dia. Con gesto de volver: si hay
+            cambios sin guardar, useDescartarAlSalir frena la salida y pregunta
+            antes de descartarlos, igual que el boton Atras. */}
         <Stack.Screen
           name="edit-routine"
           options={{
             animation: 'slide_from_right',
-            gestureEnabled: false,
+            gestureEnabled: true,
+            fullScreenGestureEnabled: true,
           }}
         />
         <Stack.Screen
           name="edit-day"
           options={{
             animation: 'slide_from_right',
-            gestureEnabled: false,
+            gestureEnabled: true,
+            fullScreenGestureEnabled: true,
           }}
         />
         {/* Sesion de entrenamiento. Sin gesto de volver por la misma razon que

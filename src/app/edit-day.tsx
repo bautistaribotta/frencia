@@ -1,10 +1,14 @@
 /* Frencia · Editar dia de entrenamiento.
    Misma vista que el paso 3 del wizard de creacion (DayEditor), pero cargada
    con un dia que ya existe. Se edita todo en memoria y se guarda de una:
-   nombre, dias de la semana y ejercicios. Ver docs/specs/rutinas-y-dias.md */
+   nombre, dias de la semana y ejercicios. Ver docs/specs/rutinas-y-dias.md
 
-import { useLocalSearchParams, useRouter } from 'expo-router';
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+   Abajo quedan Guardar y Cancelar. Eliminar el dia va al final del scroll:
+   es destructivo y poco frecuente, asi que se llega a proposito y no queda
+   a un toque de Guardar. */
+
+import { useLocalSearchParams } from 'expo-router';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   KeyboardAvoidingView,
@@ -19,6 +23,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useProfile } from '@/contexts/profile';
 import { useToast } from '@/contexts/toast';
 import { alerta } from '@/lib/alerta';
+import { useDescartarAlSalir } from '@/lib/descartar-al-salir';
 import { DayEditor } from '@/components/DayEditor';
 import { ExercisePickerModal } from '@/components/ExercisePickerModal';
 import {
@@ -71,7 +76,6 @@ function firma(dia: TrainingDay): string {
 export default function EditDayScreen() {
   const colors = useColors();
   const styles = useThemedStyles(makeStyles);
-  const router = useRouter();
   const { showToast } = useToast();
   const { profile } = useProfile();
   const medidor: Medidor = profile?.medidorEsfuerzo ?? 'rir';
@@ -112,24 +116,15 @@ export default function EditDayScreen() {
   const sucio = useMemo(() => (dia ? firma(dia) !== original : false), [dia, original]);
   const nombreValido = (dia?.name.trim() ?? '') !== '';
 
-  const salir = useCallback(() => {
-    if (router.canGoBack()) router.back();
-    else router.replace('/home');
-  }, [router]);
-
-  function volver() {
-    if (guardando) return;
-    if (!sucio) {
-      salir();
-      return;
-    }
-    // Salir sin guardar tira el trabajo: no hay borrador, la pantalla edita en
-    // memoria y recien escribe al confirmar.
-    alerta('Descartar cambios', 'Lo que editaste en este día se va a perder.', [
-      { text: 'Seguir editando', style: 'cancel' },
-      { text: 'Descartar', style: 'destructive', onPress: salir },
-    ]);
-  }
+  // Salir sin guardar tira el trabajo: no hay borrador, la pantalla edita en
+  // memoria y recien escribe al confirmar. El hook pregunta antes de salir,
+  // sea por Atras, Cancelar o el gesto de volver.
+  const salir = useDescartarAlSalir({
+    sucio,
+    ocupado: guardando || borrando,
+    mensaje: 'Lo que editaste en este día se va a perder.',
+    respaldo: '/home',
+  });
 
   function actualizar(patch: Partial<TrainingDay>) {
     setDia((prev) => (prev ? { ...prev, ...patch } : prev));
@@ -158,7 +153,7 @@ export default function EditDayScreen() {
 
     setGuardando(false);
     showToast({ message: 'Día actualizado', type: 'success' });
-    salir();
+    salir({ sinPreguntar: true });
   }
 
   // Borrar el dia es destructivo y no hay deshacer: la confirmacion la lleva el
@@ -195,7 +190,7 @@ export default function EditDayScreen() {
       return;
     }
     showToast({ message: 'Día eliminado', type: 'success' });
-    salir();
+    salir({ sinPreguntar: true });
   }
 
   return (
@@ -209,7 +204,7 @@ export default function EditDayScreen() {
             variant="ghost"
             size="sm"
             icon="chevron-left"
-            onPress={volver}
+            onPress={() => salir()}
             disabled={guardando || borrando}
           >
             Atrás
@@ -257,6 +252,20 @@ export default function EditDayScreen() {
                   onEditarEjercicio={abrirPicker}
                 />
               </View>
+
+              <View style={styles.zonaEliminar}>
+                <Button
+                  variant="danger"
+                  size="lg"
+                  fullWidth
+                  icon="trash-2"
+                  disabled={guardando}
+                  loading={borrando}
+                  onPress={eliminar}
+                >
+                  Eliminar día
+                </Button>
+              </View>
             </ScrollView>
 
             {/* Funde el contenido contra el fondo antes de que toque el boton
@@ -282,15 +291,14 @@ export default function EditDayScreen() {
               Guardar cambios
             </Button>
             <Button
-              variant="danger"
+              variant="secondary"
               size="lg"
               fullWidth
-              icon="trash-2"
-              disabled={guardando}
-              loading={borrando}
-              onPress={eliminar}
+              icon="x"
+              disabled={guardando || borrando}
+              onPress={() => salir()}
             >
-              Eliminar día
+              Cancelar
             </Button>
           </View>
         )}
@@ -323,6 +331,8 @@ const makeStyles = (colors: Palette) =>
     scroll: { paddingTop: space[6], paddingBottom: space[6] },
     control: { gap: space[3] },
     hint: { marginBottom: space[2], maxWidth: 320 },
+    // Separado de los ejercicios para que no se lea como parte del editor.
+    zonaEliminar: { marginTop: space[10] },
 
     // Envuelve el scroll para colgarle el degradado encima sin sacarlo de flujo.
     scrollWrap: { flex: 1 },
