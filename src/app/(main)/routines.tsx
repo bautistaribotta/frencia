@@ -9,10 +9,11 @@
    la tarjeta.
 
    La activa va siempre arriba; las anteriores se traen de a RUTINAS_PAGINA,
-   como el historial, y se pide la siguiente al llegar al final. */
+   como el historial, y se pide la siguiente al llegar al final. Tirar hacia
+   abajo desde el inicio recarga la lista. */
 
 import React, { useCallback, useMemo, useRef, useState, useSyncExternalStore } from 'react';
-import { ActivityIndicator, FlatList, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, FlatList, RefreshControl, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect, useRouter } from 'expo-router';
 
@@ -69,6 +70,13 @@ export default function RoutinesScreen() {
   // Evita disparar dos veces la misma accion mientras la fila vuelve a su lugar
   // y la lista se recarga.
   const [ocupada, setOcupada] = useState(false);
+  // Como en el historial: el RefreshControl solo se muestra cuando la recarga
+  // la inicio el gesto de tirar hacia abajo. Las recargas silenciosas (al
+  // enfocar o tras activar una rutina) no lo activan: si lo hicieran, iOS lo
+  // despliega solo y corre la lista 60pt.
+  const [refrescandoPorGesto, setRefrescandoPorGesto] = useState(false);
+  const refrescando = refrescandoPorGesto && cargando === 'inicio';
+  if (refrescandoPorGesto && cargando !== 'inicio') setRefrescandoPorGesto(false);
 
   // Relee al enfocar: volver de crear o de editar tiene que verse reflejado.
   // Despues de la primera carga la relectura es silenciosa.
@@ -195,6 +203,18 @@ export default function RoutinesScreen() {
         showsVerticalScrollIndicator={false}
         onEndReached={() => { void lista.cargarMas(); }}
         onEndReachedThreshold={0.5}
+        refreshControl={
+          <RefreshControl
+            refreshing={refrescando}
+            onRefresh={() => {
+              setRefrescandoPorGesto(true);
+              void lista.recargar();
+            }}
+            tintColor={colors.accent}
+            colors={[colors.accent]}
+            progressBackgroundColor={colors.surfaceCard}
+          />
+        }
         ListHeaderComponent={
           <View style={styles.header}>
             <FrenciaText role="dataLabel" color={colors.textTertiary}>
@@ -288,7 +308,10 @@ export default function RoutinesScreen() {
 const makeStyles = (colors: Palette) =>
   StyleSheet.create({
     safe: { flex: 1, backgroundColor: colors.bgApp },
+    // flexGrow: el contenido ocupa toda la altura aunque la lista sea corta,
+    // asi el gesto de tirar hacia abajo se toma desde cualquier punto.
     scroll: {
+      flexGrow: 1,
       paddingHorizontal: spacing.padScreen,
       paddingTop: space[7],
       paddingBottom: space[12],

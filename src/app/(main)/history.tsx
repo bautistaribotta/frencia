@@ -281,7 +281,10 @@ export default function HistoryScreen() {
 const makeStyles = (colors: Palette) =>
   StyleSheet.create({
     safe: { flex: 1, backgroundColor: colors.bgApp },
+    // flexGrow: el contenido ocupa toda la altura aunque la lista sea corta,
+    // asi el gesto de tirar hacia abajo se toma desde cualquier punto.
     scroll: {
+      flexGrow: 1,
       paddingHorizontal: spacing.padScreen,
       paddingTop: space[7],
       paddingBottom: space[12],
