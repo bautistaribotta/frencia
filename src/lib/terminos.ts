@@ -7,16 +7,17 @@
 
 import { EMAIL_CONTACTO, TITULAR, type SeccionLegal } from './legal';
 
-export const TERMINOS_VIGENCIA = '22 de septiembre de 2026';
+export const TERMINOS_VIGENCIA = '26 de septiembre de 2026';
 /** La que se guarda al aceptar. Va de la mano con TERMINOS_VIGENCIA. */
-export const TERMINOS_VERSION = '2026-09-22';
+export const TERMINOS_VERSION = '2026-09-26';
 
 export const TERMINOS: SeccionLegal[] = [
   {
     titulo: '1. Aceptación',
     bloques: [
-      'Estos Términos y Condiciones regulan el uso de la aplicación Frencia (en adelante, "Frencia" o "la app"). Al crear una cuenta, iniciar sesión con Apple o Google, o usar la app de cualquier otra forma, declarás que los leíste, los entendés y los aceptás.',
-      'Si no estás de acuerdo con alguno de estos términos, no uses la app.',
+      'Estos Términos y Condiciones regulan el uso de la aplicación Frencia (en adelante, "Frencia" o "la app").',
+      'Para usar Frencia tenés que aceptarlos de forma expresa, junto con la Política de Privacidad. Antes de empezar, la app te muestra los dos documentos y solo te deja continuar después de que abras cada uno y confirmes que los aceptás. Al hacerlo, declarás que los leíste, los entendés y los aceptás. Guardamos la versión de cada documento que aceptaste y la fecha y hora en que lo hiciste.',
+      `Si no estás de acuerdo con alguno de estos términos, no los aceptes y no uses la app. Podés cerrar sesión desde esa misma pantalla y pedirnos que eliminemos tu cuenta escribiendo a ${EMAIL_CONTACTO}.`,
     ],
   },
   {
@@ -177,7 +178,7 @@ export const TERMINOS: SeccionLegal[] = [
     titulo: '16. Cambios en estos términos',
     bloques: [
       'Podemos actualizar estos términos para reflejar cambios en la app, en la ley o en nuestra forma de trabajar. La fecha de vigencia siempre figura al principio del texto.',
-      'Si los cambios son importantes, te avisaremos dentro de la app o por email con al menos 15 días de anticipación. Si seguís usando Frencia después de que entren en vigencia, se entiende que los aceptás. Si no estás de acuerdo, podés dejar de usarla y eliminar tu cuenta.',
+      'Si los cambios son importantes, te avisaremos dentro de la app o por email con al menos 15 días de anticipación. Cuando una versión nueva entre en vigencia, la app te va a pedir que la aceptes de forma expresa para seguir usándola, y guardaremos esa nueva aceptación. Si no estás de acuerdo, podés no aceptarla, dejar de usar Frencia y pedirnos que eliminemos tu cuenta.',
     ],
   },
   {

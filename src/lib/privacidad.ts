@@ -7,9 +7,9 @@
 
 import { EMAIL_CONTACTO, TITULAR, type SeccionLegal } from './legal';
 
-export const PRIVACIDAD_VIGENCIA = '22 de septiembre de 2026';
+export const PRIVACIDAD_VIGENCIA = '26 de septiembre de 2026';
 /** La que se guarda al aceptar. Va de la mano con PRIVACIDAD_VIGENCIA. */
-export const PRIVACIDAD_VERSION = '2026-09-22';
+export const PRIVACIDAD_VERSION = '2026-09-26';
 
 export const PRIVACIDAD: SeccionLegal[] = [
   {
@@ -28,6 +28,7 @@ export const PRIVACIDAD: SeccionLegal[] = [
           'Email y contraseña, si te registrás con email. La contraseña se guarda cifrada con un algoritmo de hash y nunca la vemos en texto plano.',
           'Si iniciás sesión con Apple o Google: el nombre, el email y un identificador que ese proveedor nos comparte. Si usás "Ocultar mi email" de Apple, recibimos una dirección de reenvío y no tu email real.',
           'Nombre, apellido y nombre de usuario.',
+          'La constancia de que aceptaste los Términos y Condiciones y esta política: la versión de cada documento y la fecha y hora de la aceptación.',
         ],
       },
       'Datos de tu perfil, que son opcionales:',
@@ -35,7 +36,7 @@ export const PRIVACIDAD: SeccionLegal[] = [
         lista: [
           'Foto de perfil, si elegís subir una. La app solo accede a la foto que seleccionás, no a tu galería completa.',
           'Fecha de nacimiento, sexo, peso y altura.',
-          'Preferencias de uso: unidades de peso y altura, medidor de esfuerzo (RIR o RPE) y tema de la app.',
+          'Preferencias de uso: unidades de peso, altura y distancia (kilómetros o millas), medidor de esfuerzo (RIR o RPE) y tema de la app.',
         ],
       },
       'Datos de tu entrenamiento:',
@@ -77,6 +78,7 @@ export const PRIVACIDAD: SeccionLegal[] = [
           'Prestarte el servicio: crear y mantener tu cuenta, guardar tus rutinas y sesiones y sincronizarlas entre tus dispositivos.',
           'Calcular tus estadísticas: historial, racha, volumen, récords y progreso.',
           'Gestionar tu Suscripción y darte acceso a las funciones que incluye.',
+          'Dejar constancia de tu aceptación de los Términos y Condiciones y de esta política, y pedirte que aceptes las versiones nuevas cuando cambien.',
           'Enviarte comunicaciones del servicio: verificación de email, recuperación de contraseña, cambios en los términos o en esta política, y avisos sobre tu cuenta o tu Suscripción.',
           'Enviarte novedades y promociones de Frencia por email o notificaciones. Podés darte de baja en cualquier momento desde el mismo mensaje, desde los ajustes de notificaciones de tu dispositivo o escribiéndonos. Darte de baja no afecta las comunicaciones del servicio.',
           'Proteger la seguridad de la app, prevenir fraudes y abusos, y hacer cumplir los Términos y Condiciones.',
@@ -94,7 +96,7 @@ export const PRIVACIDAD: SeccionLegal[] = [
       'Tratamos tus datos sobre las siguientes bases legales:',
       {
         lista: [
-          'Tu consentimiento, que prestás al aceptar esta política y al cargar datos opcionales o sensibles.',
+          'Tu consentimiento, que prestás al aceptar de forma expresa esta política antes de empezar a usar la app, y al cargar datos opcionales o sensibles.',
           'La ejecución del contrato que aceptaste en los Términos y Condiciones, para prestarte el servicio.',
           'El cumplimiento de obligaciones legales.',
         ],
@@ -146,6 +148,7 @@ export const PRIVACIDAD: SeccionLegal[] = [
         lista: [
           'Mientras tu cuenta esté activa, conservamos tus datos para prestarte el servicio.',
           'Si pedís eliminar tu cuenta, queda programada para borrarse a los 30 días. Durante ese plazo podés recuperarla iniciando sesión. Pasado ese plazo, se eliminan de forma definitiva tu cuenta, tu perfil, tu foto, tus rutinas, tus sesiones y tu historial.',
+          'La constancia de tus aceptaciones de los Términos y Condiciones y de esta política se conserva mientras exista tu cuenta y se elimina junto con ella.',
           'Las copias de seguridad de nuestro proveedor pueden conservar tus datos por un plazo acotado después de la eliminación, hasta que se sobrescriben. No las usamos para ningún otro fin.',
           'Podemos conservar datos por más tiempo solo si una ley nos obliga o si son necesarios para ejercer o defendernos en un reclamo.',
           'La información agregada que no te identifica puede conservarse sin límite de tiempo.',
@@ -202,7 +205,7 @@ export const PRIVACIDAD: SeccionLegal[] = [
     titulo: '14. Cambios en esta política',
     bloques: [
       'Podemos actualizar esta política cuando cambie la app, los proveedores que usamos o la ley. La fecha de vigencia siempre figura al principio del texto.',
-      'Si los cambios son importantes, te avisaremos dentro de la app o por email con al menos 15 días de anticipación. Si un cambio implica usar tus datos para una finalidad nueva que requiera tu consentimiento, te lo pediremos antes.',
+      'Si los cambios son importantes, te avisaremos dentro de la app o por email con al menos 15 días de anticipación. Cuando una versión nueva entre en vigencia, la app te va a pedir que la aceptes de forma expresa para seguir usándola. Si un cambio implica usar tus datos para una finalidad nueva que requiera tu consentimiento, te lo pediremos antes.',
     ],
   },
   {
