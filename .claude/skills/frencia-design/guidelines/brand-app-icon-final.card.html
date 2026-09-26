@@ -1,0 +1,66 @@
+<!-- @dsCard group="Brand" viewport="1100x640" name="Icono de app — elegido" subtitle="Wordmark FREN / CIA con punto, versión clara y oscura según el tema del sistema" -->
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Frencia · Icono de app elegido</title>
+<link rel="stylesheet" href="../styles.css">
+<style>
+html,body{margin:0}
+body{background:var(--ink-950);color:var(--text-primary);font-family:var(--font-sans);padding:44px 48px 52px;box-sizing:border-box}
+header{display:flex;align-items:flex-end;justify-content:space-between;gap:24px;margin-bottom:30px;border-bottom:1px solid var(--border-subtle);padding-bottom:20px}
+h1{font-family:var(--font-display);font-weight:var(--fw-regular);text-transform:uppercase;letter-spacing:var(--ls-display);font-size:44px;line-height:1;margin:0}
+.lede{max-width:480px;font-size:14px;line-height:1.55;color:var(--text-secondary);margin:0}
+.tag{font:var(--text-data-label);letter-spacing:var(--ls-wider);text-transform:uppercase;color:var(--text-tertiary)}
+.grid{display:grid;grid-template-columns:repeat(2,1fr);gap:26px}
+.tile{background:var(--surface-card);border:1px solid var(--border-subtle);border-radius:var(--radius-xl);padding:24px;display:flex;flex-direction:column;gap:18px}
+.stage{display:flex;align-items:center;gap:22px}
+.ic{display:block;border-radius:22.5%;flex:none}
+.ic.lg{width:160px;height:160px}
+.ic.sm{width:48px;height:48px}
+.ic.xs{width:30px;height:30px}
+.sizes{display:flex;flex-direction:column;gap:12px;align-items:center;border-left:1px solid var(--divider);padding-left:22px}
+.meta{display:flex;flex-direction:column;gap:6px}
+.meta b{font-size:15px;font-weight:var(--fw-bold)}
+.meta span{font-size:12.5px;line-height:1.5;color:var(--text-tertiary)}
+.meta code{font-family:var(--font-mono);font-size:12px;color:var(--text-secondary)}
+footer{margin-top:30px;padding-top:20px;border-top:1px solid var(--border-subtle);display:grid;grid-template-columns:repeat(3,1fr);gap:26px}
+footer p{margin:0;font-size:12.5px;line-height:1.6;color:var(--text-tertiary)}
+footer b{color:var(--text-secondary);display:block;font-size:11px;letter-spacing:var(--ls-wide);text-transform:uppercase;font-family:var(--font-mono);margin-bottom:6px}
+</style>
+</head>
+<body>
+
+<header>
+  <div>
+    <span class="tag">Marca · Icono de aplicación</span>
+    <h1>Icono elegido</h1>
+  </div>
+  <p class="lede">El wordmark <b>FREN / CIA</b> en Anton con un punto del mismo color que las letras. Hay dos versiones y el sistema muestra una u otra según su apariencia. Reemplaza al icono verde con la F negra y a las seis propuestas anteriores.</p>
+</header>
+
+<div class="grid">
+  <div class="tile">
+    <div class="stage">
+      <img class="ic lg" src="../assets/app-icon-light.png" alt="Icono claro">
+      <div class="sizes"><img class="ic sm" src="../assets/app-icon-light.png" alt=""><img class="ic xs" src="../assets/app-icon-light.png" alt=""></div>
+    </div>
+    <div class="meta"><b>Claro · por defecto</b><span>Letras y punto <code>#000000</code> sobre <code>#F9F9F9</code>. Es el icono general, el de Android y el de iOS antes de la versión 18.</span></div>
+  </div>
+  <div class="tile">
+    <div class="stage">
+      <img class="ic lg" src="../assets/app-icon-dark.png" alt="Icono oscuro">
+      <div class="sizes"><img class="ic sm" src="../assets/app-icon-dark.png" alt=""><img class="ic xs" src="../assets/app-icon-dark.png" alt=""></div>
+    </div>
+    <div class="meta"><b>Oscuro</b><span>Letras y punto <code>#E8E4E9</code> sobre <code>#161317</code>. iOS 18+ lo muestra cuando el sistema está en modo oscuro.</span></div>
+  </div>
+</div>
+
+<footer>
+  <p><b>Archivos</b><code>assets/app-icon-light.png</code> y <code>assets/app-icon-dark.png</code>, 1024×1024 sin transparencia ni esquinas: iOS aplica la máscara.</p>
+  <p><b>Tema</b>Sigue la apariencia del sistema, no la preferencia de tema de la app. Android no cambia el icono según el tema y usa siempre el claro.</p>
+  <p><b>Derivados</b>El adaptive icon y el monocromo de Android, el splash claro y oscuro y el favicon salen de estos dos PNG. Si cambia el diseño, se regeneran.</p>
+</footer>
+
+</body>
+</html>
