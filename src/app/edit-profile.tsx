@@ -1,7 +1,8 @@
 /* Frencia · Editar perfil.
    Precarga los datos guardados y permite actualizarlos. Ningun campo es
-   obligatorio: el boton Guardar queda siempre disponible y los vacios se
-   persisten como null. Se abre como modal desde el perfil. */
+   obligatorio: los vacios se persisten como null. Guardar se habilita solo
+   cuando algo cambio. Salir con cambios sin guardar (Volver, Cancelar o el
+   gesto) pide confirmar antes de descartarlos. */
 
 import React, { useEffect, useState } from 'react';
 import {
@@ -16,7 +17,6 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
 
 import { supabase } from '@/lib/supabase';
 import { edadAFechaNacimiento, fechaNacimientoAEdad } from '@/lib/edad';
@@ -24,6 +24,7 @@ import { mostrarAltura } from '@/lib/altura';
 import { mostrarPeso } from '@/lib/peso';
 import { useProfile } from '@/contexts/profile';
 import { useToast } from '@/contexts/toast';
+import { useDescartarAlSalir } from '@/lib/descartar-al-salir';
 import { MeasurePicker } from '@/components/MeasurePicker';
 
 import {
@@ -48,10 +49,14 @@ const SEXO_OPTIONS = [
   { value: 'otro', label: 'Otro' },
 ];
 
+// Firma de lo que se persiste, para saber si hay cambios sin guardar.
+function firma(campos: string[]): string {
+  return JSON.stringify(campos.map((c) => c.trim()));
+}
+
 export default function EditProfileScreen() {
   const colors = useColors();
   const styles = useThemedStyles(makeStyles);
-  const router = useRouter();
   const { profile, refresh, savePreferencias } = useProfile();
   const { showToast } = useToast();
   const [nombre, setNombre] = useState('');
@@ -64,6 +69,8 @@ export default function EditProfileScreen() {
   const [errorMsg, setErrorMsg] = useState('');
   // Mientras traemos el perfil mostramos un spinner para tapar la demora inicial.
   const [cargandoPerfil, setCargandoPerfil] = useState(true);
+  // Firma de los datos tal como se cargaron. null hasta terminar la carga.
+  const [original, setOriginal] = useState<string | null>(null);
   // Rueda de altura/peso: misma experiencia que el setup inicial. `draft`
   // guarda el valor canonico (cm o kg) mientras la rueda esta abierta. La
   // unidad sale del contexto: la rueda abre en la preferida y cambiarla ahi
@@ -97,11 +104,6 @@ export default function EditProfileScreen() {
     if (!ok) showToast({ message: 'No pudimos guardar la unidad. Proba de nuevo.', type: 'error' });
   }
 
-  function goBack() {
-    if (router.canGoBack()) router.back();
-    else router.replace('/profile');
-  }
-
   // Traemos los datos ya guardados para precompletar los inputs al editar.
   useEffect(() => {
     let activo = true;
@@ -123,15 +125,23 @@ export default function EditProfileScreen() {
 
       if (!activo) return;
 
-      if (data) {
-        if (data.name != null) setNombre(data.name);
-        if (data.surname != null) setApellido(data.surname);
-        const edadCalc = fechaNacimientoAEdad(data.fecha_nacimiento);
-        if (edadCalc != null) setEdad(String(edadCalc));
-        if (data.sexo != null) setSexo(data.sexo);
-        if (data.altura != null) setAltura(String(data.altura));
-        if (data.peso != null) setPeso(String(data.peso));
-      }
+      const edadCalc = data ? fechaNacimientoAEdad(data.fecha_nacimiento) : null;
+      const cargados = [
+        data?.name ?? '',
+        data?.surname ?? '',
+        edadCalc != null ? String(edadCalc) : '',
+        data?.sexo ?? '',
+        data?.altura != null ? String(data.altura) : '',
+        data?.peso != null ? String(data.peso) : '',
+      ];
+      const [n, a, e, sx, al, p] = cargados;
+      setNombre(n);
+      setApellido(a);
+      setEdad(e);
+      setSexo(sx);
+      setAltura(al);
+      setPeso(p);
+      setOriginal(firma(cargados));
       setCargandoPerfil(false);
     }
 
@@ -151,8 +161,17 @@ export default function EditProfileScreen() {
   const alturaValida = altura.trim() === '' || (Number.isFinite(alturaNum) && alturaNum > 0);
   const pesoValida = peso.trim() === '' || (Number.isFinite(pesoNum) && pesoNum > 0);
 
-  // El boton esta siempre disponible salvo que algun dato cargado sea invalido.
-  const canSubmit = edadValida && alturaValida && pesoValida;
+  const sucio =
+    original !== null && firma([nombre, apellido, edad, sexo, altura, peso]) !== original;
+  // Guardar se habilita solo si algo cambio y lo cargado tiene formato valido.
+  const canSubmit = sucio && edadValida && alturaValida && pesoValida;
+
+  const salir = useDescartarAlSalir({
+    sucio,
+    ocupado: loading,
+    mensaje: 'Lo que editaste en tu perfil se va a perder.',
+    respaldo: '/profile',
+  });
 
   async function handleSave() {
     if (!canSubmit || loading) return;
@@ -191,14 +210,15 @@ export default function EditProfileScreen() {
     // Releemos el perfil compartido, avisamos con un toast y volvemos al perfil.
     await refresh();
     showToast({ message: 'Perfil actualizado', type: 'success' });
-    goBack();
+    salir({ sinPreguntar: true });
   }
 
   return (
     <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
       <Pressable
         hitSlop={10}
-        onPress={goBack}
+        onPress={() => salir()}
+        disabled={loading}
         accessibilityRole="button"
         accessibilityLabel="Volver"
         style={styles.backBtn}
@@ -300,6 +320,17 @@ export default function EditProfileScreen() {
               onPress={handleSave}
             >
               Guardar
+            </Button>
+            <Button
+              variant="secondary"
+              size="lg"
+              fullWidth
+              icon="x"
+              disabled={loading}
+              onPress={() => salir()}
+              style={styles.cancelar}
+            >
+              Cancelar
             </Button>
           </View>
         </ScrollView>
@@ -439,6 +470,8 @@ const makeStyles = (colors: Palette) =>
   // Form
   form: { gap: space[5] },
   heading: { marginBottom: -space[3] },
+  // El form separa bloques con gap 5; Cancelar va pegado a Guardar.
+  cancelar: { marginTop: -space[3] },
   fields: { gap: space[4], marginTop: space[2] },
   segGroup: { gap: space[2] },
   fieldGroup: { gap: space[2] },
