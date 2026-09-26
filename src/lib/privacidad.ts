@@ -1,11 +1,15 @@
 /* Frencia · Politica de Privacidad.
    Texto legal que muestra la pantalla /privacy. Tiene que reflejar lo que la
    app hace de verdad: si se suma un proveedor (analytics, reporte de errores,
-   envio de emails) o un dato nuevo, se actualiza aca y PRIVACIDAD_VIGENCIA. */
+   envio de emails) o un dato nuevo, se actualiza aca, PRIVACIDAD_VIGENCIA y
+   PRIVACIDAD_VERSION. Cambiar la version hace que la app vuelva a pedir la
+   aceptacion a todos, ver src/app/legal-consent.tsx. */
 
 import { EMAIL_CONTACTO, TITULAR, type SeccionLegal } from './legal';
 
 export const PRIVACIDAD_VIGENCIA = '22 de septiembre de 2026';
+/** La que se guarda al aceptar. Va de la mano con PRIVACIDAD_VIGENCIA. */
+export const PRIVACIDAD_VERSION = '2026-09-22';
 
 export const PRIVACIDAD: SeccionLegal[] = [
   {

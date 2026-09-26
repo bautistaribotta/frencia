@@ -1,11 +1,15 @@
 /* Frencia · Terminos y Condiciones.
    Texto legal que muestra la pantalla /terms. Vive como datos para que la
    pantalla solo se ocupe de presentarlo. Cualquier cambio de fondo implica
-   actualizar TERMINOS_VIGENCIA y avisar a los usuarios (ver seccion 16). */
+   actualizar TERMINOS_VIGENCIA y TERMINOS_VERSION y avisar a los usuarios
+   (ver seccion 16). Cambiar la version hace que la app vuelva a pedir la
+   aceptacion a todos, ver src/app/legal-consent.tsx. */
 
 import { EMAIL_CONTACTO, TITULAR, type SeccionLegal } from './legal';
 
 export const TERMINOS_VIGENCIA = '22 de septiembre de 2026';
+/** La que se guarda al aceptar. Va de la mano con TERMINOS_VIGENCIA. */
+export const TERMINOS_VERSION = '2026-09-22';
 
 export const TERMINOS: SeccionLegal[] = [
   {

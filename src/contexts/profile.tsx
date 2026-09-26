@@ -4,7 +4,9 @@
    flujo de setup). Reemplaza el prop-drilling que antes bajaba desde
    el layout raiz. Expone `refresh` para releer tras editar, `applyAvatar`
    para reflejar cambios de foto al instante y `savePreferencias` para que
-   un cambio de unidad o de medidor se vea en toda la app en el acto. */
+   un cambio de unidad o de medidor se vea en toda la app en el acto.
+   Tambien lee la ultima aceptacion de los textos legales y expone
+   `aceptarLegales` para registrar una nueva. */
 
 import React, {
   createContext,
@@ -18,6 +20,8 @@ import React, {
 import { supabase } from '@/lib/supabase';
 import { fechaNacimientoAEdad } from '@/lib/edad';
 import { signAvatarUrl } from '@/lib/avatar';
+import { TERMINOS_VERSION } from '@/lib/terminos';
+import { PRIVACIDAD_VERSION } from '@/lib/privacidad';
 import type { UnidadPeso } from '@/lib/peso';
 import type { UnidadAltura } from '@/lib/altura';
 import type { UnidadDistancia } from '@/lib/distancia';
@@ -48,6 +52,9 @@ export interface ProfileData {
   // Fecha en que pidio eliminar la cuenta. Mientras no sea null la cuenta esta
   // en periodo de gracia y el gate de auth solo deja ver /account-recovery.
   deletionRequestedAt: Date | null;
+  // Versiones de la ultima aceptacion de los Terminos y la Politica de
+  // Privacidad. null = nunca acepto. Ver public.aceptaciones_legales.
+  aceptacionLegal: { terminos: string; privacidad: string } | null;
 }
 
 // Preferencias que se cambian desde un switch o una rueda y tienen que verse
@@ -87,6 +94,10 @@ interface ProfileContextValue {
   displayName: string;
   // El usuario todavia no paso por el setup inicial (primer ingreso).
   needsOnboarding: boolean;
+  // No acepto las versiones vigentes de los Terminos y la Politica de
+  // Privacidad (nunca acepto, o cambiaron desde la ultima vez). El gate lo
+  // manda a /legal-consent antes que a cualquier otra pantalla de la app.
+  needsLegalAcceptance: boolean;
   // La lectura del perfil fallo (red, Supabase caido, consulta rota) y no hay
   // una copia previa que mostrar. No es lo mismo que una cuenta sin perfil: el
   // gate manda a /profile-error en vez de al setup, que pisaria los datos.
@@ -99,6 +110,8 @@ interface ProfileContextValue {
   // en profiles. Si la escritura falla vuelve al valor anterior y devuelve
   // false, asi el contexto nunca queda distinto de la base.
   savePreferencias: (next: Partial<Preferencias>) => Promise<boolean>;
+  // Registra la aceptacion de las versiones vigentes. Devuelve false si fallo.
+  aceptarLegales: () => Promise<boolean>;
 }
 
 const ProfileContext = createContext<ProfileContextValue>({
@@ -106,10 +119,12 @@ const ProfileContext = createContext<ProfileContextValue>({
   loading: true,
   displayName: 'Atleta',
   needsOnboarding: false,
+  needsLegalAcceptance: false,
   loadError: false,
   refresh: async () => false,
   applyAvatar: () => {},
   savePreferencias: async () => false,
+  aceptarLegales: async () => false,
 });
 
 export function ProfileProvider({ children }: { children: React.ReactNode }) {
@@ -174,8 +189,11 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
       const res = await conLimite(
         supabase
           .from('profiles')
-          .select('name, surname, username, fecha_nacimiento, sexo, altura, peso, avatar_path, avatar_seed, onboarding_completed, medidor_esfuerzo, unidad_peso, unidad_altura, unidad_distancia, deletion_requested_at')
+          .select('name, surname, username, fecha_nacimiento, sexo, altura, peso, avatar_path, avatar_seed, onboarding_completed, medidor_esfuerzo, unidad_peso, unidad_altura, unidad_distancia, deletion_requested_at, aceptaciones_legales(version_terminos, version_privacidad)')
           .eq('id', current.id)
+          // De las aceptaciones solo importa la ultima.
+          .order('aceptada_el', { referencedTable: 'aceptaciones_legales', ascending: false })
+          .limit(1, { referencedTable: 'aceptaciones_legales' })
           .maybeSingle(),
       );
       // Se paso del limite: ya se espero bastante, no se reintenta.
@@ -217,6 +235,12 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
             unidadAltura: data.unidad_altura === 'ft' ? 'ft' : 'cm',
             unidadDistancia: data.unidad_distancia === 'mi' ? 'mi' : 'km',
             deletionRequestedAt: data.deletion_requested_at ? new Date(data.deletion_requested_at) : null,
+            aceptacionLegal: data.aceptaciones_legales?.[0]
+              ? {
+                  terminos: data.aceptaciones_legales[0].version_terminos,
+                  privacidad: data.aceptaciones_legales[0].version_privacidad,
+                }
+              : null,
           }
         : null,
     );
@@ -308,7 +332,23 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
     [profile, userId],
   );
 
+  const aceptarLegales = useCallback(async (): Promise<boolean> => {
+    // La fecha y el usuario los pone la base; aca solo van las versiones.
+    const { error } = await supabase.rpc('registrar_aceptacion_legal', {
+      p_version_terminos: TERMINOS_VERSION,
+      p_version_privacidad: PRIVACIDAD_VERSION,
+    });
+    if (error) return false;
+    setProfile((prev) =>
+      prev ? { ...prev, aceptacionLegal: { terminos: TERMINOS_VERSION, privacidad: PRIVACIDAD_VERSION } } : prev,
+    );
+    return true;
+  }, []);
+
   const displayName = profile?.name?.trim() || 'Atleta';
+  const legalesVigentes =
+    profile?.aceptacionLegal?.terminos === TERMINOS_VERSION &&
+    profile.aceptacionLegal.privacidad === PRIVACIDAD_VERSION;
 
   return (
     <ProfileContext.Provider
@@ -319,10 +359,13 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
         // Sin fila de perfil es un primer ingreso. Con la lectura fallida no se
         // sabe, y mandar al setup pisaria los datos de una cuenta existente.
         needsOnboarding: profile ? !profile.onboardingCompleted : !loadError,
+        // Mismo criterio: con la lectura fallida no se sabe, y decide el error.
+        needsLegalAcceptance: profile ? !legalesVigentes : !loadError,
         loadError,
         refresh,
         applyAvatar,
         savePreferencias,
+        aceptarLegales,
       }}
     >
       {children}

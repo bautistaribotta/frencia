@@ -108,6 +108,12 @@ function RootNavigator() {
           name="account-recovery"
           options={{ animation: 'fade', gestureEnabled: false }}
         />
+        {/* Aceptacion de los textos legales. Sin gesto de volver: no hay a
+            donde volver, las salidas son aceptar o cerrar sesion. */}
+        <Stack.Screen
+          name="legal-consent"
+          options={{ animation: 'fade', gestureEnabled: false }}
+        />
         {/* No se pudo leer el perfil. Sin gesto de volver por lo mismo: las
             salidas son reintentar o volver al login. */}
         <Stack.Screen
@@ -181,14 +187,18 @@ function RootNavigator() {
      la pantalla de error, que ofrece reintentar o volver al login. Nunca al
      setup: una lectura fallida no es una cuenta nueva.
    - Con sesion y eliminacion de cuenta pendiente: siempre a la pantalla de
-     recuperacion, este donde este. Es la unica regla que fuerza ruta una vez
+     recuperacion, este donde este.
+   - Con sesion y sin aceptar las versiones vigentes de los textos legales:
+     a /legal-consent, este donde este, salvo los propios textos, que se
+     abren desde ahi. Va antes que el setup: es lo primero del primer
+     ingreso. Estas dos son las unicas reglas que fuerzan ruta una vez
      adentro.
    - Con sesion entrando a la app (grupo auth o raiz): decide entre setup
      (perfil incompleto, primer ingreso) y home. Una vez adentro no fuerza
      mas: el usuario puede saltar el setup y navegar libre. */
 function useAuthRedirect() {
   const { session, initializing } = useSession();
-  const { needsOnboarding, loading, loadError, profile } = useProfile();
+  const { needsOnboarding, needsLegalAcceptance, loading, loadError, profile } = useProfile();
   const eliminacionPendiente = profile?.deletionRequestedAt != null;
   const segments = useSegments();
   const pathname = usePathname();
@@ -220,10 +230,17 @@ function useAuthRedirect() {
       return;
     }
 
-    // Sesion activa: decidimos destino al entrar desde auth o desde la raiz, o
-    // al salir de la pantalla de error cuando el reintento anduvo.
-    if (inAuthGroup || atRoot || pathname === '/profile-error') {
+    // Sin aceptar los textos legales vigentes no se entra a la app.
+    if (needsLegalAcceptance) {
+      if (pathname !== '/legal-consent' && !esRutaPublica) router.replace('/legal-consent');
+      return;
+    }
+
+    // Sesion activa: decidimos destino al entrar desde auth o desde la raiz, al
+    // salir de la pantalla de error cuando el reintento anduvo, o al terminar
+    // de aceptar los textos legales.
+    if (inAuthGroup || atRoot || pathname === '/profile-error' || pathname === '/legal-consent') {
       router.replace(needsOnboarding ? '/setup' : '/home');
     }
-  }, [session, initializing, loading, loadError, needsOnboarding, eliminacionPendiente, segments, pathname, router]);
+  }, [session, initializing, loading, loadError, needsOnboarding, needsLegalAcceptance, eliminacionPendiente, segments, pathname, router]);
 }
