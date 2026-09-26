@@ -1,4 +1,4 @@
-/* Frencia · Hoy — pantalla principal.
+/* Frencia · Inicio — pantalla principal.
    Sin rutinas: onboarding editorial (placeholder de sesion + primeros pasos).
    Con rutinas: las lista en tarjetas con sus dias y un boton "Empezar" (que
    por ahora no inicia ninguna sesion). Las rutinas se releen cada vez que la

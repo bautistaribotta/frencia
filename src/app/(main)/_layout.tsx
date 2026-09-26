@@ -17,7 +17,7 @@ import { TabBar } from '@/design';
 // las identifica el navegador. Con cuatro tabs quedan dos de cada lado del
 // boton central y la barra sale simetrica sola.
 const TABS = [
-  { value: 'home', label: 'Hoy', icon: 'home' },
+  { value: 'home', label: 'Inicio', icon: 'home' },
   { value: 'routines', label: 'Rutinas', icon: 'layers' },
   { value: 'history', label: 'Historial', icon: 'history' },
   { value: 'profile', label: 'Perfil', icon: 'user' },
