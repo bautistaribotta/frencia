@@ -1,7 +1,7 @@
 /* Frencia · Editar perfil.
    Precarga los datos guardados y permite actualizarlos. Ningun campo es
    obligatorio: los vacios se persisten como null. Guardar se habilita solo
-   cuando algo cambio. Salir con cambios sin guardar (Volver, Cancelar o el
+   cuando algo cambio. Salir con cambios sin guardar (Atras, Cancelar o el
    gesto) pide confirmar antes de descartarlos. */
 
 import React, { useEffect, useState } from 'react';
@@ -215,19 +215,11 @@ export default function EditProfileScreen() {
 
   return (
     <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
-      <Pressable
-        hitSlop={10}
-        onPress={() => salir()}
-        disabled={loading}
-        accessibilityRole="button"
-        accessibilityLabel="Volver"
-        style={styles.backBtn}
-      >
-        <Icon name="chevron-left" size={24} color={colors.textPrimary} />
-        <FrenciaText role="bodySm" color={colors.textPrimary} style={styles.backLabel}>
-          Volver
-        </FrenciaText>
-      </Pressable>
+      <View style={styles.backBtn}>
+        <Button variant="ghost" size="sm" icon="chevron-left" onPress={() => salir()} disabled={loading}>
+          Atrás
+        </Button>
+      </View>
       {cargandoPerfil ? (
         <View style={styles.spinnerWrap}>
           <ActivityIndicator size="large" color={colors.accent} />
@@ -449,19 +441,19 @@ const makeStyles = (colors: Palette) =>
   safe: { flex: 1, backgroundColor: colors.bgApp },
   flex: { flex: 1 },
   spinnerWrap: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+  // Envuelve el Button de Atras: da el margen de pantalla y el aire.
   backBtn: {
     flexDirection: 'row',
-    alignItems: 'center',
-    gap: space[1],
-    alignSelf: 'flex-start',
     paddingHorizontal: spacing.padScreen,
-    paddingTop: space[8],
-    paddingBottom: space[2],
+    paddingTop: space[9],
+    paddingBottom: space[5],
   },
-  backLabel: { fontFamily: sans.semibold },
+  // paddingTop: aire entre Atras y el titulo cuando el form llena la pantalla
+  // y deja de estar centrado.
   scroll: {
     flexGrow: 1,
     paddingHorizontal: spacing.padScreen,
+    paddingTop: space[6],
     paddingBottom: space[8],
     justifyContent: 'center',
     gap: space[10],

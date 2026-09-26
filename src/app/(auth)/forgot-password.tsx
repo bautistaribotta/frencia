@@ -93,19 +93,12 @@ export default function ForgotPasswordScreen() {
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
-          {/* Volver */}
-          <Pressable
-            style={styles.back}
-            hitSlop={8}
-            onPress={goToLogin}
-            accessibilityRole="button"
-            accessibilityLabel="Volver"
-          >
-            <Icon name="chevron-left" size={20} color={colors.textSecondary} />
-            <FrenciaText role="bodySm" color={colors.textSecondary}>
-              Volver
-            </FrenciaText>
-          </Pressable>
+          {/* Atrás */}
+          <View style={styles.back}>
+            <Button variant="ghost" size="sm" icon="chevron-left" onPress={goToLogin}>
+              Atrás
+            </Button>
+          </View>
 
           {/* Hero */}
           <View style={styles.hero}>
@@ -238,9 +231,6 @@ const makeStyles = (colors: Palette) =>
     position: 'absolute',
     top: space[4],
     left: spacing.padScreen,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: space[1],
   },
 
   // Hero

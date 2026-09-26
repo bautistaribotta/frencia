@@ -10,6 +10,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 
 import {
+  Button,
   FrenciaText,
   Icon,
   radius,
@@ -75,18 +76,11 @@ export default function SettingsScreen() {
 
   return (
     <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
-      <Pressable
-        hitSlop={10}
-        onPress={goBack}
-        accessibilityRole="button"
-        accessibilityLabel="Volver"
-        style={styles.backBtn}
-      >
-        <Icon name="chevron-left" size={24} color={colors.textPrimary} />
-        <FrenciaText role="bodySm" color={colors.textPrimary} style={styles.backLabel}>
-          Volver
-        </FrenciaText>
-      </Pressable>
+      <View style={styles.backBtn}>
+        <Button variant="ghost" size="sm" icon="chevron-left" onPress={goBack}>
+          Atrás
+        </Button>
+      </View>
 
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
         <View style={styles.header}>
@@ -159,16 +153,13 @@ export default function SettingsScreen() {
 const makeStyles = (colors: Palette) =>
   StyleSheet.create({
   safe: { flex: 1, backgroundColor: colors.bgApp },
+  // Envuelve el Button de Atras: da el margen de pantalla y el aire.
   backBtn: {
     flexDirection: 'row',
-    alignItems: 'center',
-    gap: space[1],
-    alignSelf: 'flex-start',
     paddingHorizontal: spacing.padScreen,
     paddingTop: space[8],
     paddingBottom: space[2],
   },
-  backLabel: { fontFamily: sans.semibold },
   scroll: {
     paddingHorizontal: spacing.padScreen,
     paddingTop: space[4],
