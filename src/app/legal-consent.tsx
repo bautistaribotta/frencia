@@ -18,13 +18,13 @@ import { useFocusEffect, useRouter } from 'expo-router';
 
 import { useProfile } from '@/contexts/profile';
 import { useToast } from '@/contexts/toast';
-import { Checkbox } from '@/components/Checkbox';
 import { supabase } from '@/lib/supabase';
 import { TERMINOS_VIGENCIA } from '@/lib/terminos';
 import { PRIVACIDAD_VIGENCIA } from '@/lib/privacidad';
 
 import {
   Button,
+  Checkbox,
   FrenciaText,
   Icon,
   radius,
@@ -120,7 +120,7 @@ export default function LegalConsentScreen() {
                 accessibilityState={{ checked: leidos[doc.id], disabled: ocupada }}
               >
                 <View style={styles.fila}>
-                  <Checkbox marcado={leidos[doc.id]} />
+                  <Checkbox checked={leidos[doc.id]} />
                   <View style={styles.filaTexto}>
                     <FrenciaText role="bodySm" style={styles.filaTitulo}>
                       {doc.titulo}

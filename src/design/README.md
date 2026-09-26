@@ -26,7 +26,7 @@ core: `Button` `IconButton` `Card` `Badge` `Tag` `Avatar` `FrenciaText`
 data: `StatTile` `MetricPill` `ProgressBar` `Stepper` `SetRow`
 log: `ExerciseSummary` `SeriesTable`
 nav: `SegmentedControl` `TabBar`
-feedback: `Switch`
+feedback: `Switch` `Checkbox`
 
 ```tsx
 <Card variant="green" hairline>

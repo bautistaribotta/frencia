@@ -66,3 +66,5 @@ export type { TabBarProps, TabItem, TabFab } from './components/TabBar';
 // Components — feedback
 export { Switch } from './components/Switch';
 export type { SwitchProps } from './components/Switch';
+export { Checkbox } from './components/Checkbox';
+export type { CheckboxProps } from './components/Checkbox';
