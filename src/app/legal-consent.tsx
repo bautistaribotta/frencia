@@ -8,8 +8,10 @@
    volver de abrir ese documento, para asegurar que al menos se abrio. Con los
    dos marcados se habilita Aceptar, que registra la aceptacion con las
    versiones vigentes y la fecha del servidor (public.aceptaciones_legales).
-   Despues el gate sigue solo al setup o al inicio. La otra salida es cerrar
-   sesion. */
+   Despues el gate sigue solo al setup o al inicio. Quien no acepta puede
+   cerrar sesion o pedir la eliminacion de la cuenta, con el mismo flujo de
+   Configuracion (30 dias de gracia). Las cuentas nuevas que nunca aceptan se
+   borran solas a los 30 dias, ver public.purgar_cuentas_sin_aceptacion(). */
 
 import React, { useCallback, useRef, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
@@ -19,6 +21,7 @@ import { useFocusEffect, useRouter } from 'expo-router';
 import { useProfile } from '@/contexts/profile';
 import { useToast } from '@/contexts/toast';
 import { supabase } from '@/lib/supabase';
+import { usePedirEliminarCuenta } from '@/lib/pedir-eliminar-cuenta';
 import { TERMINOS_VIGENCIA } from '@/lib/terminos';
 import { PRIVACIDAD_VIGENCIA } from '@/lib/privacidad';
 
@@ -53,6 +56,7 @@ export default function LegalConsentScreen() {
   const [leidos, setLeidos] = useState<Record<Documento, boolean>>({ terminos: false, privacidad: false });
   const [aceptando, setAceptando] = useState(false);
   const [saliendo, setSaliendo] = useState(false);
+  const { pedir: pedirEliminarCuenta, eliminando } = usePedirEliminarCuenta();
   // Documento que se abrio y todavia no se marco: se marca al volver a esta
   // pantalla, no al tocarlo.
   const abierto = useRef<Documento | null>(null);
@@ -67,7 +71,7 @@ export default function LegalConsentScreen() {
   );
 
   const ambos = leidos.terminos && leidos.privacidad;
-  const ocupada = aceptando || saliendo;
+  const ocupada = aceptando || saliendo || eliminando;
 
   function abrir(doc: (typeof DOCUMENTOS)[number]) {
     if (ocupada) return;
@@ -148,14 +152,33 @@ export default function LegalConsentScreen() {
           size="lg"
           fullWidth
           icon="check"
-          disabled={!ambos || saliendo}
+          disabled={!ambos || saliendo || eliminando}
           loading={aceptando}
           onPress={aceptar}
         >
           Aceptar y continuar
         </Button>
-        <Button variant="ghost" size="md" fullWidth disabled={aceptando} loading={saliendo} onPress={cerrarSesion}>
+        <Button
+          variant="ghost"
+          size="md"
+          fullWidth
+          disabled={aceptando || eliminando}
+          loading={saliendo}
+          onPress={cerrarSesion}
+        >
           Cerrar sesión
+        </Button>
+        {/* Sin aceptar no se llega a Configuracion: la eliminacion tiene que
+            estar a mano aca. La confirmacion la dan los dos modales. */}
+        <Button
+          variant="ghost"
+          size="md"
+          fullWidth
+          disabled={aceptando || saliendo}
+          loading={eliminando}
+          onPress={pedirEliminarCuenta}
+        >
+          Eliminar mi cuenta
         </Button>
       </View>
     </SafeAreaView>

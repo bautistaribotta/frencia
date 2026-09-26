@@ -91,6 +91,14 @@ tabla tiene una fila por usuario.
    desmarca solo via `solicitar_eliminacion_cuenta()` y
    `cancelar_eliminacion_cuenta()`, para que la regla 4 y el `now()` del
    servidor vivan en un solo lugar.
+9. **Las cuentas que nunca aceptan los textos legales se purgan solas.** Sin
+   aceptar no se entra a la app, asi que a los 30 dias de creada la cuenta
+   solo guarda los datos del alta. `purgar_cuentas_sin_aceptacion()` (job
+   diario, 03:30 UTC) borra `auth.users` de las cuentas creadas desde el
+   26/09/2026 que no tienen ninguna fila en `aceptaciones_legales`. No toca
+   cuentas anteriores a esa fecha (nunca tuvieron la pantalla) ni a quien
+   acepto una version vieja y todavia no la vigente. No usa periodo de gracia:
+   la cuenta no tiene contenido propio que recuperar.
 
 ## 5. Migracion
 
@@ -157,12 +165,16 @@ molesta, la purga se muda a una edge function que use la API de Storage.
 
 ## 6. Flujos de UI
 
-### 6.1 Solicitar (Configuracion)
+### 6.1 Solicitar (Configuracion o aceptacion legal)
 
-1. Toca "Eliminacion de cuenta".
+El flujo vive en `usePedirEliminarCuenta()` (`src/lib/pedir-eliminar-cuenta.ts`)
+y se usa desde dos lugares: Configuracion y la pantalla `/legal-consent`, donde
+quien no acepta los textos legales no puede llegar a Configuracion.
+
+1. Toca "Eliminacion de cuenta" (o "Eliminar mi cuenta" en `/legal-consent`).
 2. Alerta paso 1. Cancelar no hace nada.
 3. Confirmar llama `solicitar_eliminacion_cuenta()`.
-   - Error: toast de error, se queda en Configuracion.
+   - Error: toast de error, se queda en la pantalla.
    - Ok: Alerta paso 2 con la fecha (`deletion_requested_at + 30 dias`,
      formateada en espaniol, ej. "21 de octubre de 2026").
 4. "Entendido" cierra la sesion. El gate del layout raiz lleva al login.
