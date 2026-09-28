@@ -75,9 +75,14 @@ function Page() {
 
       <div className="sec">
         <h2>Catálogo</h2>
-        <p>El tipo va con ícono y nombre, sin color propio, y al lado los datos que registra el ejercicio. El filtro seleccionado cambia su ícono por una marca y pasa a negrita, además del verde.</p>
+        <p>La app filtra por grupo muscular, un grupo a la vez y solo por el músculo objetivo; tocar el chip activo vuelve a Todos. Tocar una fila la despliega con el nombre completo, los músculos (el objetivo con punto), el equipamiento y el botón Añadir, que recién ahí pasa a configurar. Una sola fila desplegada a la vez.</p>
         <div className="row">
-          <Phone cap="Buscador" sub="todos"><CatalogScreen /></Phone>
+          <Phone cap="Buscador" sub="por músculo"><CatalogScreen filterBy="musculo" /></Phone>
+          <Phone cap="Buscador" sub="fila desplegada"><CatalogScreen filterBy="musculo" initialOpen="press" /></Phone>
+        </div>
+        <p>Filtro por tipo, para cuando el catálogo tenga más que fuerza. El tipo va con ícono y nombre, sin color propio, y al lado los datos que registra el ejercicio. El filtro seleccionado cambia su ícono por una marca y pasa a negrita, además del verde.</p>
+        <div className="row">
+          <Phone cap="Buscador" sub="por tipo"><CatalogScreen /></Phone>
           <Phone cap="Buscador" sub="filtro isométrico"><CatalogScreen initialFilter="isometrico" /></Phone>
         </div>
       </div>

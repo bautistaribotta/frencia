@@ -2,15 +2,15 @@
 window.FRENCIA_TIPOS = {
   prefs: { weight: 'kg', dist: 'km' },
   exercises: {
-    press:    { id: 'press',    name: 'Press banca',                     muscle: 'Pecho',            kind: 'fuerza',     metrics: ['peso', 'reps'] },
+    press:    { id: 'press',    name: 'Press banca',                     muscle: 'Pecho',            kind: 'fuerza',     metrics: ['peso', 'reps'], secondary: ['Tríceps', 'Hombros'], equipment: 'Barra' },
     plancha:  { id: 'plancha',  name: 'Plancha',                         muscle: 'Core',             kind: 'isometrico', metrics: ['tiempo'] },
     sentIso:  { id: 'sentIso',  name: 'Sentadilla isométrica con barra', muscle: 'Cuádriceps',       kind: 'isometrico', metrics: ['peso', 'tiempo'] },
     cinta:    { id: 'cinta',    name: 'Cinta',                           muscle: 'Cardio',           kind: 'cardio',     metrics: ['tiempo', 'distancia'], distScale: 'larga' },
     soga:     { id: 'soga',     name: 'Soga',                            muscle: 'Cardio',           kind: 'cardio',     metrics: ['tiempo'] },
     granjero: { id: 'granjero', name: 'Paseo de granjero',               muscle: 'Agarre · Core',    kind: 'hibrido',    metrics: ['peso', 'distancia'], distScale: 'corta' },
     colgado:  { id: 'colgado',  name: 'Colgado en barra con lastre',     muscle: 'Agarre · Espalda', kind: 'hibrido',    metrics: ['peso', 'tiempo'] },
-    sentadilla: { id: 'sentadilla', name: 'Sentadilla',                  muscle: 'Cuádriceps',       kind: 'fuerza',     metrics: ['peso', 'reps'] },
-    dominadas:  { id: 'dominadas',  name: 'Dominadas',                   muscle: 'Espalda',          kind: 'fuerza',     metrics: ['peso', 'reps'] },
+    sentadilla: { id: 'sentadilla', name: 'Sentadilla',                  muscle: 'Cuádriceps',       kind: 'fuerza',     metrics: ['peso', 'reps'], secondary: ['Glúteos', 'Femoral'], equipment: 'Barra' },
+    dominadas:  { id: 'dominadas',  name: 'Dominadas',                   muscle: 'Espalda',          kind: 'fuerza',     metrics: ['peso', 'reps'], secondary: ['Bíceps', 'Antebrazo'], equipment: 'Peso corporal' },
     hollow:     { id: 'hollow',     name: 'Hollow hold',                 muscle: 'Core',             kind: 'isometrico', metrics: ['tiempo'] },
     remo:       { id: 'remo',       name: 'Remo ergómetro',              muscle: 'Cardio',           kind: 'cardio',     metrics: ['tiempo', 'distancia'], distScale: 'corta' },
     bici:       { id: 'bici',       name: 'Bicicleta fija',              muscle: 'Cardio',           kind: 'cardio',     metrics: ['tiempo', 'distancia'], distScale: 'larga' },
