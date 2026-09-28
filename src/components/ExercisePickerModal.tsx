@@ -9,9 +9,12 @@
 
    Con `editando` se abre directo en la segunda cara, con los valores de ese
    ejercicio cargados: el ejercicio ya esta elegido, lo que se cambia son los
-   numeros. */
+   numeros.
 
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+   Cada apertura monta el contenido de cero, con su estado inicial sacado de
+   las props: el modal no arrastra lo que se configuro la vez anterior. */
+
+import React, { useCallback, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   KeyboardAvoidingView,
@@ -100,23 +103,82 @@ export function ExercisePickerModal({
   onClose,
   onSubmit,
 }: ExercisePickerModalProps) {
-  const colors = useColors();
   const styles = useThemedStyles(makeStyles);
 
-  // Catalogo completo en memoria: la busqueda filtra sobre esto, sin red.
+  // Catalogo completo en memoria: la busqueda filtra sobre esto, sin red. Vive
+  // aca y no en el contenido para no volver a pedirlo en cada apertura.
   const { exercises: catalog, loading: catalogLoading } = useExerciseCatalog();
+
+  // Cada vez que el modal se abre cambia la key del contenido, que se monta de
+  // nuevo con su estado inicial. Se detecta en el render comparando con el
+  // valor anterior, no en un efecto: asi el primer cuadro ya sale limpio, sin
+  // pintar el estado de la apertura anterior y reiniciarlo despues. Al cerrar
+  // la key no cambia, para que el contenido no se reinicie mientras baja.
+  const [apertura, setApertura] = useState(0);
+  const [visibleAntes, setVisibleAntes] = useState(visible);
+  if (visible !== visibleAntes) {
+    setVisibleAntes(visible);
+    if (visible) setApertura((n) => n + 1);
+  }
+
+  return (
+    /* El Modal se monta en una ventana nativa aparte, fuera del arbol del
+       SafeAreaProvider de la app. Sin un provider propio los insets llegan en
+       cero y el header se mete abajo del notch. */
+    <Modal visible={visible} animationType="slide" onRequestClose={onClose} statusBarTranslucent>
+      <SafeAreaProvider>
+        <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
+          <PickerContenido
+            key={apertura}
+            medidor={medidor}
+            editando={editando}
+            catalog={catalog}
+            catalogLoading={catalogLoading}
+            onClose={onClose}
+            onSubmit={onSubmit}
+          />
+        </SafeAreaView>
+      </SafeAreaProvider>
+    </Modal>
+  );
+}
+
+interface PickerContenidoProps extends Omit<ExercisePickerModalProps, 'visible'> {
+  catalog: Exercise[];
+  catalogLoading: boolean;
+}
+
+/** Las dos caras del modal. Su estado vive una sola apertura. */
+function PickerContenido({
+  medidor,
+  editando,
+  catalog,
+  catalogLoading,
+  onClose,
+  onSubmit,
+}: PickerContenidoProps) {
+  const colors = useColors();
+  const styles = useThemedStyles(makeStyles);
 
   const [query, setQuery] = useState('');
   // Slug del grupo muscular filtrado (null = todos).
   const [grupo, setGrupo] = useState<string | null>(null);
   // Fila del catalogo desplegada: una sola a la vez.
   const [abierta, setAbierta] = useState<string | null>(null);
-  // Ejercicio elegido dentro del modal (null = todavia buscando).
-  const [selected, setSelected] = useState<Elegido | null>(null);
-  const [sets, setSets] = useState(3);
-  const [reps, setReps] = useState(10);
-  const [intensityValue, setIntensityValue] = useState(() => defaultIntensity(medidor));
-  const [restSeconds, setRestSeconds] = useState<number | null>(DESCANSO_POR_DEFECTO);
+  // Ejercicio elegido dentro del modal (null = todavia buscando). Editando
+  // arranca con el ejercicio y sus valores; agregando, con los de siempre.
+  const [selected, setSelected] = useState<Elegido | null>(() =>
+    editando ? { id: editando.exerciseId, name: editando.name } : null,
+  );
+  const [sets, setSets] = useState(editando?.sets ?? 3);
+  const [reps, setReps] = useState(editando?.reps ?? 10);
+  const [intensityValue, setIntensityValue] = useState(
+    () => editando?.intensityValue ?? defaultIntensity(medidor),
+  );
+  // null es "sin descanso", un valor valido: no se puede usar ?? aca.
+  const [restSeconds, setRestSeconds] = useState<number | null>(
+    editando ? editando.restSeconds : DESCANSO_POR_DEFECTO,
+  );
 
   // Editando se respeta el medidor con el que se guardo el ejercicio, no la
   // preferencia actual del perfil. Si el usuario paso de RIR a RPE, reetiquetar
@@ -124,28 +186,6 @@ export function ExercisePickerModal({
   // centinela -1 ("al fallo") solo existe en RIR y hay que poder mostrarlo.
   const medidorActivo: Medidor = editando?.intensityKind ?? medidor;
   const opts = intensityOptions(medidorActivo);
-
-  // Cada apertura arranca de cero, o de los valores del ejercicio que se edita.
-  // El modal no arrastra lo que se configuro la vez anterior.
-  useEffect(() => {
-    if (!visible) return;
-    setQuery('');
-    setGrupo(null);
-    setAbierta(null);
-    if (editando) {
-      setSelected({ id: editando.exerciseId, name: editando.name });
-      setSets(editando.sets);
-      setReps(editando.reps);
-      setIntensityValue(editando.intensityValue);
-      setRestSeconds(editando.restSeconds);
-      return;
-    }
-    setSelected(null);
-    setSets(3);
-    setReps(10);
-    setIntensityValue(defaultIntensity(medidor));
-    setRestSeconds(DESCANSO_POR_DEFECTO);
-  }, [visible, medidor, editando]);
 
   // Chips del filtro: solo grupos que son objetivo de algun ejercicio. El
   // conteo es sobre el catalogo entero, no sobre la busqueda, para que los
@@ -223,245 +263,236 @@ export function ExercisePickerModal({
   }
 
   return (
-    /* El Modal se monta en una ventana nativa aparte, fuera del arbol del
-       SafeAreaProvider de la app. Sin un provider propio los insets llegan en
-       cero y el header se mete abajo del notch. */
-    <Modal visible={visible} animationType="slide" onRequestClose={onClose} statusBarTranslucent>
-      <SafeAreaProvider>
-        <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
-          <KeyboardAvoidingView
-            style={styles.flex}
-            behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-          >
-            {/* Header del modal: solo la salida. El titulo va mas abajo,
-               junto al contenido, para que no compita con el boton. */}
-            {/* Editando no hay atras al buscador: el ejercicio ya esta elegido
-               y la unica salida es cerrar. */}
-            <View style={styles.modalHeader}>
-              <Button
-                variant="ghost"
-                size="sm"
-                icon={selected && !editMode ? 'chevron-left' : 'x'}
-                onPress={() => (selected && !editMode ? setSelected(null) : onClose())}
-              >
-                {selected && !editMode ? 'Atrás' : 'Cerrar'}
-              </Button>
+    <KeyboardAvoidingView
+      style={styles.flex}
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+    >
+      {/* Header del modal: solo la salida. El titulo va mas abajo,
+         junto al contenido, para que no compita con el boton. */}
+      {/* Editando no hay atras al buscador: el ejercicio ya esta elegido
+         y la unica salida es cerrar. */}
+      <View style={styles.modalHeader}>
+        <Button
+          variant="ghost"
+          size="sm"
+          icon={selected && !editMode ? 'chevron-left' : 'x'}
+          onPress={() => (selected && !editMode ? setSelected(null) : onClose())}
+        >
+          {selected && !editMode ? 'Atrás' : 'Cerrar'}
+        </Button>
+      </View>
+
+      {selected ? (
+        /* Configurar: series, reps y medidor de esfuerzo */
+        <ScrollView
+          style={styles.flex}
+          contentContainerStyle={styles.modalBody}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+        >
+          <FrenciaText role="title">
+            {editMode ? 'Editar ejercicio' : 'Configurar'}
+          </FrenciaText>
+
+          <View style={styles.selectedCard}>
+            <Icon name="dumbbell" size={20} color={colors.accent} />
+            <MarqueeText text={selected.name} role="subtitle" boxStyle={styles.nombre} />
+          </View>
+
+          <Stepper label="Series" value={sets} onChange={setSets} min={1} max={20} size="lg" />
+          <Stepper
+            label="Repeticiones"
+            value={reps}
+            onChange={setReps}
+            min={1}
+            max={50}
+            size="lg"
+          />
+
+          <View style={styles.chipsBlock}>
+            <FrenciaText role="dataLabel" color={colors.textTertiary}>
+              Esfuerzo · {medidorActivo === 'rir' ? 'RIR' : 'RPE'}
+            </FrenciaText>
+            <View style={styles.chipsRow}>
+              {opts.map((o) => {
+                const on = o.value === intensityValue;
+                return (
+                  <Pressable
+                    key={o.value}
+                    onPress={() => setIntensityValue(o.value)}
+                    accessibilityRole="button"
+                    accessibilityState={{ selected: on }}
+                    accessibilityLabel={o.label}
+                    style={[styles.chip, on ? styles.chipOn : styles.chipOff]}
+                  >
+                    <FrenciaText
+                      role="bodySm"
+                      color={on ? colors.textOnAccent : colors.textSecondary}
+                      style={styles.chipText}
+                    >
+                      {o.label}
+                    </FrenciaText>
+                  </Pressable>
+                );
+              })}
+            </View>
+          </View>
+
+          <View style={styles.chipsBlock}>
+            <FrenciaText role="dataLabel" color={colors.textTertiary}>
+              Descanso entre series
+            </FrenciaText>
+            <View style={styles.chipsRow}>
+              {DESCANSOS.map((o) => {
+                const on = o.value === restSeconds;
+                return (
+                  <Pressable
+                    key={String(o.value)}
+                    onPress={() => setRestSeconds(o.value)}
+                    accessibilityRole="button"
+                    accessibilityState={{ selected: on }}
+                    accessibilityLabel={restLabel(o.value)}
+                    style={[styles.chip, on ? styles.chipOn : styles.chipOff]}
+                  >
+                    <FrenciaText
+                      role="bodySm"
+                      color={on ? colors.textOnAccent : colors.textSecondary}
+                      style={styles.chipText}
+                    >
+                      {o.label}
+                    </FrenciaText>
+                  </Pressable>
+                );
+              })}
+            </View>
+          </View>
+        </ScrollView>
+      ) : (
+        /* Buscar: titulo, input y catalogo. El bloque de arriba baja
+           respecto del boton Cerrar para que no queden pegados. */
+        <View style={styles.flex}>
+          <View style={styles.searchHeader}>
+            <FrenciaText role="title">Agregar ejercicio</FrenciaText>
+
+            <View style={styles.searchField}>
+              <Icon name="search" size={18} color={colors.textTertiary} />
+              <TextInput
+                style={styles.input}
+                placeholder="Buscá por nombre o músculo"
+                placeholderTextColor={colors.textTertiary}
+                selectionColor={colors.accent}
+                value={query}
+                onChangeText={setQuery}
+                autoCorrect={false}
+                returnKeyType="search"
+              />
+              {query !== '' && (
+                <Pressable
+                  hitSlop={8}
+                  onPress={() => setQuery('')}
+                  accessibilityRole="button"
+                  accessibilityLabel="Borrar búsqueda"
+                >
+                  <Icon name="x" size={18} color={colors.textTertiary} />
+                </Pressable>
+              )}
             </View>
 
-            {selected ? (
-              /* Configurar: series, reps y medidor de esfuerzo */
-              <ScrollView
-                style={styles.flex}
-                contentContainerStyle={styles.modalBody}
-                keyboardShouldPersistTaps="handled"
-                showsVerticalScrollIndicator={false}
+            {/* Filtro por grupo muscular: uno a la vez, como un radio.
+               Tocar el activo lo suelta y vuelve a Todos. */}
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              keyboardShouldPersistTaps="handled"
+              style={styles.chipsScroll}
+              contentContainerStyle={styles.chipsFiltro}
+            >
+              <Tag
+                selectable
+                selected={grupo === null}
+                onPress={() => setGrupo(null)}
+                accessibilityLabel={`Todos, ${catalog.length} ejercicios`}
+                style={styles.chipFiltro}
               >
-                <FrenciaText role="title">
-                  {editMode ? 'Editar ejercicio' : 'Configurar'}
-                </FrenciaText>
+                Todos <FrenciaText style={styles.chipConteo}>{catalog.length}</FrenciaText>
+              </Tag>
+              {grupos.map(({ group, count }) => (
+                <Tag
+                  key={group.slug}
+                  selectable
+                  selected={grupo === group.slug}
+                  onPress={() => setGrupo((g) => (g === group.slug ? null : group.slug))}
+                  accessibilityLabel={`${group.name}, ${count} ejercicios`}
+                  style={styles.chipFiltro}
+                >
+                  {group.name} <FrenciaText style={styles.chipConteo}>{count}</FrenciaText>
+                </Tag>
+              ))}
+            </ScrollView>
 
-                <View style={styles.selectedCard}>
-                  <Icon name="dumbbell" size={20} color={colors.accent} />
-                  <MarqueeText text={selected.name} role="subtitle" boxStyle={styles.nombre} />
-                </View>
+            {!catalogLoading && (
+              <FrenciaText role="dataLabel" color={colors.textTertiary}>
+                {results.length} {results.length === 1 ? 'ejercicio' : 'ejercicios'}
+                {grupoActivo ? ` · ${grupoActivo.name}` : ''}
+              </FrenciaText>
+            )}
+          </View>
 
-                <Stepper label="Series" value={sets} onChange={setSets} min={1} max={20} size="lg" />
-                <Stepper
-                  label="Repeticiones"
-                  value={reps}
-                  onChange={setReps}
-                  min={1}
-                  max={50}
-                  size="lg"
-                />
-
-                <View style={styles.chipsBlock}>
-                  <FrenciaText role="dataLabel" color={colors.textTertiary}>
-                    Esfuerzo · {medidorActivo === 'rir' ? 'RIR' : 'RPE'}
-                  </FrenciaText>
-                  <View style={styles.chipsRow}>
-                    {opts.map((o) => {
-                      const on = o.value === intensityValue;
-                      return (
-                        <Pressable
-                          key={o.value}
-                          onPress={() => setIntensityValue(o.value)}
-                          accessibilityRole="button"
-                          accessibilityState={{ selected: on }}
-                          accessibilityLabel={o.label}
-                          style={[styles.chip, on ? styles.chipOn : styles.chipOff]}
-                        >
-                          <FrenciaText
-                            role="bodySm"
-                            color={on ? colors.textOnAccent : colors.textSecondary}
-                            style={styles.chipText}
-                          >
-                            {o.label}
-                          </FrenciaText>
-                        </Pressable>
-                      );
-                    })}
-                  </View>
-                </View>
-
-                <View style={styles.chipsBlock}>
-                  <FrenciaText role="dataLabel" color={colors.textTertiary}>
-                    Descanso entre series
-                  </FrenciaText>
-                  <View style={styles.chipsRow}>
-                    {DESCANSOS.map((o) => {
-                      const on = o.value === restSeconds;
-                      return (
-                        <Pressable
-                          key={String(o.value)}
-                          onPress={() => setRestSeconds(o.value)}
-                          accessibilityRole="button"
-                          accessibilityState={{ selected: on }}
-                          accessibilityLabel={restLabel(o.value)}
-                          style={[styles.chip, on ? styles.chipOn : styles.chipOff]}
-                        >
-                          <FrenciaText
-                            role="bodySm"
-                            color={on ? colors.textOnAccent : colors.textSecondary}
-                            style={styles.chipText}
-                          >
-                            {o.label}
-                          </FrenciaText>
-                        </Pressable>
-                      );
-                    })}
-                  </View>
-                </View>
-              </ScrollView>
-            ) : (
-              /* Buscar: titulo, input y catalogo. El bloque de arriba baja
-                 respecto del boton Cerrar para que no queden pegados. */
-              <View style={styles.flex}>
-                <View style={styles.searchHeader}>
-                  <FrenciaText role="title">Agregar ejercicio</FrenciaText>
-
-                  <View style={styles.searchField}>
-                    <Icon name="search" size={18} color={colors.textTertiary} />
-                    <TextInput
-                      style={styles.input}
-                      placeholder="Buscá por nombre o músculo"
-                      placeholderTextColor={colors.textTertiary}
-                      selectionColor={colors.accent}
-                      value={query}
-                      onChangeText={setQuery}
-                      autoCorrect={false}
-                      returnKeyType="search"
-                    />
-                    {query !== '' && (
-                      <Pressable
-                        hitSlop={8}
-                        onPress={() => setQuery('')}
-                        accessibilityRole="button"
-                        accessibilityLabel="Borrar búsqueda"
-                      >
-                        <Icon name="x" size={18} color={colors.textTertiary} />
-                      </Pressable>
-                    )}
-                  </View>
-
-                  {/* Filtro por grupo muscular: uno a la vez, como un radio.
-                     Tocar el activo lo suelta y vuelve a Todos. */}
-                  <ScrollView
-                    horizontal
-                    showsHorizontalScrollIndicator={false}
-                    keyboardShouldPersistTaps="handled"
-                    style={styles.chipsScroll}
-                    contentContainerStyle={styles.chipsFiltro}
-                  >
-                    <Tag
-                      selectable
-                      selected={grupo === null}
-                      onPress={() => setGrupo(null)}
-                      accessibilityLabel={`Todos, ${catalog.length} ejercicios`}
-                      style={styles.chipFiltro}
-                    >
-                      Todos <FrenciaText style={styles.chipConteo}>{catalog.length}</FrenciaText>
-                    </Tag>
-                    {grupos.map(({ group, count }) => (
-                      <Tag
-                        key={group.slug}
-                        selectable
-                        selected={grupo === group.slug}
-                        onPress={() => setGrupo((g) => (g === group.slug ? null : group.slug))}
-                        accessibilityLabel={`${group.name}, ${count} ejercicios`}
-                        style={styles.chipFiltro}
-                      >
-                        {group.name} <FrenciaText style={styles.chipConteo}>{count}</FrenciaText>
-                      </Tag>
-                    ))}
-                  </ScrollView>
-
-                  {!catalogLoading && (
-                    <FrenciaText role="dataLabel" color={colors.textTertiary}>
-                      {results.length} {results.length === 1 ? 'ejercicio' : 'ejercicios'}
-                      {grupoActivo ? ` · ${grupoActivo.name}` : ''}
-                    </FrenciaText>
-                  )}
-                </View>
-
-                {/* Sin texto la lista trae el catalogo entero, asi que va
-                   virtualizada: montar 198 filas de una vez es caro. */}
-                {catalogLoading ? (
+          {/* Sin texto la lista trae el catalogo entero, asi que va
+             virtualizada: montar 198 filas de una vez es caro. */}
+          {catalogLoading ? (
+            <View style={styles.resultsHint}>
+              <ActivityIndicator color={colors.accent} />
+            </View>
+          ) : (
+            <View style={styles.listWrap}>
+              {/* La transicion de layout acomoda las filas vecinas
+                 cuando una se despliega o se pliega. */}
+              <Animated.FlatList
+                data={results}
+                keyExtractor={keyExtractor}
+                renderItem={renderResult}
+                extraData={abierta}
+                itemLayoutAnimation={LinearTransition.duration(motion.durBase)}
+                contentContainerStyle={styles.resultsList}
+                keyboardShouldPersistTaps="handled"
+                keyboardDismissMode="interactive"
+                showsVerticalScrollIndicator={false}
+                ListEmptyComponent={
                   <View style={styles.resultsHint}>
-                    <ActivityIndicator color={colors.accent} />
+                    <FrenciaText
+                      role="bodySm"
+                      color={colors.textTertiary}
+                      style={styles.centerText}
+                    >
+                      No hay ejercicios que coincidan. Probá con otro
+                      nombre o sacá el filtro.
+                    </FrenciaText>
                   </View>
-                ) : (
-                  <View style={styles.listWrap}>
-                    {/* La transicion de layout acomoda las filas vecinas
-                       cuando una se despliega o se pliega. */}
-                    <Animated.FlatList
-                      data={results}
-                      keyExtractor={keyExtractor}
-                      renderItem={renderResult}
-                      extraData={abierta}
-                      itemLayoutAnimation={LinearTransition.duration(motion.durBase)}
-                      contentContainerStyle={styles.resultsList}
-                      keyboardShouldPersistTaps="handled"
-                      keyboardDismissMode="interactive"
-                      showsVerticalScrollIndicator={false}
-                      ListEmptyComponent={
-                        <View style={styles.resultsHint}>
-                          <FrenciaText
-                            role="bodySm"
-                            color={colors.textTertiary}
-                            style={styles.centerText}
-                          >
-                            No hay ejercicios que coincidan. Probá con otro
-                            nombre o sacá el filtro.
-                          </FrenciaText>
-                        </View>
-                      }
-                    />
+                }
+              />
 
-                    {/* Funde las filas contra el fondo antes de que lleguen
-                       al buscador. Va despues de la lista para quedar encima,
-                       y no intercepta toques. */}
-                    <LinearGradient
-                      colors={[colors.bgApp, withAlpha(colors.bgApp, 0)]}
-                      style={styles.fadeTop}
-                    />
-                  </View>
-                )}
-              </View>
-            )}
+              {/* Funde las filas contra el fondo antes de que lleguen
+                 al buscador. Va despues de la lista para quedar encima,
+                 y no intercepta toques. */}
+              <LinearGradient
+                colors={[colors.bgApp, withAlpha(colors.bgApp, 0)]}
+                style={styles.fadeTop}
+              />
+            </View>
+          )}
+        </View>
+      )}
 
-            {/* Guardar el ejercicio configurado y volver al armado del dia */}
-            {selected && (
-              <View style={styles.nav}>
-                <Button variant="primary" size="lg" fullWidth icon="check" onPress={saveExercise}>
-                  {editMode ? 'Guardar cambios' : 'Guardar ejercicio'}
-                </Button>
-              </View>
-            )}
-          </KeyboardAvoidingView>
-        </SafeAreaView>
-      </SafeAreaProvider>
-    </Modal>
+      {/* Guardar el ejercicio configurado y volver al armado del dia */}
+      {selected && (
+        <View style={styles.nav}>
+          <Button variant="primary" size="lg" fullWidth icon="check" onPress={saveExercise}>
+            {editMode ? 'Guardar cambios' : 'Guardar ejercicio'}
+          </Button>
+        </View>
+      )}
+    </KeyboardAvoidingView>
   );
 }
 
