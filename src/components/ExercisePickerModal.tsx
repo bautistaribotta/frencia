@@ -505,7 +505,10 @@ interface FilaCatalogoProps {
 
 /** Fila del catalogo. Plegada: nombre en una linea y musculo objetivo.
  *  Desplegada: nombre completo, musculos (el objetivo con punto) y
- *  equipamiento, y el boton que pasa a configurarlo. */
+ *  equipamiento, y el boton que pasa a configurarlo.
+ *  Lo tocable es la cabecera, no la fila entera: un boton adentro de otro es
+ *  HTML invalido en web, y en iOS VoiceOver agrupa la fila en un solo
+ *  elemento y el boton Anadir queda inalcanzable. */
 const FilaCatalogo = React.memo(function FilaCatalogo({
   exercise,
   abierta,
@@ -517,20 +520,20 @@ const FilaCatalogo = React.memo(function FilaCatalogo({
   const equipo = equipmentLabel(exercise.equipment);
 
   return (
-    <Pressable
-      onPress={() => onToggle(exercise.id)}
-      accessibilityRole="button"
-      accessibilityState={{ expanded: abierta }}
-      accessibilityLabel={
-        exercise.primary ? `${exercise.name}, ${exercise.primary.name}` : exercise.name
-      }
-      style={({ pressed }) => [
-        styles.fila,
-        abierta && styles.filaAbierta,
-        pressed && !abierta && styles.filaPresionada,
-      ]}
-    >
-      <View style={styles.filaCabeza}>
+    <View style={[styles.fila, abierta && styles.filaAbierta]}>
+      <Pressable
+        onPress={() => onToggle(exercise.id)}
+        accessibilityRole="button"
+        accessibilityState={{ expanded: abierta }}
+        accessibilityLabel={
+          exercise.primary ? `${exercise.name}, ${exercise.primary.name}` : exercise.name
+        }
+        style={({ pressed }) => [
+          styles.filaCabeza,
+          abierta && styles.filaCabezaAbierta,
+          pressed && !abierta && styles.filaPresionada,
+        ]}
+      >
         <FrenciaText style={styles.filaNombre} numberOfLines={abierta ? undefined : 1}>
           {exercise.name}
         </FrenciaText>
@@ -540,7 +543,7 @@ const FilaCatalogo = React.memo(function FilaCatalogo({
           </FrenciaText>
         )}
         <Icon name={abierta ? 'chevron-up' : 'chevron-down'} size={18} color={colors.textTertiary} />
-      </View>
+      </Pressable>
 
       {abierta && (
         <Animated.View entering={FadeIn.duration(motion.durBase)} style={styles.filaDetalle}>
@@ -562,7 +565,7 @@ const FilaCatalogo = React.memo(function FilaCatalogo({
           </Button>
         </Animated.View>
       )}
-    </Pressable>
+    </View>
   );
 });
 
@@ -651,9 +654,9 @@ const makeStyles = (colors: Palette) =>
     resultsHint: { paddingVertical: space[8], alignItems: 'center' },
 
     // Filas planas con divisor. Desplegada gana fondo de tarjeta; el margen
-    // negativo compensa su padding para que el texto no se corra.
+    // negativo compensa su padding para que el texto no se corra. El alto lo
+    // da la cabecera, asi toda la fila plegada responde al toque.
     fila: {
-      paddingVertical: space[4] + 1,
       borderBottomWidth: StyleSheet.hairlineWidth,
       borderBottomColor: colors.divider,
     },
@@ -661,14 +664,19 @@ const makeStyles = (colors: Palette) =>
       marginHorizontal: -space[4],
       marginVertical: space[2],
       paddingHorizontal: space[4],
-      paddingVertical: space[5],
+      paddingBottom: space[5],
       borderRadius: radius.lg,
       borderBottomColor: 'transparent',
       backgroundColor: colors.surfaceCard,
-      gap: space[5],
     },
     filaPresionada: { opacity: 0.6 },
-    filaCabeza: { flexDirection: 'row', alignItems: 'center', gap: space[4] },
+    filaCabeza: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: space[4],
+      paddingVertical: space[4] + 1,
+    },
+    filaCabezaAbierta: { paddingVertical: space[5] },
     filaNombre: {
       flex: 1,
       fontFamily: sans.semibold,

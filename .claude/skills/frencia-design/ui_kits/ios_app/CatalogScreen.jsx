@@ -8,11 +8,15 @@ const primaryMuscle = (e) => e.muscle.split(' · ')[0];
 // Fila del catálogo. Plegada: nombre en una línea, músculo objetivo y flecha.
 // Desplegada: fondo de tarjeta, nombre completo, músculos (el objetivo con
 // punto), equipamiento y el botón Añadir, que recién ahí pasa a configurar.
+// Lo tocable es la cabecera y no la fila: Añadir no puede quedar adentro de
+// otro botón (HTML inválido, y en iOS VoiceOver no lo alcanza).
 const CATALOG_CSS = `
 .frencia-cat-chips { display: flex; gap: 8px; overflow-x: auto; margin: 0 -20px; padding: 0 20px 2px; scrollbar-width: none; }
-.frencia-cat-row { display: flex; flex-direction: column; padding: 13px 0; border-bottom: 1px solid var(--divider); cursor: pointer; }
-.frencia-cat-row--open { gap: 16px; margin: 4px -12px; padding: 16px 12px; border-radius: var(--radius-lg); border-bottom-color: transparent; background: var(--surface-card); cursor: default; }
-.frencia-cat-head { display: flex; align-items: center; gap: 12px; }
+.frencia-cat-row { display: flex; flex-direction: column; border-bottom: 1px solid var(--divider); }
+.frencia-cat-row--open { margin: 4px -12px; padding: 0 12px 16px; border-radius: var(--radius-lg); border-bottom-color: transparent; background: var(--surface-card); }
+.frencia-cat-head { display: flex; align-items: center; gap: 12px; padding: 13px 0; cursor: pointer; }
+.frencia-cat-row--open .frencia-cat-head { padding: 16px 0; }
+.frencia-cat-row--open .frencia-cat-meta { margin-bottom: 16px; }
 .frencia-cat-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 5px; }
 .frencia-cat-name { font: var(--fw-semibold) 16px/22px var(--font-sans); color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .frencia-cat-row--open .frencia-cat-name { white-space: normal; }
@@ -36,9 +40,9 @@ function CatalogRow({ e, open, onToggle, onPick, showType }) {
   const { Tag, Button, ExerciseTypeTag } = window.FrenciaDesignSystem_377129;
   const primary = primaryMuscle(e);
   return (
-    <div className={'frencia-cat-row' + (open ? ' frencia-cat-row--open' : '')} role="button" aria-expanded={open}
-      aria-label={e.name + ', ' + primary} onClick={open ? undefined : onToggle}>
-      <div className="frencia-cat-head" onClick={open ? onToggle : undefined}>
+    <div className={'frencia-cat-row' + (open ? ' frencia-cat-row--open' : '')}>
+      <div className="frencia-cat-head" role="button" tabIndex={0} aria-expanded={open}
+        aria-label={e.name + ', ' + primary} onClick={onToggle}>
         <div className="frencia-cat-main">
           <span className="frencia-cat-name">{e.name}</span>
           {showType && !open ? <span><ExerciseTypeTag exercise={e} /></span> : null}
