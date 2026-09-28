@@ -4,12 +4,15 @@
    unidad: es una sola rueda en años, sin toggle. La barra de seleccion va
    centrada. Se usa tanto en el setup inicial como al editar el perfil, para que
    el dato se actualice igual que cuando se definio. El toggle avisa por
-   `onUnitChange`: quien lo monta lo guarda como preferencia de toda la app. */
+   `onUnitChange`: quien lo monta lo guarda como preferencia de toda la app.
+   El descanso entre series usa las mismas ruedas: minutos y segundos (cada 5),
+   en segundos canonicos y sin toggle; 0:00 es un valor valido. */
 
 import React, { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 
 import { cmAPiesPulgadas, piesPulgadasACm } from '@/lib/altura';
+import { DESCANSO_MAXIMO } from '@/lib/dia';
 import { kgALb, lbAKg } from '@/lib/peso';
 
 import {
@@ -23,12 +26,12 @@ import {
   type Palette,
 } from '@/design';
 
-type Kind = 'age' | 'height' | 'weight';
+type Kind = 'age' | 'height' | 'weight' | 'rest';
 type Unit = 'metric' | 'imperial';
 
 export interface MeasurePickerProps {
   kind: Kind;
-  // Valor canonico inicial (cm para altura, kg para peso).
+  // Valor canonico inicial (cm para altura, kg para peso, segundos para descanso).
   initial: number;
   onChange: (canonical: number) => void;
   // Unidad de ingreso inicial. Para edad se ignora (no tiene unidad).
@@ -52,13 +55,19 @@ const INCH = range(0, 11);
 const KG_INT = range(30, 200);
 const LB_INT = range(66, 440);
 const DEC = range(0, 9);
+const REST_MIN = range(0, Math.floor(DESCANSO_MAXIMO / 60));
+const REST_SEC = range(0, 11).map((i) => String(i * 5).padStart(2, '0'));
 
 // Defaults razonables si no hay dato previo.
-const DEFAULT = { age: 25, height: 170, weight: 70 };
+const DEFAULT = { age: 25, height: 170, weight: 70, rest: 120 };
 
 // canonico -> indices de rueda segun unidad.
 function toIndices(kind: Kind, unit: Unit, value: number): [number, number] {
   if (kind === 'age') return [clamp(Math.round(value), 13, 99) - 13, 0];
+  if (kind === 'rest') {
+    const total = clamp(Math.round(value / 5) * 5, 0, DESCANSO_MAXIMO);
+    return [Math.floor(total / 60), (total % 60) / 5];
+  }
   if (kind === 'height') {
     if (unit === 'metric') return [clamp(Math.round(value), 120, 220) - 120, 0];
     const { pies, pulgadas } = cmAPiesPulgadas(value);
@@ -78,6 +87,7 @@ function toIndices(kind: Kind, unit: Unit, value: number): [number, number] {
 // indices de rueda -> canonico (años, cm o kg).
 function compose(kind: Kind, unit: Unit, i1: number, i2: number): number {
   if (kind === 'age') return AGE[i1];
+  if (kind === 'rest') return REST_MIN[i1] * 60 + i2 * 5;
   if (kind === 'height') {
     if (unit === 'metric') return HEIGHT_CM[i1];
     return piesPulgadasACm(FEET[i1], INCH[i2]);
@@ -97,7 +107,8 @@ export function MeasurePicker({
   const colors = useColors();
   const styles = useThemedStyles(makeStyles);
 
-  const base = initial > 0 ? initial : DEFAULT[kind];
+  // En descanso el 0 es un dato (sin descanso), no la falta de uno.
+  const base = kind === 'rest' || initial > 0 ? initial : DEFAULT[kind];
   const [unit, setUnit] = useState<Unit>(initialUnit);
   const [i1, setI1] = useState(() => toIndices(kind, initialUnit, base)[0]);
   const [i2, setI2] = useState(() => toIndices(kind, initialUnit, base)[1]);
@@ -141,7 +152,9 @@ export function MeasurePicker({
   // Unidad mostrada al costado. En altura imperial las unidades van entre las
   // ruedas (ft / in), por eso no hay unidad lateral.
   const sideUnit =
-    kind === 'age'
+    kind === 'rest'
+      ? null
+      : kind === 'age'
       ? 'años'
       : kind === 'height'
         ? unit === 'metric'
@@ -153,8 +166,8 @@ export function MeasurePicker({
 
   return (
     <View style={styles.wrap}>
-      {/* La edad no tiene unidad, asi que no lleva toggle */}
-      {kind !== 'age' ? (
+      {/* La edad y el descanso no tienen unidad, asi que no llevan toggle */}
+      {kind === 'height' || kind === 'weight' ? (
         <SegmentedControl accent options={unitOptions} value={unit} onChange={switchUnit} style={styles.toggle} />
       ) : null}
 
@@ -170,6 +183,19 @@ export function MeasurePicker({
 
           {kind === 'height' && unit === 'metric' ? (
             <WheelPicker values={HEIGHT_CM} index={i1} onIndexChange={changeI1} itemHeight={ITEM_H} visibleCount={VISIBLE} width={96} align="center" />
+          ) : null}
+
+          {kind === 'rest' ? (
+            <>
+              <WheelPicker values={REST_MIN} index={i1} onIndexChange={changeI1} itemHeight={ITEM_H} visibleCount={VISIBLE} width={64} align="right" />
+              <FrenciaText role="data" color={colors.textSecondary} style={styles.unit}>
+                min
+              </FrenciaText>
+              <WheelPicker values={REST_SEC} index={i2} onIndexChange={changeI2} itemHeight={ITEM_H} visibleCount={VISIBLE} width={64} align="right" />
+              <FrenciaText role="data" color={colors.textSecondary} style={styles.unit}>
+                s
+              </FrenciaText>
+            </>
           ) : null}
 
           {kind === 'height' && unit === 'imperial' ? (

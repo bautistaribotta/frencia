@@ -32,6 +32,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import Animated, { FadeIn, LinearTransition } from 'react-native-reanimated';
 
 import { MarqueeText } from '@/components/MarqueeText';
+import { MeasurePicker } from '@/components/MeasurePicker';
 import {
   equipmentLabel,
   foldText,
@@ -40,10 +41,10 @@ import {
   type Exercise,
 } from '@/lib/exercises';
 import {
-  DESCANSOS,
   DESCANSO_POR_DEFECTO,
   defaultIntensity,
-  intensityOptions,
+  intensityRange,
+  intensityValueLabel,
   nextUid,
   restLabel,
   type DayExercise,
@@ -185,7 +186,23 @@ function PickerContenido({
   // un "2 RIR" como "2 RPE" cambiaria el dato sin que nadie lo pida. Ademas el
   // centinela -1 ("al fallo") solo existe en RIR y hay que poder mostrarlo.
   const medidorActivo: Medidor = editando?.intensityKind ?? medidor;
-  const opts = intensityOptions(medidorActivo);
+  const rango = intensityRange(medidorActivo);
+
+  // Hoja con las ruedas del descanso. El borrador solo pasa al ejercicio con
+  // Listo; cerrarla tocando afuera lo descarta.
+  const [descansoAbierto, setDescansoAbierto] = useState(false);
+  const [descansoBorrador, setDescansoBorrador] = useState(0);
+
+  function abrirDescanso() {
+    setDescansoBorrador(restSeconds ?? 0);
+    setDescansoAbierto(true);
+  }
+
+  function confirmarDescanso() {
+    // 0:00 es "sin descanso", que se guarda como null.
+    setRestSeconds(descansoBorrador > 0 ? descansoBorrador : null);
+    setDescansoAbierto(false);
+  }
 
   // Chips del filtro: solo grupos que son objetivo de algun ejercicio. El
   // conteo es sobre el catalogo entero, no sobre la busqueda, para que los
@@ -299,72 +316,67 @@ function PickerContenido({
             <MarqueeText text={selected.name} role="subtitle" boxStyle={styles.nombre} />
           </View>
 
-          <Stepper label="Series" value={sets} onChange={setSets} min={1} max={20} size="lg" />
-          <Stepper
-            label="Repeticiones"
-            value={reps}
-            onChange={setReps}
-            min={1}
-            max={50}
-            size="lg"
-          />
-
-          <View style={styles.chipsBlock}>
-            <FrenciaText role="dataLabel" color={colors.textTertiary}>
-              Esfuerzo · {medidorActivo === 'rir' ? 'RIR' : 'RPE'}
-            </FrenciaText>
-            <View style={styles.chipsRow}>
-              {opts.map((o) => {
-                const on = o.value === intensityValue;
-                return (
-                  <Pressable
-                    key={o.value}
-                    onPress={() => setIntensityValue(o.value)}
-                    accessibilityRole="button"
-                    accessibilityState={{ selected: on }}
-                    accessibilityLabel={o.label}
-                    style={[styles.chip, on ? styles.chipOn : styles.chipOff]}
-                  >
-                    <FrenciaText
-                      role="bodySm"
-                      color={on ? colors.textOnAccent : colors.textSecondary}
-                      style={styles.chipText}
-                    >
-                      {o.label}
-                    </FrenciaText>
-                  </Pressable>
-                );
-              })}
-            </View>
+          {/* Series y repeticiones van juntas, como en el design system: son
+             el volumen y se leen de a par ("3 x 10"). */}
+          <View style={styles.par}>
+            <Stepper
+              label="Series"
+              value={sets}
+              onChange={setSets}
+              min={1}
+              max={20}
+              size="lg"
+              fullWidth
+              style={styles.parItem}
+            />
+            <Stepper
+              label="Repeticiones"
+              value={reps}
+              onChange={setReps}
+              min={1}
+              max={50}
+              size="lg"
+              fullWidth
+              style={styles.parItem}
+            />
           </View>
 
-          <View style={styles.chipsBlock}>
+          <Stepper
+            label={`Esfuerzo · ${medidorActivo === 'rir' ? 'RIR' : 'RPE'}`}
+            value={intensityValue}
+            onChange={setIntensityValue}
+            min={rango.min}
+            max={rango.max}
+            format={(v) => intensityValueLabel(medidorActivo, v)}
+            size="lg"
+            fullWidth
+          />
+
+          {/* Descanso libre: el campo muestra el valor y abre las ruedas,
+             igual que la edad o el peso en el perfil. */}
+          <View style={styles.campoBloque}>
             <FrenciaText role="dataLabel" color={colors.textTertiary}>
               Descanso entre series
             </FrenciaText>
-            <View style={styles.chipsRow}>
-              {DESCANSOS.map((o) => {
-                const on = o.value === restSeconds;
-                return (
-                  <Pressable
-                    key={String(o.value)}
-                    onPress={() => setRestSeconds(o.value)}
-                    accessibilityRole="button"
-                    accessibilityState={{ selected: on }}
-                    accessibilityLabel={restLabel(o.value)}
-                    style={[styles.chip, on ? styles.chipOn : styles.chipOff]}
-                  >
-                    <FrenciaText
-                      role="bodySm"
-                      color={on ? colors.textOnAccent : colors.textSecondary}
-                      style={styles.chipText}
-                    >
-                      {o.label}
-                    </FrenciaText>
-                  </Pressable>
-                );
-              })}
-            </View>
+            <Pressable
+              onPress={abrirDescanso}
+              accessibilityRole="button"
+              accessibilityLabel={`Descanso entre series: ${restLabel(restSeconds)}`}
+              accessibilityHint="Abre las ruedas para elegir minutos y segundos"
+              style={({ pressed }) => [styles.campo, pressed && styles.campoPresionado]}
+            >
+              <Icon name="timer" size={20} color={colors.textTertiary} />
+              {restSeconds === null ? (
+                <FrenciaText role="body" color={colors.textSecondary} style={styles.campoTexto}>
+                  Sin descanso
+                </FrenciaText>
+              ) : (
+                <FrenciaText style={[styles.campoValor, styles.campoTexto]}>
+                  {restLabel(restSeconds)}
+                </FrenciaText>
+              )}
+              <Icon name="chevron-right" size={18} color={colors.textTertiary} />
+            </Pressable>
           </View>
         </ScrollView>
       ) : (
@@ -484,6 +496,36 @@ function PickerContenido({
         </View>
       )}
 
+      <Modal
+        visible={descansoAbierto}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setDescansoAbierto(false)}
+      >
+        <Pressable
+          style={styles.hojaFondo}
+          onPress={() => setDescansoAbierto(false)}
+          accessibilityRole="button"
+          accessibilityLabel="Cerrar sin cambiar el descanso"
+        />
+        <View style={styles.hoja}>
+          <View style={styles.hojaTitulo}>
+            <FrenciaText role="title" style={styles.centerText}>
+              Descanso entre series
+            </FrenciaText>
+            <FrenciaText role="bodySm" color={colors.textTertiary} style={styles.centerText}>
+              En 0:00 queda sin descanso.
+            </FrenciaText>
+          </View>
+          {descansoAbierto ? (
+            <MeasurePicker kind="rest" initial={descansoBorrador} onChange={setDescansoBorrador} />
+          ) : null}
+          <Button variant="primary" size="lg" fullWidth onPress={confirmarDescanso}>
+            Listo
+          </Button>
+        </View>
+      </Modal>
+
       {/* Guardar el ejercicio configurado y volver al armado del dia */}
       {selected && (
         <View style={styles.nav}>
@@ -596,22 +638,41 @@ const makeStyles = (colors: Palette) =>
       borderColor: colors.borderSubtle,
     },
 
-    chipsBlock: { gap: space[4] },
-    chipsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: space[2] },
-    chip: {
-      minWidth: 52,
-      paddingHorizontal: space[4],
-      paddingVertical: space[3],
-      borderRadius: radius.pill,
+    par: { flexDirection: 'row', gap: space[4] },
+    parItem: { flex: 1, minWidth: 0 },
+
+    // Campo del descanso: misma caja que el Stepper para que la pantalla lea
+    // como una sola columna de controles.
+    campoBloque: { gap: 6 },
+    campo: {
+      flexDirection: 'row',
       alignItems: 'center',
-    },
-    chipOn: { backgroundColor: colors.accent },
-    chipOff: {
-      backgroundColor: colors.surfaceCard,
+      gap: space[4],
+      height: 56,
+      paddingHorizontal: space[5],
+      borderRadius: radius.md,
+      backgroundColor: colors.surfaceInset,
       borderWidth: 1,
       borderColor: colors.borderSubtle,
     },
-    chipText: { textAlign: 'center' },
+    campoPresionado: { backgroundColor: colors.surfaceCardElevated },
+    campoTexto: { flex: 1 },
+    // Alto de linea propio: el del rol por defecto es menor que la fuente y en
+    // iOS recorta la parte de arriba de los digitos.
+    campoValor: { fontFamily: mono.bold, fontSize: 28, lineHeight: 34, color: colors.textPrimary },
+
+    // Hoja inferior con las ruedas, igual que la de edad y peso del perfil.
+    hojaFondo: { flex: 1, backgroundColor: 'rgba(0, 0, 0, 0.6)' },
+    hoja: {
+      backgroundColor: colors.surfaceRaised,
+      borderTopLeftRadius: radius['2xl'],
+      borderTopRightRadius: radius['2xl'],
+      paddingHorizontal: spacing.padScreen,
+      paddingTop: space[6],
+      paddingBottom: space[10],
+      gap: space[6],
+    },
+    hojaTitulo: { gap: space[2] },
 
     searchField: {
       flexDirection: 'row',

@@ -19,6 +19,10 @@ export interface StepperProps {
   unit?: string;
   size?: Size;
   precision?: number;
+  /** Texto a mostrar en lugar del numero (p. ej. "Fallo" para RIR -1). */
+  format?: (value: number) => string;
+  /** Ocupa todo el ancho disponible: los botones van a los bordes. */
+  fullWidth?: boolean;
   style?: ViewStyle;
 }
 
@@ -32,6 +36,8 @@ export function Stepper({
   unit,
   size = 'md',
   precision = 0,
+  format,
+  fullWidth = false,
   style,
 }: StepperProps) {
   const colors = useColors();
@@ -44,9 +50,10 @@ export function Stepper({
   const atMin = value <= min;
   const atMax = value >= max;
   const btnSize = { width: lg ? 52 : 44, height: lg ? 56 : 48 };
+  const shown = format ? format(value) : String(value);
 
   return (
-    <View style={[styles.base, style]}>
+    <View style={[styles.base, fullWidth && styles.baseFull, style]}>
       {label ? <Text style={styles.label}>{label}</Text> : null}
       <View style={styles.row}>
         <Pressable
@@ -59,8 +66,11 @@ export function Stepper({
           <Icon name="minus" size={20} strokeWidth={2.5} color={colors.textSecondary} />
         </Pressable>
 
-        <Text style={[styles.val, { fontSize: lg ? 28 : 22, minWidth: lg ? 80 : 64 }]}>
-          {value}
+        <Text
+          accessibilityLabel={label ? `${label}: ${shown}` : shown}
+          style={[styles.val, { fontSize: lg ? 28 : 22, minWidth: lg ? 80 : 64 }, fullWidth && styles.valFull]}
+        >
+          {shown}
           {unit ? <Text style={styles.unit}>{unit}</Text> : null}
         </Text>
 
@@ -81,6 +91,7 @@ export function Stepper({
 const makeStyles = (colors: Palette) =>
   StyleSheet.create({
     base: { gap: 6, alignSelf: 'flex-start' },
+    baseFull: { alignSelf: 'stretch' },
     label: {
       fontFamily: mono.medium,
       fontSize: 11,
@@ -105,5 +116,6 @@ const makeStyles = (colors: Palette) =>
       fontFamily: mono.bold,
       color: colors.textPrimary,
     },
+    valFull: { flex: 1, minWidth: 0 },
     unit: { fontFamily: mono.medium, fontSize: 12, color: colors.textTertiary },
   });

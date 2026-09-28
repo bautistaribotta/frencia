@@ -56,16 +56,15 @@ export const SEMANA_NOMBRES = [
 // inicial sola no se entiende fuera de la tira de siete.
 export const SEMANA_CORTA = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
 
-// Opciones de intensidad segun el medidor del usuario. En RIR sumamos "Fallo"
-// (centinela -1) como paso por debajo de 0 RIR; en RPE va de 1 a 10.
-export function intensityOptions(medidor: Medidor): { label: string; value: number }[] {
-  if (medidor === 'rir') {
-    return [
-      { label: 'Fallo', value: -1 },
-      ...[0, 1, 2, 3, 4, 5].map((n) => ({ label: String(n), value: n })),
-    ];
-  }
-  return Array.from({ length: 10 }, (_, i) => ({ label: String(i + 1), value: i + 1 }));
+// Rango de intensidad segun el medidor del usuario. En RIR el minimo es
+// "Fallo" (centinela -1), un paso por debajo de 0 RIR; en RPE va de 1 a 10.
+export function intensityRange(medidor: Medidor): { min: number; max: number } {
+  return medidor === 'rir' ? { min: -1, max: 5 } : { min: 1, max: 10 };
+}
+
+/** Valor de intensidad tal como se muestra en el selector: numero o "Fallo". */
+export function intensityValueLabel(medidor: Medidor, value: number): string {
+  return medidor === 'rir' && value < 0 ? 'Fallo' : String(value);
 }
 
 /** Valor inicial razonable al abrir el configurador de un ejercicio. */
@@ -78,22 +77,10 @@ export function intensityLabel(kind: Medidor, value: number): string {
   return `RPE ${value}`;
 }
 
-// Descansos ofrecidos. Nadie necesita elegir 137 segundos: los valores reales
-// caen en la grilla de 30 segundos, y por eso todas las apps de entrenamiento
-// ofrecen una lista y no un campo libre. "Sin" guarda null: la sesion no
-// muestra temporizador para ese ejercicio.
-export const DESCANSOS: { label: string; value: number | null }[] = [
-  { label: 'Sin', value: null },
-  { label: '0:30', value: 30 },
-  { label: '0:45', value: 45 },
-  { label: '1:00', value: 60 },
-  { label: '1:30', value: 90 },
-  { label: '2:00', value: 120 },
-  { label: '2:30', value: 150 },
-  { label: '3:00', value: 180 },
-  { label: '4:00', value: 240 },
-  { label: '5:00', value: 300 },
-];
+// El descanso se elige libre en ruedas de minutos y segundos (cada 5 s, hasta
+// DESCANSO_MAXIMO). 0:00 guarda null: la sesion no muestra temporizador para
+// ese ejercicio.
+export const DESCANSO_MAXIMO = 10 * 60 + 55;
 
 // Dos minutos: el descanso tipico de hipertrofia y el punto medio de lo que
 // ofrecen las apps del rubro. Sirve como valor razonable sin configurar nada.
