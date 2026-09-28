@@ -1,7 +1,11 @@
 /* Frencia · ExercisePickerModal — buscar un ejercicio y configurarlo.
-   Dos caras del mismo modal: primero el catalogo con su buscador, y al elegir
-   uno, las series, reps, esfuerzo y descanso. Lo usan el wizard de creacion y
-   la edicion de un dia.
+   Dos caras del mismo modal: primero el catalogo con su buscador y el filtro
+   por grupo muscular, y al elegir uno, las series, reps, esfuerzo y descanso.
+   Lo usan el wizard de creacion y la edicion de un dia.
+
+   En el catalogo, tocar una fila la despliega (nombre completo, musculos y
+   equipamiento) y recien el boton Anadir pasa a configurarlo: explorar no
+   tiene que sacarte de la lista.
 
    Con `editando` se abre directo en la segunda cara, con los valores de ese
    ejercicio cargados: el ejercicio ya esta elegido, lo que se cambia son los
@@ -10,7 +14,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
-  FlatList,
   KeyboardAvoidingView,
   Modal,
   Platform,
@@ -23,9 +26,16 @@ import {
 } from 'react-native';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
+import Animated, { FadeIn, LinearTransition } from 'react-native-reanimated';
 
 import { MarqueeText } from '@/components/MarqueeText';
-import { useExerciseCatalog, foldText, type Exercise } from '@/lib/exercises';
+import {
+  equipmentLabel,
+  foldText,
+  muscleGroupsOf,
+  useExerciseCatalog,
+  type Exercise,
+} from '@/lib/exercises';
 import {
   DESCANSOS,
   DESCANSO_POR_DEFECTO,
@@ -42,6 +52,9 @@ import {
   FrenciaText,
   Icon,
   Stepper,
+  Tag,
+  mono,
+  motion,
   radius,
   sans,
   sizing,
@@ -94,6 +107,10 @@ export function ExercisePickerModal({
   const { exercises: catalog, loading: catalogLoading } = useExerciseCatalog();
 
   const [query, setQuery] = useState('');
+  // Slug del grupo muscular filtrado (null = todos).
+  const [grupo, setGrupo] = useState<string | null>(null);
+  // Fila del catalogo desplegada: una sola a la vez.
+  const [abierta, setAbierta] = useState<string | null>(null);
   // Ejercicio elegido dentro del modal (null = todavia buscando).
   const [selected, setSelected] = useState<Elegido | null>(null);
   const [sets, setSets] = useState(3);
@@ -113,6 +130,8 @@ export function ExercisePickerModal({
   useEffect(() => {
     if (!visible) return;
     setQuery('');
+    setGrupo(null);
+    setAbierta(null);
     if (editando) {
       setSelected({ id: editando.exerciseId, name: editando.name });
       setSets(editando.sets);
@@ -128,19 +147,31 @@ export function ExercisePickerModal({
     setRestSeconds(DESCANSO_POR_DEFECTO);
   }, [visible, medidor, editando]);
 
+  // Chips del filtro: solo grupos que son objetivo de algun ejercicio. El
+  // conteo es sobre el catalogo entero, no sobre la busqueda, para que los
+  // chips no bailen mientras se escribe.
+  const grupos = useMemo(() => muscleGroupsOf(catalog), [catalog]);
+  const grupoActivo = grupos.find((g) => g.group.slug === grupo)?.group ?? null;
+
   // Busqueda instantanea: filtra el catalogo en memoria (sin acentos ni
   // mayusculas). Cero latencia, sin red por cada tecla. Mira tambien el nombre
   // en ingles, porque en el gimnasio se usan los dos ("jalon al pecho" y "lat
-  // pulldown" tienen que encontrar el mismo ejercicio).
-  // Sin texto se lista el catalogo entero por nombre: el usuario puede
-  // explorar sin saber de antemano como se llama lo que busca.
+  // pulldown" tienen que encontrar el mismo ejercicio), y el musculo objetivo.
+  // El filtro por grupo mira solo el musculo principal: "Triceps" no tiene que
+  // traer todos los press de pecho.
+  // Sin texto ni filtro se lista el catalogo entero por nombre: el usuario
+  // puede explorar sin saber de antemano como se llama lo que busca.
   const results = useMemo(() => {
     const q = foldText(query.trim());
-    if (q === '') return catalog;
     return catalog.filter(
-      (e) => foldText(e.name).includes(q) || (e.nameEn && foldText(e.nameEn).includes(q)),
+      (e) =>
+        (grupo === null || e.primary?.slug === grupo) &&
+        (q === '' ||
+          foldText(e.name).includes(q) ||
+          (e.nameEn !== null && foldText(e.nameEn).includes(q)) ||
+          (e.primary !== null && foldText(e.primary.name).includes(q))),
     );
-  }, [query, catalog]);
+  }, [query, grupo, catalog]);
 
   // Estable: lo usa el renderItem de la lista, que se memoiza contra el.
   const pickExercise = useCallback(
@@ -156,20 +187,20 @@ export function ExercisePickerModal({
 
   const keyExtractor = useCallback((hit: Exercise) => hit.id, []);
 
+  const toggleFila = useCallback((id: string) => {
+    setAbierta((actual) => (actual === id ? null : id));
+  }, []);
+
   const renderResult = useCallback(
     ({ item }: ListRenderItemInfo<Exercise>) => (
-      <Pressable
-        onPress={() => pickExercise(item)}
-        accessibilityRole="button"
-        accessibilityLabel={item.name}
-        style={({ pressed }) => [styles.resultRow, pressed && styles.resultRowPressed]}
-      >
-        <Icon name="dumbbell" size={18} color={colors.textSecondary} />
-        <MarqueeText text={item.name} role="bodySm" style={styles.resultName} boxStyle={styles.nombre} />
-        <Icon name="plus" size={18} color={colors.accentText} />
-      </Pressable>
+      <FilaCatalogo
+        exercise={item}
+        abierta={item.id === abierta}
+        onToggle={toggleFila}
+        onAdd={pickExercise}
+      />
     ),
-    [pickExercise, styles, colors],
+    [abierta, toggleFila, pickExercise],
   );
 
   // Editando conserva el uid: quien recibe el ejercicio lo usa para reemplazar
@@ -307,14 +338,15 @@ export function ExercisePickerModal({
                  respecto del boton Cerrar para que no queden pegados. */
               <View style={styles.flex}>
                 <View style={styles.searchHeader}>
-                  <FrenciaText role="title">Buscar ejercicio</FrenciaText>
+                  <FrenciaText role="title">Agregar ejercicio</FrenciaText>
 
                   <View style={styles.searchField}>
-                    <Icon name="search" size={20} color={colors.textTertiary} />
+                    <Icon name="search" size={18} color={colors.textTertiary} />
                     <TextInput
                       style={styles.input}
-                      placeholder="Nombre del ejercicio"
+                      placeholder="Buscá por nombre o músculo"
                       placeholderTextColor={colors.textTertiary}
+                      selectionColor={colors.accent}
                       value={query}
                       onChangeText={setQuery}
                       autoCorrect={false}
@@ -331,6 +363,45 @@ export function ExercisePickerModal({
                       </Pressable>
                     )}
                   </View>
+
+                  {/* Filtro por grupo muscular: uno a la vez, como un radio.
+                     Tocar el activo lo suelta y vuelve a Todos. */}
+                  <ScrollView
+                    horizontal
+                    showsHorizontalScrollIndicator={false}
+                    keyboardShouldPersistTaps="handled"
+                    style={styles.chipsScroll}
+                    contentContainerStyle={styles.chipsFiltro}
+                  >
+                    <Tag
+                      selectable
+                      selected={grupo === null}
+                      onPress={() => setGrupo(null)}
+                      accessibilityLabel={`Todos, ${catalog.length} ejercicios`}
+                      style={styles.chipFiltro}
+                    >
+                      Todos <FrenciaText style={styles.chipConteo}>{catalog.length}</FrenciaText>
+                    </Tag>
+                    {grupos.map(({ group, count }) => (
+                      <Tag
+                        key={group.slug}
+                        selectable
+                        selected={grupo === group.slug}
+                        onPress={() => setGrupo((g) => (g === group.slug ? null : group.slug))}
+                        accessibilityLabel={`${group.name}, ${count} ejercicios`}
+                        style={styles.chipFiltro}
+                      >
+                        {group.name} <FrenciaText style={styles.chipConteo}>{count}</FrenciaText>
+                      </Tag>
+                    ))}
+                  </ScrollView>
+
+                  {!catalogLoading && (
+                    <FrenciaText role="dataLabel" color={colors.textTertiary}>
+                      {results.length} {results.length === 1 ? 'ejercicio' : 'ejercicios'}
+                      {grupoActivo ? ` · ${grupoActivo.name}` : ''}
+                    </FrenciaText>
+                  )}
                 </View>
 
                 {/* Sin texto la lista trae el catalogo entero, asi que va
@@ -341,10 +412,14 @@ export function ExercisePickerModal({
                   </View>
                 ) : (
                   <View style={styles.listWrap}>
-                    <FlatList
+                    {/* La transicion de layout acomoda las filas vecinas
+                       cuando una se despliega o se pliega. */}
+                    <Animated.FlatList
                       data={results}
                       keyExtractor={keyExtractor}
                       renderItem={renderResult}
+                      extraData={abierta}
+                      itemLayoutAnimation={LinearTransition.duration(motion.durBase)}
                       contentContainerStyle={styles.resultsList}
                       keyboardShouldPersistTaps="handled"
                       keyboardDismissMode="interactive"
@@ -356,7 +431,8 @@ export function ExercisePickerModal({
                             color={colors.textTertiary}
                             style={styles.centerText}
                           >
-                            Sin resultados para “{query.trim()}”.
+                            No hay ejercicios que coincidan. Probá con otro
+                            nombre o sacá el filtro.
                           </FrenciaText>
                         </View>
                       }
@@ -388,6 +464,76 @@ export function ExercisePickerModal({
     </Modal>
   );
 }
+
+interface FilaCatalogoProps {
+  exercise: Exercise;
+  abierta: boolean;
+  onToggle: (id: string) => void;
+  onAdd: (exercise: Exercise) => void;
+}
+
+/** Fila del catalogo. Plegada: nombre en una linea y musculo objetivo.
+ *  Desplegada: nombre completo, musculos (el objetivo con punto) y
+ *  equipamiento, y el boton que pasa a configurarlo. */
+const FilaCatalogo = React.memo(function FilaCatalogo({
+  exercise,
+  abierta,
+  onToggle,
+  onAdd,
+}: FilaCatalogoProps) {
+  const colors = useColors();
+  const styles = useThemedStyles(makeStyles);
+  const equipo = equipmentLabel(exercise.equipment);
+
+  return (
+    <Pressable
+      onPress={() => onToggle(exercise.id)}
+      accessibilityRole="button"
+      accessibilityState={{ expanded: abierta }}
+      accessibilityLabel={
+        exercise.primary ? `${exercise.name}, ${exercise.primary.name}` : exercise.name
+      }
+      style={({ pressed }) => [
+        styles.fila,
+        abierta && styles.filaAbierta,
+        pressed && !abierta && styles.filaPresionada,
+      ]}
+    >
+      <View style={styles.filaCabeza}>
+        <FrenciaText style={styles.filaNombre} numberOfLines={abierta ? undefined : 1}>
+          {exercise.name}
+        </FrenciaText>
+        {!abierta && exercise.primary && (
+          <FrenciaText style={styles.filaMusculo} numberOfLines={1}>
+            {exercise.primary.name}
+          </FrenciaText>
+        )}
+        <Icon name={abierta ? 'chevron-up' : 'chevron-down'} size={18} color={colors.textTertiary} />
+      </View>
+
+      {abierta && (
+        <Animated.View entering={FadeIn.duration(motion.durBase)} style={styles.filaDetalle}>
+          <View style={styles.filaMeta}>
+            <View style={styles.filaMusculos}>
+              {exercise.primary && <Tag dot>{exercise.primary.name}</Tag>}
+              {exercise.secondary.map((m) => (
+                <Tag key={m.slug}>{m.name}</Tag>
+              ))}
+            </View>
+            {equipo && (
+              <FrenciaText role="bodySm" color={colors.textTertiary}>
+                {equipo}
+              </FrenciaText>
+            )}
+          </View>
+          <Button variant="primary" size="md" icon="plus" fullWidth onPress={() => onAdd(exercise)}>
+            Añadir
+          </Button>
+        </Animated.View>
+      )}
+    </Pressable>
+  );
+});
 
 const makeStyles = (colors: Palette) =>
   StyleSheet.create({
@@ -437,36 +583,76 @@ const makeStyles = (colors: Palette) =>
       flexDirection: 'row',
       alignItems: 'center',
       gap: space[4],
-      paddingHorizontal: space[5],
+      paddingHorizontal: space[4],
       height: sizing.controlHLg,
-      borderRadius: radius.lg,
-      backgroundColor: colors.surfaceCard,
+      borderRadius: radius.md,
+      backgroundColor: colors.surfaceInset,
       borderWidth: 1,
       borderColor: colors.borderSubtle,
     },
-    listWrap: { flex: 1 },
+
+    // Los chips corren de borde a borde de la pantalla: el scroll anula el
+    // padding del contenedor y lo repone adentro.
+    chipsScroll: { marginHorizontal: -spacing.padScreen, flexGrow: 0 },
+    chipsFiltro: { paddingHorizontal: spacing.padScreen, gap: space[3] },
+    chipFiltro: { minHeight: sizing.controlHSm, paddingVertical: 0 },
+    // Sin color propio: hereda el del chip (verde si esta activo).
+    chipConteo: { fontFamily: mono.medium, fontSize: 11, opacity: 0.75 },
+    // La lista va de borde a borde y repone el margen en su contenido: si no,
+    // el scroll recorta el fondo de la fila desplegada, que se sale del texto.
+    listWrap: { flex: 1, marginHorizontal: -spacing.padScreen },
     fadeTop: {
       position: 'absolute',
       top: 0,
       left: 0,
       right: 0,
-      height: space[8],
+      height: space[6],
       pointerEvents: 'none',
     },
     // El padding de arriba iguala la altura del degradado: en reposo la primera
     // fila se ve entera, y al scrollear las filas se funden ahi en vez de
     // cortarse pegadas al buscador.
-    resultsList: { paddingTop: space[8], paddingBottom: space[6] },
-    resultsHint: { paddingVertical: space[8], alignItems: 'center' },
-    resultRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: space[4],
-      padding: spacing.padCard,
-      borderRadius: radius.lg,
-      backgroundColor: colors.surfaceCard,
-      marginBottom: space[2],
+    resultsList: {
+      paddingTop: space[6],
+      paddingBottom: space[6],
+      paddingHorizontal: spacing.padScreen,
     },
-    resultRowPressed: { opacity: 0.75 },
-    resultName: { color: colors.textPrimary },
+    resultsHint: { paddingVertical: space[8], alignItems: 'center' },
+
+    // Filas planas con divisor. Desplegada gana fondo de tarjeta; el margen
+    // negativo compensa su padding para que el texto no se corra.
+    fila: {
+      paddingVertical: space[4] + 1,
+      borderBottomWidth: StyleSheet.hairlineWidth,
+      borderBottomColor: colors.divider,
+    },
+    filaAbierta: {
+      marginHorizontal: -space[4],
+      marginVertical: space[2],
+      paddingHorizontal: space[4],
+      paddingVertical: space[5],
+      borderRadius: radius.lg,
+      borderBottomColor: 'transparent',
+      backgroundColor: colors.surfaceCard,
+      gap: space[5],
+    },
+    filaPresionada: { opacity: 0.6 },
+    filaCabeza: { flexDirection: 'row', alignItems: 'center', gap: space[4] },
+    filaNombre: {
+      flex: 1,
+      fontFamily: sans.semibold,
+      fontSize: 16,
+      lineHeight: 22,
+      color: colors.textPrimary,
+    },
+    filaMusculo: {
+      maxWidth: 104,
+      fontFamily: sans.regular,
+      fontSize: 13,
+      color: colors.textTertiary,
+      textAlign: 'right',
+    },
+    filaDetalle: { gap: space[5] },
+    filaMeta: { flexDirection: 'row', alignItems: 'center', gap: space[4] },
+    filaMusculos: { flex: 1, flexDirection: 'row', flexWrap: 'wrap', gap: space[3] },
   });

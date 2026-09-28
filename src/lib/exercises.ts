@@ -14,15 +14,29 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import { supabase } from '@/lib/supabase';
 
+export interface MuscleGroup {
+  slug: string;
+  name: string;
+  /** Orden fijo del catalogo de musculos (pecho, espalda, hombros...). */
+  position: number;
+}
+
 export interface Exercise {
   id: string;
   name: string;
   /** Nombre original en ingles: en el gimnasio se usan los dos indistintamente. */
   nameEn: string | null;
+  /** Equipamiento tal como esta en la base (barra, mancuernas, polea...). */
+  equipment: string | null;
+  /** Musculo objetivo. Es el que usa el filtro por grupo muscular. */
+  primary: MuscleGroup | null;
+  /** Musculos que asisten, en el orden del catalogo. */
+  secondary: MuscleGroup[];
 }
 
-// v2: el catalogo pasa a incluir name_en, asi que el cache viejo no sirve.
-const STORAGE_KEY = 'frencia.exercises.catalog.v2';
+// v3: el catalogo pasa a incluir musculos y equipamiento, asi que el cache
+// viejo no sirve.
+const STORAGE_KEY = 'frencia.exercises.catalog.v3';
 
 // Cache en memoria compartido entre montajes del hook.
 let memoryCache: Exercise[] | null = null;
@@ -31,6 +45,45 @@ let memoryCache: Exercise[] | null = null;
 // proyecto remoto). Si fuera mayor, la API recortaria cada pagina a max_rows,
 // el bucle la tomaria por la ultima y el resto del catalogo quedaria afuera.
 const CATALOGO_PAGINA = 1000;
+
+interface FilaEjercicio {
+  id: string;
+  name: string;
+  name_en: string | null;
+  equipment: string | null;
+  // Sin tipos generados, supabase-js tipa la relacion como arreglo aunque
+  // muscle_groups es muchos-a-uno y en runtime llega un objeto: se aceptan
+  // las dos formas.
+  exercise_muscles:
+    | { is_primary: boolean; muscle_groups: MuscleGroup | MuscleGroup[] | null }[]
+    | null;
+}
+
+function porPosicion(a: MuscleGroup, b: MuscleGroup) {
+  return a.position - b.position;
+}
+
+function aEjercicio(e: FilaEjercicio): Exercise {
+  const primarios: MuscleGroup[] = [];
+  const secundarios: MuscleGroup[] = [];
+  for (const m of e.exercise_muscles ?? []) {
+    const g = Array.isArray(m.muscle_groups) ? m.muscle_groups[0] : m.muscle_groups;
+    if (!g) continue;
+    (m.is_primary ? primarios : secundarios).push(g);
+  }
+  primarios.sort(porPosicion);
+  secundarios.sort(porPosicion);
+  return {
+    id: e.id,
+    name: e.name,
+    nameEn: e.name_en,
+    equipment: e.equipment,
+    // Cada ejercicio tiene un unico objetivo; si alguno trajera dos, el resto
+    // pasa a secundarios en vez de perderse.
+    primary: primarios[0] ?? null,
+    secondary: [...primarios.slice(1), ...secundarios],
+  };
+}
 
 /** Baja el catalogo entero, paginado para no truncarlo al limite de filas de
  *  la API. Devuelve null si falla cualquier pagina: un error de red no es un
@@ -42,12 +95,12 @@ async function fetchAll(): Promise<Exercise[] | null> {
     // paginas y ningun ejercicio se repita o se pierda en el corte.
     const { data, error } = await supabase
       .from('exercises')
-      .select('id, name, name_en')
+      .select('id, name, name_en, equipment, exercise_muscles(is_primary, muscle_groups(slug, name, position))')
       .order('name')
       .order('id')
       .range(desde, desde + CATALOGO_PAGINA - 1);
     if (error || !data) return null;
-    for (const e of data) todos.push({ id: e.id, name: e.name, nameEn: e.name_en });
+    for (const e of data) todos.push(aEjercicio(e as unknown as FilaEjercicio));
     if (data.length < CATALOGO_PAGINA) break;
   }
   return todos;
@@ -63,6 +116,35 @@ export function foldText(s: string): string {
     .replace(/[óòö]/g, 'o')
     .replace(/[úùü]/g, 'u')
     .replace(/ñ/g, 'n');
+}
+
+const EQUIPAMIENTO: Record<string, string> = {
+  barra: 'Barra',
+  mancuernas: 'Mancuernas',
+  maquina: 'Máquina',
+  multipower: 'Multipower',
+  polea: 'Polea',
+  'peso corporal': 'Peso corporal',
+};
+
+/** Equipamiento para mostrar. Si aparece uno nuevo, sale capitalizado. */
+export function equipmentLabel(equipment: string | null): string | null {
+  if (!equipment) return null;
+  return EQUIPAMIENTO[equipment] ?? equipment.charAt(0).toUpperCase() + equipment.slice(1);
+}
+
+/** Grupos musculares que son objetivo de al menos un ejercicio del catalogo,
+ *  en el orden fijo del catalogo de musculos y con cuantos ejercicios tiene
+ *  cada uno. Un grupo sin ejercicios no se ofrece como filtro. */
+export function muscleGroupsOf(catalog: Exercise[]): { group: MuscleGroup; count: number }[] {
+  const porSlug = new Map<string, { group: MuscleGroup; count: number }>();
+  for (const e of catalog) {
+    if (!e.primary) continue;
+    const g = porSlug.get(e.primary.slug);
+    if (g) g.count += 1;
+    else porSlug.set(e.primary.slug, { group: e.primary, count: 1 });
+  }
+  return [...porSlug.values()].sort((a, b) => porPosicion(a.group, b.group));
 }
 
 /** Catalogo completo de ejercicios, listo para filtrar en memoria. */

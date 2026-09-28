@@ -11,11 +11,21 @@ export interface TagProps {
   selectable?: boolean;
   dot?: boolean;
   onPress?: () => void;
+  /** Nombre para el lector de pantalla cuando el texto visible no alcanza. */
+  accessibilityLabel?: string;
   children?: React.ReactNode;
   style?: ViewStyle;
 }
 
-export function Tag({ selected = false, selectable = false, dot = false, onPress, children, style }: TagProps) {
+export function Tag({
+  selected = false,
+  selectable = false,
+  dot = false,
+  onPress,
+  accessibilityLabel,
+  children,
+  style,
+}: TagProps) {
   const colors = useColors();
   const styles = useThemedStyles(makeStyles);
   const fg = selected ? colors.accentText : colors.textSecondary;
@@ -33,7 +43,13 @@ export function Tag({ selected = false, selectable = false, dot = false, onPress
 
   if (selectable || onPress) {
     return (
-      <Pressable onPress={onPress} style={boxStyle}>
+      <Pressable
+        onPress={onPress}
+        style={boxStyle}
+        accessibilityRole="button"
+        accessibilityState={{ selected }}
+        accessibilityLabel={accessibilityLabel}
+      >
         {content}
       </Pressable>
     );
