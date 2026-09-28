@@ -99,7 +99,9 @@ export function WheelPicker({
   return (
     <Animated.ScrollView
       ref={scrollRef}
-      style={{ height, width }}
+      // ScrollView crece por defecto (flexGrow 1): en una fila de ruedas eso
+      // ignora el ancho pedido y las separa. Con ancho fijo no crece.
+      style={{ height, width, flexGrow: width === undefined ? 1 : 0 }}
       showsVerticalScrollIndicator={false}
       snapToInterval={itemHeight}
       decelerationRate="normal"
