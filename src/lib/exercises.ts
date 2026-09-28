@@ -6,7 +6,8 @@
    Estrategia stale-while-revalidate:
      1. Cache en memoria (sobrevive a la navegacion dentro de la sesion).
      2. Cache en AsyncStorage (sobrevive a reinicios): se muestra al instante.
-     3. Refresco en segundo plano desde Supabase, que actualiza ambos caches. */
+     3. Refresco en segundo plano desde Supabase, que actualiza ambos caches
+        solo cuando llego el catalogo completo (todas sus paginas). */
 
 import { useEffect, useState } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -26,15 +27,30 @@ const STORAGE_KEY = 'frencia.exercises.catalog.v2';
 // Cache en memoria compartido entre montajes del hook.
 let memoryCache: Exercise[] | null = null;
 
-/** Baja el catalogo entero. Devuelve null si la consulta fallo: un error de
- *  red no es un catalogo vacio y no tiene que pisar la copia que ya tenemos. */
+// Tiene que coincidir con max_rows de Supabase (supabase/config.toml y el
+// proyecto remoto). Si fuera mayor, la API recortaria cada pagina a max_rows,
+// el bucle la tomaria por la ultima y el resto del catalogo quedaria afuera.
+const CATALOGO_PAGINA = 1000;
+
+/** Baja el catalogo entero, paginado para no truncarlo al limite de filas de
+ *  la API. Devuelve null si falla cualquier pagina: un error de red no es un
+ *  catalogo vacio ni uno parcial, y no tiene que pisar la copia que ya tenemos. */
 async function fetchAll(): Promise<Exercise[] | null> {
-  const { data, error } = await supabase
-    .from('exercises')
-    .select('id, name, name_en')
-    .order('name');
-  if (error || !data) return null;
-  return data.map((e) => ({ id: e.id, name: e.name, nameEn: e.name_en }));
+  const todos: Exercise[] = [];
+  for (let desde = 0; ; desde += CATALOGO_PAGINA) {
+    // El id desempata nombres repetidos para que el orden sea estable entre
+    // paginas y ningun ejercicio se repita o se pierda en el corte.
+    const { data, error } = await supabase
+      .from('exercises')
+      .select('id, name, name_en')
+      .order('name')
+      .order('id')
+      .range(desde, desde + CATALOGO_PAGINA - 1);
+    if (error || !data) return null;
+    for (const e of data) todos.push({ id: e.id, name: e.name, nameEn: e.name_en });
+    if (data.length < CATALOGO_PAGINA) break;
+  }
+  return todos;
 }
 
 /** Normaliza texto para comparar sin distinguir mayusculas ni acentos. */
