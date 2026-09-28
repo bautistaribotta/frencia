@@ -1,7 +1,7 @@
 import React from 'react';
 
 const CSS = `
-.frencia-excfg{display:flex;flex-direction:column;gap:22px;padding:8px 20px 28px;background:var(--bg-app);min-height:100%;box-sizing:border-box}
+.frencia-excfg{position:relative;display:flex;flex-direction:column;gap:22px;padding:8px 20px 28px;background:var(--bg-app);min-height:100%;box-sizing:border-box}
 .frencia-excfg__nav{display:flex;align-items:center;gap:6px;margin:0 -8px}
 .frencia-excfg__navt{font-family:var(--font-mono);font-weight:var(--fw-medium);font-size:11px;letter-spacing:var(--ls-wider);text-transform:uppercase;color:var(--text-tertiary)}
 .frencia-excfg__head{display:flex;flex-direction:column;gap:8px}
@@ -11,8 +11,8 @@ const CSS = `
 .frencia-excfg__opt{color:var(--text-disabled);text-transform:none;letter-spacing:var(--ls-wide)}
 .frencia-excfg__pair{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
 .frencia-excfg__pair .frencia-stepper,.frencia-excfg__pair .frencia-stepper__row{width:100%}
-.frencia-excfg__pair .frencia-stepper__val{flex:1;min-width:0}
-.frencia-excfg__pair .frencia-stepper__btn{width:46px}
+.frencia-excfg .frencia-excfg__pair .frencia-stepper__val{flex:1;min-width:0}
+.frencia-excfg .frencia-excfg__pair .frencia-stepper__btn{width:46px}
 .frencia-excfg__note{display:flex;gap:10px;align-items:flex-start;padding:12px 14px;border-radius:var(--radius-md);background:var(--surface-card);border:1px solid var(--border-subtle);font-family:var(--font-sans);font-size:14px;line-height:1.4;color:var(--text-secondary)}
 .frencia-excfg__note svg{width:18px;height:18px;flex-shrink:0;color:var(--text-tertiary);margin-top:1px}
 .frencia-excfg__chips{display:flex;flex-wrap:wrap;gap:8px}
@@ -22,23 +22,25 @@ const CSS = `
 .frencia-excfg__err{font-family:var(--font-sans);font-size:13px;color:var(--text-tertiary)}
 `;
 
-if (typeof document !== 'undefined' && !document.getElementById('frencia-excfg-css')) {
+if (typeof document !== 'undefined' && !document.getElementById('frencia-excfg-css-v2')) {
   const s = document.createElement('style');
-  s.id = 'frencia-excfg-css'; s.textContent = CSS;
+  s.id = 'frencia-excfg-css-v2'; s.textContent = CSS;
   document.head.appendChild(s);
 }
 
-const RIR_OPTS = [{ value: 0, label: '0' }, { value: 1, label: '1' }, { value: 2, label: '2' }, { value: 3, label: '3' }, { value: 4, label: '4+' }];
+// RIR va de "Fallo" (-1, un paso debajo de 0) a 5.
+const rirLabel = (v) => (v < 0 ? 'Fallo' : String(v));
 
 /**
  * Segunda cara de ExercisePickerModal: configurar un ejercicio dentro de un
  * día (agregar o editar). Los campos salen de los datos que registra el
  * ejercicio; el peso no se planifica; el descanso no aparece en cardio de
- * una sola serie.
+ * una sola serie. El esfuerzo es un Stepper (en RIR, "Fallo" queda debajo de
+ * 0) y el descanso se elige libre con RestField (ruedas en una hoja inferior).
  */
 export function ExerciseConfig({ exercise, plan = {}, mode = 'add', prefs, onBack, onSubmit, className = '', ...rest }) {
   const NS = window.FrenciaDesignSystem_377129 || {};
-  const { ExerciseMetrics: M, Stepper, DurationField, DistanceField, SegmentedControl, Tag, Button, IconButton, ExerciseTypeTag, ExerciseSummary } = NS;
+  const { ExerciseMetrics: M, Stepper, DurationField, DistanceField, SegmentedControl, RestField, Button, IconButton, ExerciseTypeTag, ExerciseSummary } = NS;
   const kind = M ? M.KINDS[exercise.kind] : null;
   const defaultScale = kind && kind.intensity === 'required' ? kind.scales[0] : null;
 
@@ -113,20 +115,15 @@ export function ExerciseConfig({ exercise, plan = {}, mode = 'add', prefs, onBac
         <span className="frencia-excfg__cap"><span>Intensidad</span>{kind.intensity === 'optional' ? <span className="frencia-excfg__opt">opcional</span> : null}</span>
         {scaleOpts.length > 1 ? <SegmentedControl fullWidth value={p.intensity || 'none'} onChange={setScale} options={scaleOpts} /> : null}
         {p.intensity === 'RIR' ? (
-          <SegmentedControl fullWidth value={p.intensityValue} onChange={(v) => set('intensityValue', v)} options={RIR_OPTS} />
+          <Stepper label="RIR objetivo" value={p.intensityValue != null ? p.intensityValue : 2} onChange={(v) => set('intensityValue', v)} min={-1} max={5} format={rirLabel} size="lg" fullWidth />
         ) : p.intensity === 'RPE' ? (
-          <Stepper label="RPE objetivo" value={p.intensityValue || 0} onChange={(v) => set('intensityValue', v)} min={1} max={10} step={0.5} precision={1} size="lg" />
+          <Stepper label="RPE objetivo" value={p.intensityValue || 0} onChange={(v) => set('intensityValue', v)} min={1} max={10} step={0.5} precision={1} size="lg" fullWidth />
         ) : null}
       </div>
 
       {restOn ? (
         <div className="frencia-excfg__sec">
-          <span className="frencia-excfg__cap"><span>Descanso entre series</span></span>
-          <div className="frencia-excfg__chips" role="radiogroup">
-            {M.REST_OPTIONS.map((r) => (
-              <Tag key={r} selectable selected={p.rest === r} role="radio" aria-checked={p.rest === r} onClick={() => set('rest', r)}>{M.durCompact(r)}</Tag>
-            ))}
-          </div>
+          <RestField value={p.rest} onChange={(v) => set('rest', v)} />
         </div>
       ) : null}
 

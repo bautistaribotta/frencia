@@ -113,11 +113,11 @@ td:first-child{color:var(--text-primary);font-weight:var(--fw-semibold)}
 <div>
 <span class="cap">07</span><h2>Configurar ejercicio</h2>
 <ul>
-<li>Series siempre. Después, un campo por cada dato que el plan puede prescribir: Reps (Stepper), Tiempo (DurationField), Distancia (DistanceField).</li>
+<li>Series siempre. Después, un campo por cada dato que el plan puede prescribir: Reps (Stepper), Tiempo (DurationField), Distancia (DistanceField). Series y reps van lado a lado.</li>
 <li>Con más de una serie, el caption dice "por serie".</li>
 <li>Si registra peso: nota "El peso no va en el plan".</li>
-<li>Intensidad obligatoria: RIR / RPE. Opcional: "Sin intensidad" (o "Sin RPE" en cardio) como primera opción.</li>
-<li>Descanso: chips de 30 s a 5 min. No aparece en cardio de una sola serie; vuelve al subir las series.</li>
+<li>Intensidad obligatoria: RIR / RPE. Opcional: "Sin intensidad" (o "Sin RPE" en cardio) como primera opción. El valor es un Stepper a todo el ancho; en RIR, "Fallo" es el paso debajo de 0 y en el resumen se lee "Al fallo".</li>
+<li>Descanso: RestField, un campo que abre ruedas de minutos y segundos (cada 5 s, hasta 10:55) en una hoja inferior; 0:00 es sin descanso. No aparece en cardio de una sola serie; vuelve al subir las series.</li>
 <li>Abajo, el resumen tal como va a quedar en la lista del día.</li>
 </ul>
 </div>

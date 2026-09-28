@@ -30,21 +30,25 @@ const CSS = `
 .frencia-stepper__unit { font-size: 12px; color: var(--text-tertiary); margin-left: 3px; font-weight: var(--fw-medium); }
 .frencia-stepper--lg .frencia-stepper__val { font-size: 28px; min-width: 80px; }
 .frencia-stepper--lg .frencia-stepper__btn { height: 56px; width: 52px; }
+.frencia-stepper--full { display: flex; width: 100%; }
+.frencia-stepper--full .frencia-stepper__row { display: flex; width: 100%; }
+.frencia-stepper--full .frencia-stepper__val { flex: 1; min-width: 0; }
 `;
 
-if (typeof document !== 'undefined' && !document.getElementById('frencia-stepper-css')) {
+if (typeof document !== 'undefined' && !document.getElementById('frencia-stepper-css-v2')) {
   const s = document.createElement('style');
-  s.id = 'frencia-stepper-css'; s.textContent = CSS;
+  s.id = 'frencia-stepper-css-v2'; s.textContent = CSS;
   document.head.appendChild(s);
 }
 
 /** Numeric stepper for logging reps / load. Tabular mono value, ± controls. */
-export function Stepper({ label, value, onChange, step = 1, min = 0, max = Infinity, unit, size = 'md', precision = 0, className = '', ...rest }) {
+export function Stepper({ label, value, onChange, step = 1, min = 0, max = Infinity, unit, size = 'md', precision = 0, format, fullWidth = false, className = '', ...rest }) {
   const set = (next) => {
     const clamped = Math.max(min, Math.min(max, next));
     onChange && onChange(Number(clamped.toFixed(precision)));
   };
-  const cls = ['frencia-stepper', `frencia-stepper--${size}`, className].filter(Boolean).join(' ');
+  const shown = format ? format(value) : value;
+  const cls = ['frencia-stepper', `frencia-stepper--${size}`, fullWidth ? 'frencia-stepper--full' : '', className].filter(Boolean).join(' ');
   return (
     <div className={cls} {...rest}>
       {label ? <span className="frencia-stepper__label">{label}</span> : null}
@@ -52,7 +56,7 @@ export function Stepper({ label, value, onChange, step = 1, min = 0, max = Infin
         <button className="frencia-stepper__btn" onClick={() => set(value - step)} disabled={value <= min} aria-label="menos">
           <i data-lucide="minus"></i>
         </button>
-        <span className="frencia-stepper__val">{value}{unit ? <span className="frencia-stepper__unit">{unit}</span> : null}</span>
+        <span className="frencia-stepper__val" aria-live="polite">{shown}{unit ? <span className="frencia-stepper__unit">{unit}</span> : null}</span>
         <button className="frencia-stepper__btn" onClick={() => set(value + step)} disabled={value >= max} aria-label="más">
           <i data-lucide="plus"></i>
         </button>

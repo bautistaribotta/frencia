@@ -204,7 +204,7 @@ See `assets/` for the brand wordmark and any captured imagery.
 - `data/` — `StatTile`, `MetricPill`, `ProgressBar`, `Stepper`, `SetRow`
 - `navigation/` — `SegmentedControl`, `TabBar`
 - `feedback/` — `Switch`, `Checkbox`
-- `log/` — registro por tipo de ejercicio: `ExerciseMetrics` (reglas y formatos, no visual), `DurationField`, `DistanceField`, `IsoTimer`, `RestRing`, `SerieComparativa`, `SeriesTable`, `ExerciseSummary`, `ExerciseTypeTag`, `ExerciseConfig`, `MarqueeText`. Reglas en `guidelines/tipos-de-ejercicio.card.html`.
+- `log/` — registro por tipo de ejercicio: `ExerciseMetrics` (reglas y formatos, no visual), `DurationField`, `DistanceField`, `IsoTimer`, `RestRing`, `SerieComparativa`, `SeriesTable`, `ExerciseSummary`, `ExerciseTypeTag`, `RestField`, `ExerciseConfig`, `MarqueeText`. Reglas en `guidelines/tipos-de-ejercicio.card.html`.
 
 **`ui_kits/ios_app/`** — Frencia iOS app recreation
 - `index.html` (interactive) + `Home`, `WorkoutLog`, `Progress`, `SessionStub` screens

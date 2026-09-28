@@ -16,6 +16,10 @@ export interface StepperProps extends Omit<React.HTMLAttributes<HTMLDivElement>,
   /** Decimal places to keep. Default 0. */
   precision?: number;
   size?: 'md' | 'lg';
+  /** Text shown instead of the number (e.g. RIR -1 renders as "Fallo"). */
+  format?: (value: number) => string;
+  /** Stretch to the container: the buttons go to the edges. */
+  fullWidth?: boolean;
 }
 
 /** Numeric stepper for logging reps / load — tabular mono value with ± controls. */

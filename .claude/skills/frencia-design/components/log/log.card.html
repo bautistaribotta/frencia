@@ -1,4 +1,4 @@
-<!-- @dsCard group="Components" viewport="1180x860" name="Registro — tipos de ejercicio" subtitle="DurationField · DistanceField · IsoTimer · RestRing · SerieComparativa (2/3/4 col) · SeriesTable · ExerciseSummary · ExerciseTypeTag" -->
+<!-- @dsCard group="Components" viewport="1180x860" name="Registro — tipos de ejercicio" subtitle="DurationField · DistanceField · RestField · IsoTimer · RestRing · SerieComparativa (2/3/4 col) · SeriesTable · ExerciseSummary · ExerciseTypeTag" -->
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -10,6 +10,7 @@ body{padding:24px;margin:0}
 .c{display:flex;flex-direction:column;gap:12px;min-width:0}
 .cap{font:11px var(--font-mono);letter-spacing:var(--ls-wider);text-transform:uppercase;color:var(--text-tertiary)}
 .w375{max-width:335px}
+.rel{position:relative}
 </style>
 </head>
 <body>
@@ -29,15 +30,16 @@ const EX = {
   trineo: { name: 'Trineo por tiempo', kind: 'hibrido', metrics: ['peso', 'tiempo', 'distancia'], distScale: 'corta' },
 };
 function Demo() {
-  const { DurationField, DistanceField, IsoTimer, RestRing, SerieComparativa, SeriesTable, ExerciseSummary, ExerciseTypeTag } = window.FrenciaDesignSystem_377129;
+  const { DurationField, DistanceField, RestField, IsoTimer, RestRing, SerieComparativa, SeriesTable, ExerciseSummary, ExerciseTypeTag } = window.FrenciaDesignSystem_377129;
   const [t, setT] = React.useState(45);
   const [tc, setTc] = React.useState(3900);
   const [dm, setDm] = React.useState(40);
   const [dk, setDk] = React.useState(5);
+  const [rest, setRest] = React.useState(120);
   React.useEffect(() => { window.lucide && lucide.createIcons(); });
   return (
     <div className="g">
-      <div className="c">
+      <div className="c rel">
         <span className="cap">DurationField · isométrico ±5 s</span>
         <DurationField label="Tiempo por serie" value={t} onChange={setT} size="lg" fullWidth />
         <span className="cap">DurationField · cardio h:mm:ss ±1 min</span>
@@ -45,6 +47,8 @@ function Demo() {
         <span className="cap">DistanceField · corta (m) · larga (km)</span>
         <DistanceField label="Distancia" value={dm} onChange={setDm} unit="m" fullWidth />
         <DistanceField label="Distancia" value={dk} onChange={setDk} unit="km" fullWidth />
+        <span className="cap">RestField · abre ruedas min / s (cada 5 s) · 0:00 = sin descanso</span>
+        <RestField value={rest} onChange={setRest} />
       </div>
       <div className="c">
         <span className="cap">IsoTimer · contando</span>

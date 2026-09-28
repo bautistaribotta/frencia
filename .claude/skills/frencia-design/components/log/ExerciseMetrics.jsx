@@ -97,7 +97,10 @@ function summary(ex, plan, prefs) {
   if (counted && parts.length) parts[0] = `${sets}x${parts[0]}`;
   if (counted && !parts.length) parts.push(`${sets} series`);
   const volume = parts.join(' · ');
-  const intensity = plan.intensity && !isNil(plan.intensityValue) ? `${plan.intensity} ${plan.intensityValue}` : null;
+  // RIR -1 es "al fallo": se lee con palabras, no como un RIR negativo.
+  const intensity = plan.intensity && !isNil(plan.intensityValue)
+    ? (plan.intensity === 'RIR' && plan.intensityValue < 0 ? 'Al fallo' : `${plan.intensity} ${plan.intensityValue}`)
+    : null;
   const rest = counted && plan.rest ? durCompact(plan.rest) : null;
   return { volume, intensity, rest, text: [volume, intensity, rest].filter(Boolean).join(' · ') };
 }
