@@ -33,6 +33,7 @@ import Animated, { FadeIn, LinearTransition } from 'react-native-reanimated';
 
 import { MarqueeText } from '@/components/MarqueeText';
 import { MeasurePicker } from '@/components/MeasurePicker';
+import { useToast } from '@/contexts/toast';
 import {
   equipmentLabel,
   foldText,
@@ -160,6 +161,7 @@ function PickerContenido({
 }: PickerContenidoProps) {
   const colors = useColors();
   const styles = useThemedStyles(makeStyles);
+  const { showToast } = useToast();
 
   const [query, setQuery] = useState('');
   // Slug del grupo muscular filtrado (null = todos).
@@ -277,6 +279,9 @@ function PickerContenido({
       restSeconds,
     });
     onClose();
+    // El toast vive en la raiz: se ve apenas baja el modal. Igual que el
+    // "Dia actualizado" de la edicion del dia.
+    showToast({ message: editMode ? 'Ejercicio actualizado' : 'Ejercicio agregado', type: 'success' });
   }
 
   return (
