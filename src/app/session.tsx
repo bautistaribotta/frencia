@@ -189,7 +189,7 @@ export default function SessionScreen() {
   // vivo (sumar una serie, cortar el ejercicio aca).
   const [cantidades, setCantidades] = useState<number[]>([]);
   const [valores, setValores] = useState<Record<string, ValoresSerie>>({});
-  const [index, setIndex] = useState(0);
+  const [indiceGuardado, setIndex] = useState(0);
   const [guardando, setGuardando] = useState(false);
   const [menuAbierto, setMenuAbierto] = useState(false);
 
@@ -208,14 +208,11 @@ export default function SessionScreen() {
   const avisoPendientes = useRef(false);
 
   const pasos = useMemo(() => generarPasos(plan, cantidades), [plan, cantidades]);
+  // Cortar un ejercicio saca pasos de la lista y puede dejar el indice guardado
+  // mas alla del final. Se lee acotado al ultimo paso que quedo.
+  const index = Math.min(indiceGuardado, Math.max(0, pasos.length - 1));
   const paso = pasos[index] ?? null;
   const ejercicioActual = paso ? plan[paso.ejercicio] : null;
-
-  // Cortar un ejercicio saca pasos de la lista y puede dejar el indice mas alla
-  // del final. Lo traemos al ultimo paso que quedo.
-  useEffect(() => {
-    if (pasos.length > 0 && index > pasos.length - 1) setIndex(pasos.length - 1);
-  }, [pasos.length, index]);
 
   // --- Carga inicial ---------------------------------------------------------
 
@@ -350,20 +347,25 @@ export default function SessionScreen() {
 
   // --- Descanso --------------------------------------------------------------
 
-  // Al entrar a un paso de descanso se fija su arranque, una sola vez. Volver
-  // atras y avanzar de nuevo retoma la cuenta donde iba en vez de reiniciarla.
-  useEffect(() => {
-    if (!paso || paso.tipo !== 'descanso') return;
-    const k = claveDescanso(paso);
-    setIniciosDescanso((prev) => (prev[k] ? prev : { ...prev, [k]: Date.now() }));
-  }, [paso]);
+  /** Mueve al paso `i`. Al entrar a un descanso se fija su arranque, una sola
+   *  vez: volver atras y avanzar de nuevo retoma la cuenta donde iba en vez de
+   *  reiniciarla. El reloj se pone en hora en el mismo momento para que el
+   *  primer cuadro no calcule contra un `ahora` viejo. */
+  function irAPaso(i: number) {
+    setIndex(i);
+    const destino = pasos[i];
+    if (!destino || destino.tipo !== 'descanso') return;
+    const k = claveDescanso(destino);
+    const t = Date.now();
+    setAhora(t);
+    setIniciosDescanso((prev) => (prev[k] ? prev : { ...prev, [k]: t }));
+  }
 
   // El reloj solo corre mientras se esta parado en un descanso. Cada medio
   // segundo para que el numero no se atrase visiblemente respecto del segundo
   // real que se muestra.
   useEffect(() => {
     if (!paso || paso.tipo !== 'descanso') return;
-    setAhora(Date.now());
     const id = setInterval(() => setAhora(Date.now()), 500);
     return () => clearInterval(id);
   }, [paso]);
@@ -484,7 +486,7 @@ export default function SessionScreen() {
     setGuardando(true);
     await persistirSiCorresponde();
     setGuardando(false);
-    setIndex((i) => i + 1);
+    irAPaso(index + 1);
   }
 
   async function anterior() {
@@ -492,7 +494,7 @@ export default function SessionScreen() {
     setGuardando(true);
     await persistirSiCorresponde();
     setGuardando(false);
-    setIndex((i) => i - 1);
+    irAPaso(index - 1);
   }
 
   /** Sale dejando la sesion en curso: al volver se retoma donde quedo. */
@@ -878,7 +880,7 @@ const makeStyles = (colors: Palette) =>
     // RN no parsea oklch, por eso el velo va en rgba como el resto de los
     // tokens (ver la nota en tokens/colors.ts). Mismo tratamiento que el sheet
     // de opciones del perfil.
-    menuFondo: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0, 0, 0, 0.6)' },
+    menuFondo: { flex: 1, justifyContent: 'flex-end', backgroundColor: colors.scrim },
     menu: {
       gap: space[4],
       padding: spacing.padScreen,

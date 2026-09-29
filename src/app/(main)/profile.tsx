@@ -451,7 +451,7 @@ const makeStyles = (colors: Palette) =>
   // Modal de opciones de avatar
   backdrop: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    backgroundColor: colors.scrim,
     justifyContent: 'flex-end',
   },
   sheet: {

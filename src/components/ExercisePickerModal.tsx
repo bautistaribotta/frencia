@@ -667,7 +667,7 @@ const makeStyles = (colors: Palette) =>
     campoValor: { fontFamily: mono.bold, fontSize: 28, lineHeight: 34, color: colors.textPrimary },
 
     // Hoja inferior con las ruedas, igual que la de edad y peso del perfil.
-    hojaFondo: { flex: 1, backgroundColor: 'rgba(0, 0, 0, 0.6)' },
+    hojaFondo: { flex: 1, backgroundColor: colors.scrim },
     hoja: {
       backgroundColor: colors.surfaceRaised,
       borderTopLeftRadius: radius['2xl'],
