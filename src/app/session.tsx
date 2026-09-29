@@ -878,7 +878,7 @@ const makeStyles = (colors: Palette) =>
     // RN no parsea oklch, por eso el velo va en rgba como el resto de los
     // tokens (ver la nota en tokens/colors.ts). Mismo tratamiento que el sheet
     // de opciones del perfil.
-    menuFondo: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0, 0, 0, 0.6)' },
+    menuFondo: { flex: 1, justifyContent: 'flex-end', backgroundColor: colors.scrim },
     menu: {
       gap: space[4],
       padding: spacing.padScreen,

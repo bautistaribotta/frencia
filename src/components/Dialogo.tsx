@@ -57,7 +57,7 @@ const makeStyles = (colors: Palette) =>
   StyleSheet.create({
     backdrop: {
       flex: 1,
-      backgroundColor: 'rgba(0, 0, 0, 0.6)',
+      backgroundColor: colors.scrim,
       justifyContent: 'center',
       alignItems: 'center',
       padding: spacing.padScreen,

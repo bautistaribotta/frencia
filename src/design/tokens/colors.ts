@@ -101,6 +101,9 @@ const darkColors = {
   borderStrong: palette.ink500,
   divider: 'rgba(255, 255, 255, 0.07)',
 
+  // Scrim: fondo que atenua el contenido detras de hojas y dialogos
+  scrim: 'rgba(0, 0, 0, 0.6)',
+
   // Accent — primary action (esmeralda)
   accent: palette.green500,
   accentHover: palette.green400,
@@ -165,6 +168,9 @@ const lightColors: Palette = {
   borderDefault: 'rgba(10, 12, 10, 0.22)',
   borderStrong: 'rgba(10, 12, 10, 0.40)',
   divider: 'rgba(10, 12, 10, 0.10)',
+
+  // Scrim: fondo que atenua el contenido detras de hojas y dialogos
+  scrim: 'rgba(0, 0, 0, 0.6)',
 
   // Accent — primary action (verde medio)
   accent: palette.greenLight,

@@ -76,6 +76,9 @@
   --border-strong: var(--ink-500);
   --divider: rgba(255, 255, 255, 0.07);
 
+  /* Scrim — dims the field behind bottom sheets and dialogs */
+  --scrim: oklch(0% 0 0 / 0.6);
+
   /* Accents — primary action */
   --accent: var(--green-500);
   --accent-hover: var(--green-400);
@@ -144,6 +147,9 @@
   --border-default: rgba(10, 12, 10, 0.22);
   --border-strong: rgba(10, 12, 10, 0.40);
   --divider: rgba(10, 12, 10, 0.10);
+
+  /* Scrim */
+  --scrim: oklch(0% 0 0 / 0.6);
 
   /* Accents — primary action (verde medio: legible sobre claro, sin vibrar) */
   --accent: #0F8440;

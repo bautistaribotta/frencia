@@ -482,7 +482,7 @@ const makeStyles = (colors: Palette) =>
   textInput: { flex: 1, fontFamily: sans.regular, fontSize: 16, color: colors.textPrimary, padding: 0 },
 
   // Sheet de la rueda
-  modalBackdrop: { flex: 1, backgroundColor: 'rgba(0, 0, 0, 0.6)' },
+  modalBackdrop: { flex: 1, backgroundColor: colors.scrim },
   sheet: {
     backgroundColor: colors.surfaceRaised,
     borderTopLeftRadius: radius['2xl'],
