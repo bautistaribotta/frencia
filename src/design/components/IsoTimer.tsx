@@ -245,7 +245,7 @@ export function IsoTimer({
         </Pressable>
       ) : (
         <View style={styles.fila}>
-          <Text style={styles.nota}>Corregilo si hace falta.</Text>
+          <Text style={[styles.nota, styles.centrado]}>Corregilo si hace falta.</Text>
           <Pressable
             accessibilityRole="button"
             onPress={empezar}
@@ -324,6 +324,7 @@ const makeStyles = (colors: Palette) =>
     },
     nota: { fontFamily: mono.regular, fontSize: 12, color: colors.textSecondary, minHeight: 16 },
     notaSobre: { color: colors.intensityText },
+    centrado: { textAlign: 'center' },
     boton: {
       flexDirection: 'row',
       alignItems: 'center',
@@ -344,10 +345,9 @@ const makeStyles = (colors: Palette) =>
     botonTextoEmpezar: { color: colors.textOnAccent },
     botonTextoFrenar: { color: colors.textInverse },
     botonTextoCancelar: { color: colors.textPrimary },
-    // La nota arriba y el link abajo, alineados a la izquierda: el link
-    // compensa su padding para quedar al ras del texto.
-    fila: { alignItems: 'flex-start', gap: space[1] },
-    link: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingVertical: 10, marginLeft: -4, paddingHorizontal: 4 },
+    // La nota arriba y el link abajo, centrados en el ancho de la tarjeta.
+    fila: { alignItems: 'center', gap: space[1] },
+    link: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingVertical: 10, paddingHorizontal: 4 },
     linkPresionado: { opacity: 0.6 },
     linkTexto: { fontFamily: sans.semibold, fontSize: 14, color: colors.accentText },
   });
