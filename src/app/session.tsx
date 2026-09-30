@@ -820,20 +820,25 @@ export default function SessionScreen() {
               {cardio ? (
                 <View style={styles.cardio}>
                   {ejercicioActual.tracks.duration ? (
-                    <DurationField
-                      label="Tiempo"
-                      value={valorActual.tiempo}
-                      onChange={(v) => setCampo('tiempo', v > 0 ? v : null)}
-                      step={60}
-                      allowHours
-                      size="lg"
-                      fullWidth
-                    />
-                  ) : null}
-                  {faltaTiempo ? (
-                    <FrenciaText role="bodySm" color={colors.textTertiary}>
-                      Cargá el tiempo para seguir.
-                    </FrenciaText>
+                    /* El aviso va pegado al campo y en el naranja de alerta
+                       (warning): es lo que bloquea el avance y tiene que
+                       leerse como parte del campo, no como otro bloque. */
+                    <View style={styles.campoConAviso}>
+                      <DurationField
+                        label="Tiempo"
+                        value={valorActual.tiempo}
+                        onChange={(v) => setCampo('tiempo', v > 0 ? v : null)}
+                        step={60}
+                        allowHours
+                        size="lg"
+                        fullWidth
+                      />
+                      {faltaTiempo ? (
+                        <FrenciaText role="bodySm" color={colors.warning} style={styles.centrado}>
+                          Cargá el tiempo para seguir.
+                        </FrenciaText>
+                      ) : null}
+                    </View>
                   ) : null}
                   {ejercicioActual.tracks.distance ? (
                     <DistanceField
@@ -1063,6 +1068,7 @@ const makeStyles = (colors: Palette) =>
     bloque: { gap: space[2] },
     serieHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
     cardio: { gap: space[6] },
+    campoConAviso: { gap: space[3] },
 
     // Descanso: el aro manda, todo lo demas es contexto.
     descanso: { alignItems: 'center', gap: space[6], paddingVertical: space[6] },
