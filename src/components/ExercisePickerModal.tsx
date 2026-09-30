@@ -1,6 +1,7 @@
 /* Frencia · ExercisePickerModal — buscar un ejercicio y configurarlo.
    Dos caras del mismo modal: primero el catalogo con su buscador y el filtro
-   por grupo muscular, y al elegir uno, las series, reps, esfuerzo y descanso.
+   por tipo o grupo muscular, y al elegir uno, lo que prescribe el plan: series,
+   reps, esfuerzo y descanso en fuerza; tiempo, distancia y RPE en cardio.
    Lo usan el wizard de creacion y la edicion de un dia.
 
    En el catalogo, tocar una fila la despliega (nombre completo, musculos y
@@ -33,17 +34,25 @@ import Animated, { FadeIn, LinearTransition } from 'react-native-reanimated';
 
 import { MarqueeText } from '@/components/MarqueeText';
 import { MeasurePicker } from '@/components/MeasurePicker';
+import { useProfile } from '@/contexts/profile';
 import { useToast } from '@/contexts/toast';
+import { distanciaACanonico, mostrarDistancia } from '@/lib/distancia';
 import {
+  TIPOS,
+  contarTipo,
+  datosAbreviados,
   equipmentLabel,
   foldText,
   muscleGroupsOf,
   useExerciseCatalog,
+  type DatosRegistrados,
   type Exercise,
+  type TipoEjercicio,
 } from '@/lib/exercises';
 import {
   DESCANSO_POR_DEFECTO,
   defaultIntensity,
+  esSerieUnica,
   intensityRange,
   intensityValueLabel,
   nextUid,
@@ -54,8 +63,12 @@ import {
 
 import {
   Button,
+  DistanceField,
+  DurationField,
+  ExerciseTypeTag,
   FrenciaText,
   Icon,
+  SegmentedControl,
   Stepper,
   Tag,
   mono,
@@ -85,7 +98,17 @@ function withAlpha(hex: string, alpha: number): string {
 interface Elegido {
   id: string;
   name: string;
+  kind: TipoEjercicio;
+  tracks: DatosRegistrados;
 }
+
+// Tipos que se ofrecen como filtro junto a los musculos. La fuerza no: es casi
+// todo el catalogo y ya la cubren los grupos musculares.
+const TIPOS_FILTRO: TipoEjercicio[] = ['cardio', 'isometrico', 'hibrido'];
+
+// RPE de arranque al activar la intensidad en cardio: un ritmo comodo pero
+// sostenido, el mismo valor que usa el design system.
+const RPE_CARDIO_POR_DEFECTO = 6;
 
 export interface ExercisePickerModalProps {
   visible: boolean;
@@ -162,33 +185,53 @@ function PickerContenido({
   const colors = useColors();
   const styles = useThemedStyles(makeStyles);
   const { showToast } = useToast();
+  const { profile } = useProfile();
+  const unidadDistancia = profile?.unidadDistancia ?? 'km';
 
   const [query, setQuery] = useState('');
-  // Slug del grupo muscular filtrado (null = todos).
+  // Filtro del catalogo: un grupo muscular o un tipo, uno a la vez (null en
+  // los dos = todos).
   const [grupo, setGrupo] = useState<string | null>(null);
+  const [tipo, setTipo] = useState<TipoEjercicio | null>(null);
   // Fila del catalogo desplegada: una sola a la vez.
   const [abierta, setAbierta] = useState<string | null>(null);
   // Ejercicio elegido dentro del modal (null = todavia buscando). Editando
   // arranca con el ejercicio y sus valores; agregando, con los de siempre.
   const [selected, setSelected] = useState<Elegido | null>(() =>
-    editando ? { id: editando.exerciseId, name: editando.name } : null,
+    editando
+      ? { id: editando.exerciseId, name: editando.name, kind: editando.kind, tracks: editando.tracks }
+      : null,
   );
   const [sets, setSets] = useState(editando?.sets ?? 3);
   const [reps, setReps] = useState(editando?.reps ?? 10);
   const [intensityValue, setIntensityValue] = useState(
-    () => editando?.intensityValue ?? defaultIntensity(medidor),
+    () =>
+      editando?.intensityValue ??
+      (editando && esSerieUnica(editando.kind) ? RPE_CARDIO_POR_DEFECTO : defaultIntensity(medidor)),
   );
   // null es "sin descanso", un valor valido: no se puede usar ?? aca.
   const [restSeconds, setRestSeconds] = useState<number | null>(
     editando ? editando.restSeconds : DESCANSO_POR_DEFECTO,
   );
+  // Cardio: tiempo en segundos y distancia en la unidad del usuario. null (o
+  // 0) es "el plan no lo dice"; hace falta al menos uno de los dos.
+  const [tiempo, setTiempo] = useState<number | null>(editando?.durationSeconds ?? null);
+  const [distancia, setDistancia] = useState<number | null>(() =>
+    editando?.distanceM != null ? mostrarDistancia(editando.distanceM, unidadDistancia) : null,
+  );
+  // En cardio la intensidad es un RPE opcional ("Sin RPE" es la otra opcion).
+  const [conRpe, setConRpe] = useState(editando ? editando.intensityKind !== null : false);
+
+  const esCardio = selected !== null && esSerieUnica(selected.kind);
 
   // Editando se respeta el medidor con el que se guardo el ejercicio, no la
   // preferencia actual del perfil. Si el usuario paso de RIR a RPE, reetiquetar
   // un "2 RIR" como "2 RPE" cambiaria el dato sin que nadie lo pida. Ademas el
   // centinela -1 ("al fallo") solo existe en RIR y hay que poder mostrarlo.
-  const medidorActivo: Medidor = editando?.intensityKind ?? medidor;
+  // El cardio solo admite RPE: "repeticiones en reserva" no aplica a correr.
+  const medidorActivo: Medidor = esCardio ? 'rpe' : (editando?.intensityKind ?? medidor);
   const rango = intensityRange(medidorActivo);
+  const cardioValido = (tiempo ?? 0) > 0 || (distancia ?? 0) > 0;
 
   // Hoja con las ruedas del descanso. El borrador solo pasa al ejercicio con
   // Listo; cerrarla tocando afuera lo descarta.
@@ -211,13 +254,24 @@ function PickerContenido({
   // chips no bailen mientras se escribe.
   const grupos = useMemo(() => muscleGroupsOf(catalog), [catalog]);
   const grupoActivo = grupos.find((g) => g.group.slug === grupo)?.group ?? null;
+  // Tipos con ejercicios, ofrecidos antes de los musculos: son otro eje y al
+  // final de la tira quedarian fuera de la pantalla.
+  const tipos = useMemo(
+    () =>
+      TIPOS_FILTRO.map((k) => ({ kind: k, count: contarTipo(catalog, k) })).filter(
+        (t) => t.count > 0,
+      ),
+    [catalog],
+  );
+  const filtroActivo = tipo ? TIPOS[tipo].label : (grupoActivo?.name ?? null);
 
   // Busqueda instantanea: filtra el catalogo en memoria (sin acentos ni
   // mayusculas). Cero latencia, sin red por cada tecla. Mira tambien el nombre
   // en ingles, porque en el gimnasio se usan los dos ("jalon al pecho" y "lat
   // pulldown" tienen que encontrar el mismo ejercicio), y el musculo objetivo.
   // El filtro por grupo mira solo el musculo principal: "Triceps" no tiene que
-  // traer todos los press de pecho.
+  // traer todos los press de pecho. Los tipos que no son fuerza tambien se
+  // encuentran escribiendo su nombre ("cardio").
   // Sin texto ni filtro se lista el catalogo entero por nombre: el usuario
   // puede explorar sin saber de antemano como se llama lo que busca.
   const results = useMemo(() => {
@@ -225,24 +279,40 @@ function PickerContenido({
     return catalog.filter(
       (e) =>
         (grupo === null || e.primary?.slug === grupo) &&
+        (tipo === null || e.kind === tipo) &&
         (q === '' ||
           foldText(e.name).includes(q) ||
           (e.nameEn !== null && foldText(e.nameEn).includes(q)) ||
-          (e.primary !== null && foldText(e.primary.name).includes(q))),
+          (e.primary !== null && foldText(e.primary.name).includes(q)) ||
+          (e.kind !== 'fuerza' && foldText(TIPOS[e.kind].label).includes(q))),
     );
-  }, [query, grupo, catalog]);
+  }, [query, grupo, tipo, catalog]);
 
   // Estable: lo usa el renderItem de la lista, que se memoiza contra el.
   const pickExercise = useCallback(
     (hit: Exercise) => {
-      setSelected({ id: hit.id, name: hit.name });
-      setSets(3);
+      const cardio = esSerieUnica(hit.kind);
+      setSelected({ id: hit.id, name: hit.name, kind: hit.kind, tracks: hit.tracks });
+      setSets(cardio ? 1 : 3);
       setReps(10);
-      setIntensityValue(defaultIntensity(medidor));
-      setRestSeconds(DESCANSO_POR_DEFECTO);
+      setIntensityValue(cardio ? RPE_CARDIO_POR_DEFECTO : defaultIntensity(medidor));
+      setRestSeconds(cardio ? null : DESCANSO_POR_DEFECTO);
+      setTiempo(null);
+      setDistancia(null);
+      setConRpe(false);
     },
     [medidor],
   );
+
+  function filtrarGrupo(slug: string | null) {
+    setTipo(null);
+    setGrupo((g) => (slug === null || g === slug ? null : slug));
+  }
+
+  function filtrarTipo(kind: TipoEjercicio) {
+    setGrupo(null);
+    setTipo((t) => (t === kind ? null : kind));
+  }
 
   const keyExtractor = useCallback((hit: Exercise) => hit.id, []);
 
@@ -268,16 +338,40 @@ function PickerContenido({
 
   function saveExercise() {
     if (!selected) return;
-    onSubmit({
+    if (esCardio && !cardioValido) return;
+    const base = {
       uid: editando?.uid ?? nextUid(),
       exerciseId: selected.id,
       name: selected.name,
-      sets,
-      reps,
-      intensityKind: medidorActivo,
-      intensityValue,
-      restSeconds,
-    });
+      kind: selected.kind,
+      tracks: selected.tracks,
+    };
+    onSubmit(
+      esCardio
+        ? {
+            ...base,
+            sets: 1,
+            reps: null,
+            durationSeconds: selected.tracks.duration && tiempo ? tiempo : null,
+            distanceM:
+              selected.tracks.distance && distancia
+                ? distanciaACanonico(distancia, unidadDistancia)
+                : null,
+            intensityKind: conRpe ? 'rpe' : null,
+            intensityValue: conRpe ? intensityValue : null,
+            restSeconds: null,
+          }
+        : {
+            ...base,
+            sets,
+            reps,
+            durationSeconds: null,
+            distanceM: null,
+            intensityKind: medidorActivo,
+            intensityValue,
+            restSeconds,
+          },
+    );
     onClose();
     // El toast vive en la raiz: se ve apenas baja el modal. Igual que el
     // "Dia actualizado" de la edicion del dia.
@@ -317,72 +411,150 @@ function PickerContenido({
           </FrenciaText>
 
           <View style={styles.selectedCard}>
-            <Icon name="dumbbell" size={20} color={colors.accent} />
-            <MarqueeText text={selected.name} role="subtitle" boxStyle={styles.nombre} />
+            <Icon name={TIPOS[selected.kind].icon} size={20} color={colors.accent} />
+            <View style={styles.nombre}>
+              <MarqueeText text={selected.name} role="subtitle" />
+              {selected.kind !== 'fuerza' ? (
+                <ExerciseTypeTag
+                  label={TIPOS[selected.kind].label}
+                  icon={TIPOS[selected.kind].icon}
+                  metrics={datosAbreviados(selected.tracks)}
+                />
+              ) : null}
+            </View>
           </View>
 
-          {/* Series y repeticiones van juntas, como en el design system: son
-             el volumen y se leen de a par ("3 x 10"). */}
-          <View style={styles.par}>
-            <Stepper
-              label="Series"
-              value={sets}
-              onChange={setSets}
-              min={1}
-              max={20}
-              size="lg"
-              fullWidth
-              style={styles.parItem}
-            />
-            <Stepper
-              label="Repeticiones"
-              value={reps}
-              onChange={setReps}
-              min={1}
-              max={50}
-              size="lg"
-              fullWidth
-              style={styles.parItem}
-            />
-          </View>
+          {esCardio ? (
+            <>
+              {/* Una sola serie continua: sin series ni descanso. El plan
+                 prescribe tiempo, distancia o las dos cosas. */}
+              <View style={styles.cardioCampos}>
+                {selected.tracks.duration ? (
+                  <DurationField
+                    label="Tiempo"
+                    value={tiempo}
+                    onChange={(v) => setTiempo(v > 0 ? v : null)}
+                    step={60}
+                    allowHours
+                    size="lg"
+                    fullWidth
+                  />
+                ) : null}
+                {selected.tracks.distance ? (
+                  <DistanceField
+                    label="Distancia"
+                    value={distancia}
+                    onChange={(v) => setDistancia(v !== null && v > 0 ? v : null)}
+                    unit={unidadDistancia}
+                    size="lg"
+                    fullWidth
+                  />
+                ) : null}
+                {!cardioValido ? (
+                  <FrenciaText role="bodySm" color={colors.textTertiary}>
+                    Cargá tiempo o distancia para seguir.
+                  </FrenciaText>
+                ) : null}
+              </View>
 
-          <Stepper
-            label={`Esfuerzo · ${medidorActivo === 'rir' ? 'RIR' : 'RPE'}`}
-            value={intensityValue}
-            onChange={setIntensityValue}
-            min={rango.min}
-            max={rango.max}
-            format={(v) => intensityValueLabel(medidorActivo, v)}
-            size="lg"
-            fullWidth
-          />
+              <View style={styles.campoBloque}>
+                <View style={styles.captionFila}>
+                  <FrenciaText role="dataLabel" color={colors.textTertiary}>
+                    Intensidad
+                  </FrenciaText>
+                  <FrenciaText role="dataLabel" color={colors.textDisabled}>
+                    opcional
+                  </FrenciaText>
+                </View>
+                <SegmentedControl
+                  fullWidth
+                  value={conRpe ? 'rpe' : 'none'}
+                  onChange={(v) => setConRpe(v === 'rpe')}
+                  options={[
+                    { value: 'none', label: 'Sin RPE' },
+                    { value: 'rpe', label: 'RPE' },
+                  ]}
+                />
+                {conRpe ? (
+                  <Stepper
+                    label="RPE objetivo"
+                    value={intensityValue}
+                    onChange={setIntensityValue}
+                    min={rango.min}
+                    max={rango.max}
+                    size="lg"
+                    fullWidth
+                    style={styles.campoSeparado}
+                  />
+                ) : null}
+              </View>
+            </>
+          ) : (
+            <>
+              {/* Series y repeticiones van juntas, como en el design system: son
+                 el volumen y se leen de a par ("3 x 10"). */}
+              <View style={styles.par}>
+                <Stepper
+                  label="Series"
+                  value={sets}
+                  onChange={setSets}
+                  min={1}
+                  max={20}
+                  size="lg"
+                  fullWidth
+                  style={styles.parItem}
+                />
+                <Stepper
+                  label="Repeticiones"
+                  value={reps}
+                  onChange={setReps}
+                  min={1}
+                  max={50}
+                  size="lg"
+                  fullWidth
+                  style={styles.parItem}
+                />
+              </View>
 
-          {/* Descanso libre: el campo muestra el valor y abre las ruedas,
-             igual que la edad o el peso en el perfil. */}
-          <View style={styles.campoBloque}>
-            <FrenciaText role="dataLabel" color={colors.textTertiary}>
-              Descanso entre series
-            </FrenciaText>
-            <Pressable
-              onPress={abrirDescanso}
-              accessibilityRole="button"
-              accessibilityLabel={`Descanso entre series: ${restLabel(restSeconds)}`}
-              accessibilityHint="Abre las ruedas para elegir minutos y segundos"
-              style={({ pressed }) => [styles.campo, pressed && styles.campoPresionado]}
-            >
-              <Icon name="timer" size={20} color={colors.textTertiary} />
-              {restSeconds === null ? (
-                <FrenciaText role="body" color={colors.textSecondary} style={styles.campoTexto}>
-                  Sin descanso
+              <Stepper
+                label={`Esfuerzo · ${medidorActivo === 'rir' ? 'RIR' : 'RPE'}`}
+                value={intensityValue}
+                onChange={setIntensityValue}
+                min={rango.min}
+                max={rango.max}
+                format={(v) => intensityValueLabel(medidorActivo, v)}
+                size="lg"
+                fullWidth
+              />
+
+              {/* Descanso libre: el campo muestra el valor y abre las ruedas,
+                 igual que la edad o el peso en el perfil. */}
+              <View style={styles.campoBloque}>
+                <FrenciaText role="dataLabel" color={colors.textTertiary}>
+                  Descanso entre series
                 </FrenciaText>
-              ) : (
-                <FrenciaText style={[styles.campoValor, styles.campoTexto]}>
-                  {restLabel(restSeconds)}
-                </FrenciaText>
-              )}
-              <Icon name="chevron-right" size={18} color={colors.textTertiary} />
-            </Pressable>
-          </View>
+                <Pressable
+                  onPress={abrirDescanso}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Descanso entre series: ${restLabel(restSeconds)}`}
+                  accessibilityHint="Abre las ruedas para elegir minutos y segundos"
+                  style={({ pressed }) => [styles.campo, pressed && styles.campoPresionado]}
+                >
+                  <Icon name="timer" size={20} color={colors.textTertiary} />
+                  {restSeconds === null ? (
+                    <FrenciaText role="body" color={colors.textSecondary} style={styles.campoTexto}>
+                      Sin descanso
+                    </FrenciaText>
+                  ) : (
+                    <FrenciaText style={[styles.campoValor, styles.campoTexto]}>
+                      {restLabel(restSeconds)}
+                    </FrenciaText>
+                  )}
+                  <Icon name="chevron-right" size={18} color={colors.textTertiary} />
+                </Pressable>
+              </View>
+            </>
+          )}
         </ScrollView>
       ) : (
         /* Buscar: titulo, input y catalogo. El bloque de arriba baja
@@ -415,8 +587,10 @@ function PickerContenido({
               )}
             </View>
 
-            {/* Filtro por grupo muscular: uno a la vez, como un radio.
-               Tocar el activo lo suelta y vuelve a Todos. */}
+            {/* Filtro por tipo o por grupo muscular: uno a la vez, como un
+               radio. Tocar el activo lo suelta y vuelve a Todos. Los tipos
+               llevan su icono, que al elegirlos pasa a ser una marca: asi la
+               seleccion no depende solo del color. */}
             <ScrollView
               horizontal
               showsHorizontalScrollIndicator={false}
@@ -426,19 +600,32 @@ function PickerContenido({
             >
               <Tag
                 selectable
-                selected={grupo === null}
-                onPress={() => setGrupo(null)}
+                selected={grupo === null && tipo === null}
+                onPress={() => filtrarGrupo(null)}
                 accessibilityLabel={`Todos, ${catalog.length} ejercicios`}
                 style={styles.chipFiltro}
               >
                 Todos <FrenciaText style={styles.chipConteo}>{catalog.length}</FrenciaText>
               </Tag>
+              {tipos.map(({ kind, count }) => (
+                <Tag
+                  key={kind}
+                  selectable
+                  selected={tipo === kind}
+                  icon={tipo === kind ? 'check' : TIPOS[kind].icon}
+                  onPress={() => filtrarTipo(kind)}
+                  accessibilityLabel={`${TIPOS[kind].label}, ${count} ejercicios`}
+                  style={styles.chipFiltro}
+                >
+                  {TIPOS[kind].label} <FrenciaText style={styles.chipConteo}>{count}</FrenciaText>
+                </Tag>
+              ))}
               {grupos.map(({ group, count }) => (
                 <Tag
                   key={group.slug}
                   selectable
                   selected={grupo === group.slug}
-                  onPress={() => setGrupo((g) => (g === group.slug ? null : group.slug))}
+                  onPress={() => filtrarGrupo(group.slug)}
                   accessibilityLabel={`${group.name}, ${count} ejercicios`}
                   style={styles.chipFiltro}
                 >
@@ -450,7 +637,7 @@ function PickerContenido({
             {!catalogLoading && (
               <FrenciaText role="dataLabel" color={colors.textTertiary}>
                 {results.length} {results.length === 1 ? 'ejercicio' : 'ejercicios'}
-                {grupoActivo ? ` · ${grupoActivo.name}` : ''}
+                {filtroActivo ? ` · ${filtroActivo}` : ''}
               </FrenciaText>
             )}
           </View>
@@ -534,7 +721,14 @@ function PickerContenido({
       {/* Guardar el ejercicio configurado y volver al armado del dia */}
       {selected && (
         <View style={styles.nav}>
-          <Button variant="primary" size="lg" fullWidth icon="check" onPress={saveExercise}>
+          <Button
+            variant="primary"
+            size="lg"
+            fullWidth
+            icon="check"
+            disabled={esCardio && !cardioValido}
+            onPress={saveExercise}
+          >
             {editMode ? 'Guardar cambios' : 'Guardar ejercicio'}
           </Button>
         </View>
@@ -565,6 +759,9 @@ const FilaCatalogo = React.memo(function FilaCatalogo({
   const colors = useColors();
   const styles = useThemedStyles(makeStyles);
   const equipo = equipmentLabel(exercise.equipment);
+  // La fuerza es casi todo el catalogo: su tipo no se anuncia en cada fila.
+  // Los demas si, porque cambian lo que se carga en la sesion.
+  const tipo = exercise.kind === 'fuerza' ? null : TIPOS[exercise.kind];
 
   return (
     <View style={[styles.fila, abierta && styles.filaAbierta]}>
@@ -572,18 +769,27 @@ const FilaCatalogo = React.memo(function FilaCatalogo({
         onPress={() => onToggle(exercise.id)}
         accessibilityRole="button"
         accessibilityState={{ expanded: abierta }}
-        accessibilityLabel={
-          exercise.primary ? `${exercise.name}, ${exercise.primary.name}` : exercise.name
-        }
+        accessibilityLabel={[exercise.name, exercise.primary?.name, tipo?.label]
+          .filter(Boolean)
+          .join(', ')}
         style={({ pressed }) => [
           styles.filaCabeza,
           abierta && styles.filaCabezaAbierta,
           pressed && !abierta && styles.filaPresionada,
         ]}
       >
-        <FrenciaText style={styles.filaNombre} numberOfLines={abierta ? undefined : 1}>
-          {exercise.name}
-        </FrenciaText>
+        <View style={styles.filaPrincipal}>
+          <FrenciaText style={styles.filaNombre} numberOfLines={abierta ? undefined : 1}>
+            {exercise.name}
+          </FrenciaText>
+          {tipo && !abierta ? (
+            <ExerciseTypeTag
+              label={tipo.label}
+              icon={tipo.icon}
+              metrics={datosAbreviados(exercise.tracks)}
+            />
+          ) : null}
+        </View>
         {!abierta && exercise.primary && (
           <FrenciaText style={styles.filaMusculo} numberOfLines={1}>
             {exercise.primary.name}
@@ -621,7 +827,7 @@ const makeStyles = (colors: Palette) =>
     safe: { flex: 1, backgroundColor: colors.bgApp },
     flex: { flex: 1, paddingHorizontal: spacing.padScreen, paddingVertical: space[5] },
     // Caja del nombre dentro de una fila: ocupa lo que dejan los iconos.
-    nombre: { flex: 1, minWidth: 0 },
+    nombre: { flex: 1, minWidth: 0, gap: space[2] },
 
     centerText: { textAlign: 'center' },
     input: { flex: 1, fontFamily: sans.regular, fontSize: 16, color: colors.textPrimary },
@@ -649,6 +855,9 @@ const makeStyles = (colors: Palette) =>
     // Campo del descanso: misma caja que el Stepper para que la pantalla lea
     // como una sola columna de controles.
     campoBloque: { gap: 6 },
+    cardioCampos: { gap: space[5] },
+    captionFila: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline' },
+    campoSeparado: { marginTop: space[4] },
     campo: {
       flexDirection: 'row',
       alignItems: 'center',
@@ -743,8 +952,8 @@ const makeStyles = (colors: Palette) =>
       paddingVertical: space[4] + 1,
     },
     filaCabezaAbierta: { paddingVertical: space[5] },
+    filaPrincipal: { flex: 1, minWidth: 0, gap: 5 },
     filaNombre: {
-      flex: 1,
       fontFamily: sans.semibold,
       fontSize: 16,
       lineHeight: 22,

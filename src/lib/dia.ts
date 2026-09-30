@@ -3,11 +3,24 @@
    dias en memoria, y la edicion (src/app/edit-day.tsx), que trae uno de la base
    y lo devuelve. Ver docs/specs/rutinas-y-dias.md */
 
+import { distanciaCompacta, type UnidadDistancia } from './distancia';
+import {
+  COLUMNAS_TIPO,
+  tipoDeFila,
+  type DatosRegistrados,
+  type FilaTipo,
+  type TipoEjercicio,
+} from './exercises';
 import { supabase } from './supabase';
+import { duracionCompacta } from './tiempo';
 
 export type Medidor = 'rir' | 'rpe';
 
-/** Ejercicio de un dia. Vive en memoria mientras se lo edita. */
+/** Ejercicio de un dia. Vive en memoria mientras se lo edita.
+ *
+ *  Que campos lleva depende de lo que registra el ejercicio (`tracks`): la
+ *  fuerza prescribe reps, el cardio tiempo y/o distancia. Lo que el ejercicio
+ *  no registra va en null. El peso nunca se planifica. */
 export interface DayExercise {
   // Identidad propia de la fila, estable aunque se reordene o se repita el
   // mismo ejercicio en el dia. El indice no sirve como key: al arrastrar
@@ -15,12 +28,23 @@ export interface DayExercise {
   uid: string;
   exerciseId: string;
   name: string;
+  kind: TipoEjercicio;
+  tracks: DatosRegistrados;
   sets: number;
-  reps: number;
-  intensityKind: Medidor;
-  intensityValue: number;
+  reps: number | null;
+  durationSeconds: number | null;
+  distanceM: number | null;
+  // null = sin intensidad, que solo admite el cardio (RPE opcional).
+  intensityKind: Medidor | null;
+  intensityValue: number | null;
   // Descanso fijo entre series, en segundos. null = sin temporizador.
   restSeconds: number | null;
+}
+
+/** El cardio se planifica y se registra como una sola serie continua, sin
+ *  descanso. Ver docs/specs/catalogo-de-ejercicios.md, seccion 6.5. */
+export function esSerieUnica(kind: TipoEjercicio): boolean {
+  return kind === 'cardio';
 }
 
 /** Dia de entrenamiento en edicion. */
@@ -94,33 +118,65 @@ export function restLabel(seconds: number | null): string {
   return `${m}:${String(s).padStart(2, '0')}`;
 }
 
-/** Duracion compacta para resumenes, segun el design system: "30 s",
- *  "2 min", "1:30". */
-export function duracionCompacta(seconds: number): string {
-  if (seconds < 60) return `${seconds} s`;
-  if (seconds % 60 === 0) return `${seconds / 60} min`;
-  return restLabel(seconds);
-}
-
-/** Partes del resumen de un ejercicio ya agregado, para ExerciseSummary. */
-export function partesResumen(ex: DayExercise): {
+/** Partes del resumen de un ejercicio ya agregado, para ExerciseSummary.
+ *
+ *  Formato del design system: "[Nx]volumen · intensidad · descanso". El
+ *  volumen junta los datos que prescribe el plan ("30 min · 5 km"); el prefijo
+ *  Nx y el descanso se omiten en el mismo caso, el cardio de una sola serie. */
+export function partesResumen(
+  ex: DayExercise,
+  unidadDistancia: UnidadDistancia,
+): {
   volume: string;
-  intensity: string;
+  intensity: string | null;
   rest: string | null;
 } {
+  const partes: string[] = [];
+  if (ex.tracks.reps && ex.reps !== null) partes.push(String(ex.reps));
+  if (ex.tracks.duration && ex.durationSeconds !== null) {
+    partes.push(duracionCompacta(ex.durationSeconds));
+  }
+  if (ex.tracks.distance && ex.distanceM !== null) {
+    partes.push(distanciaCompacta(ex.distanceM, unidadDistancia));
+  }
+
+  const conSeries = !(esSerieUnica(ex.kind) && ex.sets === 1);
+  if (conSeries && partes.length > 0) partes[0] = `${ex.sets}x${partes[0]}`;
+  if (conSeries && partes.length === 0) partes.push(`${ex.sets} series`);
+
   return {
-    volume: `${ex.sets}x${ex.reps}`,
-    intensity: intensityLabel(ex.intensityKind, ex.intensityValue),
+    volume: partes.join(' · '),
+    intensity:
+      ex.intensityKind === null || ex.intensityValue === null
+        ? null
+        : intensityLabel(ex.intensityKind, ex.intensityValue),
     // Sin descanso no suma nada al resumen: se omite en vez de ocupar una
     // linea con la ausencia del dato.
-    rest: ex.restSeconds === null ? null : duracionCompacta(ex.restSeconds),
+    rest: !conSeries || ex.restSeconds === null ? null : duracionCompacta(ex.restSeconds),
   };
 }
 
 /** Linea de resumen en texto plano: "3x10 · RIR 2 · 2 min". */
-export function resumenEjercicio(ex: DayExercise): string {
-  const { volume, intensity, rest } = partesResumen(ex);
+export function resumenEjercicio(ex: DayExercise, unidadDistancia: UnidadDistancia): string {
+  const { volume, intensity, rest } = partesResumen(ex, unidadDistancia);
   return [volume, intensity, rest].filter(Boolean).join(' · ');
+}
+
+/** Fila de training_day_exercises lista para insertar (o para mandar a
+ *  guardar_dia_entrenamiento). Lo que el ejercicio no registra va en null:
+ *  el trigger de la tabla rechaza cualquier dato de mas. */
+export function filaEjercicio(ex: DayExercise, position: number) {
+  return {
+    exercise_id: ex.exerciseId,
+    position,
+    sets: ex.sets,
+    reps: ex.tracks.reps ? ex.reps : null,
+    duration_seconds: ex.tracks.duration ? ex.durationSeconds : null,
+    distance_m: ex.tracks.distance ? ex.distanceM : null,
+    intensity_kind: ex.intensityKind,
+    intensity_value: ex.intensityKind === null ? null : ex.intensityValue,
+    rest_seconds: esSerieUnica(ex.kind) ? null : ex.restSeconds,
+  };
 }
 
 /**
@@ -155,7 +211,7 @@ export async function cargarDia(trainingDayId: string): Promise<DiaCargado | nul
   const { data, error } = await supabase
     .from('training_days')
     .select(
-      'name, routines(name), training_day_weekdays(weekday), training_day_exercises(exercise_id, position, sets, reps, intensity_kind, intensity_value, rest_seconds, exercises(name))',
+      `name, routines(name), training_day_weekdays(weekday), training_day_exercises(exercise_id, position, sets, reps, duration_seconds, distance_m, intensity_kind, intensity_value, rest_seconds, exercises(name, ${COLUMNAS_TIPO}))`,
     )
     .eq('id', trainingDayId)
     .maybeSingle();
@@ -172,24 +228,57 @@ export async function cargarDia(trainingDayId: string): Promise<DiaCargado | nul
   const unoDe = <T,>(valor: T | T[] | null): T | null =>
     Array.isArray(valor) ? (valor[0] ?? null) : valor;
 
-  const exercises: DayExercise[] = (data.training_day_exercises ?? [])
+  const exercises: DayExercise[] = ((data.training_day_exercises ?? []) as FilaPlan[])
     .slice()
     .sort((a, b) => a.position - b.position)
-    .map((fila) => ({
-      uid: nextUid(),
-      exerciseId: fila.exercise_id,
-      name: unoDe(fila.exercises as { name?: string } | { name?: string }[] | null)?.name ?? 'Ejercicio',
-      sets: fila.sets ?? 3,
-      reps: fila.reps ?? 10,
-      intensityKind: fila.intensity_kind === 'rpe' ? 'rpe' : 'rir',
-      intensityValue: Number(fila.intensity_value),
-      restSeconds: fila.rest_seconds,
-    }));
+    .map((fila) => {
+      const ejercicio = unoDe(fila.exercises);
+      const { kind, tracks } = tipoDeFila(ejercicio);
+      return {
+        uid: nextUid(),
+        exerciseId: fila.exercise_id,
+        name: ejercicio?.name ?? 'Ejercicio',
+        kind,
+        tracks,
+        sets: fila.sets ?? (esSerieUnica(kind) ? 1 : 3),
+        reps: tracks.reps ? (fila.reps ?? 10) : null,
+        durationSeconds: fila.duration_seconds,
+        distanceM: fila.distance_m,
+        ...intensidadDeFila(fila.intensity_kind, fila.intensity_value),
+        restSeconds: fila.rest_seconds,
+      };
+    });
 
   return {
     dia: { name: data.name, weekdays, exercises },
     rutina: unoDe(data.routines as { name?: string } | { name?: string }[] | null)?.name ?? '',
   };
+}
+
+/** Un ejercicio del dia tal como llega de la base, con su ejercicio embebido. */
+interface FilaPlan {
+  exercise_id: string;
+  position: number;
+  sets: number | null;
+  reps: number | null;
+  duration_seconds: number | null;
+  distance_m: number | null;
+  intensity_kind: string | null;
+  intensity_value: number | string | null;
+  rest_seconds: number | null;
+  exercises:
+    | ({ name?: string } & FilaTipo)
+    | ({ name?: string } & FilaTipo)[]
+    | null;
+}
+
+/** Intensidad de una fila de la base. Sin medidor queda "sin intensidad". */
+export function intensidadDeFila(
+  kind: string | null,
+  value: number | string | null,
+): { intensityKind: Medidor | null; intensityValue: number | null } {
+  if (kind !== 'rir' && kind !== 'rpe') return { intensityKind: null, intensityValue: null };
+  return { intensityKind: kind, intensityValue: value === null ? null : Number(value) };
 }
 
 /**
@@ -205,15 +294,7 @@ export async function guardarDia(trainingDayId: string, dia: TrainingDay): Promi
     p_day_id: trainingDayId,
     p_name: dia.name.trim() || 'Día',
     p_weekdays: dia.weekdays.map((on, i) => (on ? i : -1)).filter((i) => i >= 0),
-    p_exercises: dia.exercises.map((ex, pos) => ({
-      exercise_id: ex.exerciseId,
-      position: pos,
-      sets: ex.sets,
-      reps: ex.reps,
-      intensity_kind: ex.intensityKind,
-      intensity_value: ex.intensityValue,
-      rest_seconds: ex.restSeconds,
-    })),
+    p_exercises: dia.exercises.map(filaEjercicio),
   });
 
   return !error;

@@ -66,6 +66,8 @@ function firma(dia: TrainingDay): string {
       ex.exerciseId,
       ex.sets,
       ex.reps,
+      ex.durationSeconds,
+      ex.distanceM,
       ex.intensityKind,
       ex.intensityValue,
       ex.restSeconds,

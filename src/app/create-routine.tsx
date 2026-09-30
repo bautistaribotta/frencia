@@ -31,6 +31,7 @@ import { ExercisePickerModal } from '@/components/ExercisePickerModal';
 import { ArchiveRoutineDialog } from '@/components/ArchiveRoutineDialog';
 import {
   aplicarEjercicio,
+  filaEjercicio,
   nuevoDia,
   type DayExercise,
   type Medidor,
@@ -249,13 +250,7 @@ export default function CreateRoutineScreen() {
     const exerciseRows = dias.flatMap((d, i) =>
       d.exercises.map((ex, pos) => ({
         training_day_id: diasCreados[i].id,
-        exercise_id: ex.exerciseId,
-        position: pos,
-        sets: ex.sets,
-        reps: ex.reps,
-        intensity_kind: ex.intensityKind,
-        intensity_value: ex.intensityValue,
-        rest_seconds: ex.restSeconds,
+        ...filaEjercicio(ex, pos),
       })),
     );
 
