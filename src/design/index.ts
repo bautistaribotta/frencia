@@ -58,6 +58,8 @@ export { SeriesTable } from './components/SeriesTable';
 export type { SeriesTableProps, SeriesTableColumn } from './components/SeriesTable';
 export { DurationField } from './components/DurationField';
 export type { DurationFieldProps } from './components/DurationField';
+export { IsoTimer } from './components/IsoTimer';
+export type { IsoTimerProps } from './components/IsoTimer';
 export { NumberField } from './components/NumberField';
 export type { NumberFieldProps } from './components/NumberField';
 export { DistanceField } from './components/DistanceField';
