@@ -183,8 +183,9 @@ los usuarios existentes hubieran quedado con objetos sin ese campo.
 
 ## 6. Tipos de ejercicio
 
-Estado: esquema del catalogo escrito (`add_kind_and_metrics_to_exercises`);
-falta extender las tablas de planificacion y registro.
+Estado: cardio implementado de punta a punta (catalogo, planificacion, sesion e
+historial) con los primeros cuatro ejercicios de correr. Isometricos e hibridos
+tienen esquema pero no interfaz ni ejercicios.
 
 ### 6.1 Una sola tabla
 
@@ -215,16 +216,43 @@ coherentes:
 La intensidad no se guarda en el catalogo: se valida al guardar la
 planificacion y la sesion.
 
-### 6.3 Pendiente
+### 6.3 Planificacion y registro
 
-- `training_day_exercises` y `session_sets`: sumar `duration_seconds` y
-  `distance_m`, y volver opcionales `reps`, `weight_kg` e `intensity_*`.
-- `guardar_dia_entrenamiento`: validar cada ejercicio contra sus `tracks_*`.
-- Volumen, PRs y progresion: filtrar por `kind` o definir la metrica de cada
-  tipo.
-- Sembrar ejercicios de cardio, isometricos e hibridos.
+Migracion `cardio_en_planificacion_y_registro`:
 
-### 6.4 Decisiones de interfaz
+- `training_day_exercises` y `session_sets` suman `duration_seconds` y
+  `distance_m` (enteros, segundos y metros). `weight_kg`, `reps` e
+  `intensity_*` pasan a ser opcionales; un `check` exige que medidor y valor
+  de intensidad vayan juntos.
+- La coherencia con el catalogo la validan dos triggers
+  (`validar_plan_de_ejercicio`, `validar_serie_de_ejercicio`) y no la RPC: el
+  wizard de creacion inserta los ejercicios directo y la sesion escribe las
+  series con upsert, asi que cualquier camino de escritura pasa por la misma
+  regla.
+  - Plan: lo que el ejercicio no registra va en null. El cardio es una sola
+    serie sin descanso, con tiempo o distancia (al menos uno) y RPE opcional.
+    Los demas tipos exigen intensidad.
+  - Serie: todo lo que el ejercicio registra, y nada mas. La intensidad es
+    obligatoria salvo en cardio (RPE opcional).
+- `guardar_dia_entrenamiento` guarda duracion y distancia.
+
+Migracion `seed_ejercicios_de_correr`: Correr, Correr en cinta, Correr en
+cinta 5% y Correr en cinta 10%. Tiempo y distancia, sin musculo objetivo (los
+musculos van como asistentes) y con equipamiento `cinta` los de maquina.
+
+### 6.4 Pendiente
+
+- Volumen, PRs y progresion: todavia no existen. Cuando existan, el cardio
+  queda fuera del tonelaje y los PR de fuerza.
+- Escala de distancia por ejercicio (corta en metros, larga en km o mi, ver el
+  design system). Hoy toda distancia es larga, que es lo unico que hay.
+- Interfaz de isometricos e hibridos: la sesion trata todo lo que no es cardio
+  como fuerza (peso, reps y esfuerzo).
+- Cardio en varias series (intervalos, soga): el trigger del plan lo rechaza a
+  proposito. Sumarlo es relajar esa regla y mostrar series y descanso en la
+  configuracion.
+
+### 6.5 Decisiones de interfaz
 
 - **Unidad de distancia.** Preferencia propia `profiles.unidad_distancia`
   (`km` o `mi`), con su switch en Perfil debajo del de altura. La distancia se
@@ -232,6 +260,22 @@ planificacion y la sesion.
 - **Descanso.** El temporizador de descanso se oculta cuando el ejercicio tiene
   una sola serie, sin importar el tipo. Cubre el cardio continuo sin atarlo a
   `kind`.
+- **Cardio de una sola serie.** Correr se planifica y se registra como un bloque
+  continuo: la configuracion no ofrece series ni descanso, y la sesion no deja
+  sumar series. El resumen omite el prefijo `Nx`: "30 min · 5 km · RPE 6".
+- **Inclinacion.** Cada pendiente es un ejercicio aparte, en porcentaje (lo que
+  muestra la cinta): 5% y 10%. Cada una tiene su historial y su referencia de
+  la vez anterior; un dato de inclinacion por serie quedo descartado.
+- **Buscador.** Los tipos distintos de fuerza que tengan ejercicios aparecen
+  como chips antes de los musculos, con su icono, y comparten la seleccion
+  unica con ellos. Correr no tiene musculo objetivo, asi que no aparece en
+  Piernas. Escribir el nombre del tipo ("cardio") tambien lo encuentra.
+- **Sesion.** En cardio la grilla muestra solo Plan y Ultima (tiempo,
+  distancia y RPE) como referencia. Lo de hoy se carga en DurationField,
+  DistanceField y un NumberField de RPE de 1 a 10, la misma escala que al
+  planificar: menos y mas a los costados y el numero al medio para
+  escribirlo. Borrar el numero deja la serie sin RPE. Sin fila Hoy: repetir en la grilla
+  lo que ya muestran los campos era ver el mismo dato dos veces.
 
 ## 7. Fuera de alcance
 
