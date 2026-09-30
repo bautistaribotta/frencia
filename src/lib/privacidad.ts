@@ -7,9 +7,9 @@
 
 import { EMAIL_CONTACTO, TITULAR, type SeccionLegal } from './legal';
 
-export const PRIVACIDAD_VIGENCIA = '26 de septiembre de 2026';
+export const PRIVACIDAD_VIGENCIA = '30 de septiembre de 2026';
 /** La que se guarda al aceptar. Va de la mano con PRIVACIDAD_VIGENCIA. */
-export const PRIVACIDAD_VERSION = '2026-09-26';
+export const PRIVACIDAD_VERSION = '2026-09-30';
 
 export const PRIVACIDAD: SeccionLegal[] = [
   {
@@ -42,8 +42,8 @@ export const PRIVACIDAD: SeccionLegal[] = [
       'Datos de tu entrenamiento:',
       {
         lista: [
-          'Rutinas, días de entrenamiento y ejercicios que cargás.',
-          'Sesiones realizadas: fecha, hora, duración, series, pesos, repeticiones e intensidad.',
+          'Rutinas, días de entrenamiento y ejercicios que cargás, incluidos el tiempo y la distancia que planificás para los ejercicios de cardio.',
+          'Sesiones realizadas: fecha, hora, duración, series, pesos, repeticiones e intensidad, y en los ejercicios de cardio, el tiempo, la distancia y el esfuerzo percibido (RPE).',
         ],
       },
       'Datos técnicos que se generan al usar el servicio:',
@@ -149,6 +149,7 @@ export const PRIVACIDAD: SeccionLegal[] = [
           'Mientras tu cuenta esté activa, conservamos tus datos para prestarte el servicio.',
           'Si pedís eliminar tu cuenta, queda programada para borrarse a los 30 días. Durante ese plazo podés recuperarla iniciando sesión. Pasado ese plazo, se eliminan de forma definitiva tu cuenta, tu perfil, tu foto, tus rutinas, tus sesiones y tu historial.',
           'La constancia de tus aceptaciones de los Términos y Condiciones y de esta política se conserva mientras exista tu cuenta y se elimina junto con ella.',
+          'Si creás una cuenta y no aceptás los Términos y Condiciones y esta política dentro de los 30 días, la eliminamos de forma definitiva junto con los datos del registro, sin período de recuperación, para no conservarlos sin tu consentimiento.',
           'Las copias de seguridad de nuestro proveedor pueden conservar tus datos por un plazo acotado después de la eliminación, hasta que se sobrescriben. No las usamos para ningún otro fin.',
           'Podemos conservar datos por más tiempo solo si una ley nos obliga o si son necesarios para ejercer o defendernos en un reclamo.',
           'La información agregada que no te identifica puede conservarse sin límite de tiempo.',
@@ -179,7 +180,7 @@ export const PRIVACIDAD: SeccionLegal[] = [
         lista: [
           'Acceso: saber qué datos tuyos tenemos. Podés ejercerlo gratis a intervalos no menores a 6 meses, salvo que acredites un interés legítimo, y te respondemos dentro de los 10 días corridos.',
           'Rectificación y actualización: corregir datos inexactos o incompletos. Muchos podés cambiarlos vos mismo desde tu perfil.',
-          'Supresión: pedir que borremos tus datos. Podés hacerlo eliminando tu cuenta desde Configuración o escribiéndonos.',
+          'Supresión: pedir que borremos tus datos. Podés hacerlo eliminando tu cuenta desde Configuración, desde la pantalla de aceptación de estos textos si todavía no los aceptaste, o escribiéndonos.',
           'Retirar tu consentimiento en cualquier momento, sin que eso afecte el tratamiento anterior.',
           'Oponerte a recibir comunicaciones de marketing.',
           'Pedir una copia de tus registros de entrenamiento.',

@@ -7,9 +7,9 @@
 
 import { EMAIL_CONTACTO, TITULAR, type SeccionLegal } from './legal';
 
-export const TERMINOS_VIGENCIA = '26 de septiembre de 2026';
+export const TERMINOS_VIGENCIA = '30 de septiembre de 2026';
 /** La que se guarda al aceptar. Va de la mano con TERMINOS_VIGENCIA. */
-export const TERMINOS_VERSION = '2026-09-26';
+export const TERMINOS_VERSION = '2026-09-30';
 
 export const TERMINOS: SeccionLegal[] = [
   {
@@ -17,7 +17,7 @@ export const TERMINOS: SeccionLegal[] = [
     bloques: [
       'Estos Términos y Condiciones regulan el uso de la aplicación Frencia (en adelante, "Frencia" o "la app").',
       'Para usar Frencia tenés que aceptarlos de forma expresa, junto con la Política de Privacidad. Antes de empezar, la app te muestra los dos documentos y solo te deja continuar después de que abras cada uno y confirmes que los aceptás. Al hacerlo, declarás que los leíste, los entendés y los aceptás. Guardamos la versión de cada documento que aceptaste y la fecha y hora en que lo hiciste.',
-      `Si no estás de acuerdo con alguno de estos términos, no los aceptes y no uses la app. Podés cerrar sesión desde esa misma pantalla y pedirnos que eliminemos tu cuenta escribiendo a ${EMAIL_CONTACTO}.`,
+      `Si no estás de acuerdo con alguno de estos términos, no los aceptes y no uses la app. Desde esa misma pantalla podés cerrar sesión o eliminar tu cuenta. Si creás una cuenta y no aceptás estos términos dentro de los 30 días, la eliminamos junto con los datos que cargaste al registrarte.`,
     ],
   },
   {
@@ -29,11 +29,11 @@ export const TERMINOS: SeccionLegal[] = [
   {
     titulo: '3. Qué es Frencia',
     bloques: [
-      'Frencia es una herramienta para registrar entrenamientos de fuerza. Te permite, entre otras cosas:',
+      'Frencia es una herramienta para registrar entrenamientos de fuerza y de cardio. Te permite, entre otras cosas:',
       {
         lista: [
           'Cargar y organizar tus rutinas y días de entrenamiento.',
-          'Registrar series, pesos, repeticiones e intensidad (RIR o RPE) durante cada sesión.',
+          'Registrar series, pesos, repeticiones e intensidad (RIR o RPE) durante cada sesión, y en los ejercicios de cardio, el tiempo, la distancia y el esfuerzo percibido (RPE).',
           'Consultar tu historial, tu racha y tu progreso.',
           'Consultar un catálogo de ejercicios con sus grupos musculares e instrucciones.',
         ],
@@ -143,7 +143,7 @@ export const TERMINOS: SeccionLegal[] = [
   {
     titulo: '13. Eliminación de la cuenta',
     bloques: [
-      'Podés eliminar tu cuenta cuando quieras desde Configuración, en la opción "Eliminación de cuenta".',
+      'Podés eliminar tu cuenta cuando quieras desde Configuración, en la opción "Eliminación de cuenta", o desde la pantalla de aceptación de estos términos, si todavía no los aceptaste.',
       {
         lista: [
           'Al solicitarlo, la cuenta queda programada para eliminarse a los 30 días. Durante ese plazo podés recuperarla iniciando sesión.',
@@ -178,7 +178,7 @@ export const TERMINOS: SeccionLegal[] = [
     titulo: '16. Cambios en estos términos',
     bloques: [
       'Podemos actualizar estos términos para reflejar cambios en la app, en la ley o en nuestra forma de trabajar. La fecha de vigencia siempre figura al principio del texto.',
-      'Si los cambios son importantes, te avisaremos dentro de la app o por email con al menos 15 días de anticipación. Cuando una versión nueva entre en vigencia, la app te va a pedir que la aceptes de forma expresa para seguir usándola, y guardaremos esa nueva aceptación. Si no estás de acuerdo, podés no aceptarla, dejar de usar Frencia y pedirnos que eliminemos tu cuenta.',
+      'Si los cambios son importantes, te avisaremos dentro de la app o por email con al menos 15 días de anticipación. Cuando una versión nueva entre en vigencia, la app te va a pedir que la aceptes de forma expresa para seguir usándola, y guardaremos esa nueva aceptación. Si no estás de acuerdo, podés no aceptarla, dejar de usar Frencia y eliminar tu cuenta desde esa misma pantalla.',
     ],
   },
   {
