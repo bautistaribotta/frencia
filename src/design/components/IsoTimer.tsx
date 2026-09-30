@@ -56,9 +56,11 @@ function vibrar(fuerte: boolean) {
   ).catch(() => {});
 }
 
-/** Mantiene la pantalla encendida mientras esta montado. */
+/** Mantiene la pantalla encendida mientras esta montado. Si el sistema no
+ *  llego a conceder el bloqueo (en web, con la pestana oculta), soltarlo no es
+ *  un error. */
 function PantallaEncendida() {
-  useKeepAwake();
+  useKeepAwake(undefined, { suppressDeactivateWarnings: true });
   return null;
 }
 
@@ -136,7 +138,8 @@ export function IsoTimer({
   }
 
   function frenar() {
-    const medido = Math.max(1, Math.round((Date.now() - inicioConteo) / 1000));
+    // Floor y no round: se registra el mismo segundo que se estaba viendo.
+    const medido = Math.max(1, Math.floor((Date.now() - inicioConteo) / 1000));
     setFase('hecho');
     onChange(medido);
   }
