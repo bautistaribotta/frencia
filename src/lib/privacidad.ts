@@ -8,8 +8,10 @@
 import { EMAIL_CONTACTO, TITULAR, type SeccionLegal } from './legal';
 
 export const PRIVACIDAD_VIGENCIA = '30 de septiembre de 2026';
-/** La que se guarda al aceptar. Va de la mano con PRIVACIDAD_VIGENCIA. */
-export const PRIVACIDAD_VERSION = '2026-09-30';
+/** La que se guarda al aceptar. Va de la mano con PRIVACIDAD_VIGENCIA. Un
+ *  segundo cambio en el mismo dia suma un sufijo (.2): la app solo compara
+ *  por igualdad. */
+export const PRIVACIDAD_VERSION = '2026-09-30.2';
 
 export const PRIVACIDAD: SeccionLegal[] = [
   {
@@ -42,8 +44,8 @@ export const PRIVACIDAD: SeccionLegal[] = [
       'Datos de tu entrenamiento:',
       {
         lista: [
-          'Rutinas, días de entrenamiento y ejercicios que cargás, incluidos el tiempo y la distancia que planificás para los ejercicios de cardio.',
-          'Sesiones realizadas: fecha, hora, duración, series, pesos, repeticiones e intensidad, y en los ejercicios de cardio, el tiempo, la distancia y el esfuerzo percibido (RPE).',
+          'Rutinas, días de entrenamiento y ejercicios que cargás, incluidos el tiempo y la distancia que planificás para los ejercicios de cardio, y el tiempo y el peso opcional que planificás para los ejercicios isométricos.',
+          'Sesiones realizadas: fecha, hora, duración, series, pesos, repeticiones e intensidad, en los ejercicios de cardio, el tiempo, la distancia y el esfuerzo percibido (RPE), y en los ejercicios isométricos, como la plancha, el tiempo sostenido, el peso opcional y el esfuerzo percibido (RPE).',
         ],
       },
       'Datos técnicos que se generan al usar el servicio:',

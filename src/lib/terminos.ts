@@ -8,8 +8,10 @@
 import { EMAIL_CONTACTO, TITULAR, type SeccionLegal } from './legal';
 
 export const TERMINOS_VIGENCIA = '30 de septiembre de 2026';
-/** La que se guarda al aceptar. Va de la mano con TERMINOS_VIGENCIA. */
-export const TERMINOS_VERSION = '2026-09-30';
+/** La que se guarda al aceptar. Va de la mano con TERMINOS_VIGENCIA. Un
+ *  segundo cambio en el mismo dia suma un sufijo (.2): la app solo compara
+ *  por igualdad. */
+export const TERMINOS_VERSION = '2026-09-30.2';
 
 export const TERMINOS: SeccionLegal[] = [
   {
@@ -29,11 +31,11 @@ export const TERMINOS: SeccionLegal[] = [
   {
     titulo: '3. Qué es Frencia',
     bloques: [
-      'Frencia es una herramienta para registrar entrenamientos de fuerza y de cardio. Te permite, entre otras cosas:',
+      'Frencia es una herramienta para registrar entrenamientos de fuerza, de cardio e isométricos. Te permite, entre otras cosas:',
       {
         lista: [
           'Cargar y organizar tus rutinas y días de entrenamiento.',
-          'Registrar series, pesos, repeticiones e intensidad (RIR o RPE) durante cada sesión, y en los ejercicios de cardio, el tiempo, la distancia y el esfuerzo percibido (RPE).',
+          'Registrar series, pesos, repeticiones e intensidad (RIR o RPE) durante cada sesión, en los ejercicios de cardio, el tiempo, la distancia y el esfuerzo percibido (RPE), y en los ejercicios isométricos, como la plancha, el tiempo sostenido, el peso opcional y el esfuerzo percibido (RPE).',
           'Consultar tu historial, tu racha y tu progreso.',
           'Consultar un catálogo de ejercicios con sus grupos musculares e instrucciones.',
         ],
