@@ -529,10 +529,16 @@ export default function SessionScreen() {
     else router.replace('/home');
   }
 
-  async function finalizar() {
+  function finalizar() {
+    return terminar(true);
+  }
+
+  /** Cierra la sesion. Con `guardarActual` en false la serie del paso actual
+   *  no se escribe: es lo que pasa al saltearla en el ultimo paso. */
+  async function terminar(guardarActual: boolean) {
     if (!sessionId) return;
     setGuardando(true);
-    await persistirSiCorresponde();
+    if (guardarActual) await persistirSiCorresponde();
 
     // No se cierra una sesion con series que todavia no llegaron a la base:
     // el historial y las fantasmas de la proxima vez saldrian incompletos.
@@ -621,6 +627,27 @@ export default function SessionScreen() {
     setMenuAbierto(false);
   }
 
+  /** Saltea la serie actual: no se guarda y se pasa a la proxima serie, sin
+   *  el descanso de por medio, que era para despues de esta. En la ultima
+   *  serie de la sesion la cierra. Se puede deshacer desde el aviso, por si
+   *  fue un toque sin querer: la serie sigue en la lista, solo se la pasa. */
+  function saltarSerie() {
+    if (!paso || paso.tipo !== 'serie') return;
+    setMenuAbierto(false);
+    const desde = index;
+    const proxima = pasos.findIndex((p, i) => i > index && p.tipo === 'serie');
+    if (proxima < 0) {
+      terminar(false);
+      return;
+    }
+    irAPaso(proxima);
+    showToast({
+      message: 'Serie salteada',
+      type: 'info',
+      action: { label: 'Deshacer', onPress: () => setIndex(desde) },
+    });
+  }
+
   // --- Render ----------------------------------------------------------------
 
   if (fase === 'cargando') {
@@ -691,8 +718,21 @@ export default function SessionScreen() {
   // En cardio el tiempo es obligatorio: sin el la serie no se guarda y el
   // ejercicio no llegaria al historial, asi que no se avanza hasta cargarlo.
   // En fuerza la sesion sigue siendo libre: una serie incompleta no bloquea.
-  const faltaTiempo =
-    paso.tipo === 'serie' && cardio && ejercicioActual.tracks.duration && !valorActual.tiempo;
+  const esSerie = paso.tipo === 'serie';
+  const ultimoPaso = index === pasos.length - 1;
+  // El boton a la vista solo aparece con la serie vacia: apenas se carga un
+  // dato, saltar deja de ser lo probable y el camino queda en el menu.
+  const serieVacia =
+    valorActual.peso === '' &&
+    valorActual.reps === '' &&
+    valorActual.intensidad === '' &&
+    valorActual.tiempo === null &&
+    valorActual.distancia === null;
+  // No se avanza con una serie incompleta: no se guardaria y se perderia sin
+  // aviso. Para no hacerla esta Saltar serie.
+  const falta = esSerie ? faltantes(ejercicioActual, valorActual, medidor) : [];
+  const faltaTiempo = cardio && falta.includes('el tiempo');
+  const textoSaltar = ultimoPaso ? 'Saltar y terminar' : 'Saltar serie';
 
   return (
     <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
@@ -812,6 +852,11 @@ export default function SessionScreen() {
                 cuandoAnterior={fantasma ? haceCuanto(fantasma.hechaEl) : null}
                 mostrarHoy={!cardio}
               />
+              {!cardio && falta.length > 0 && !serieVacia ? (
+                <FrenciaText role="bodySm" color={colors.warning} style={styles.centrado}>
+                  Falta cargar {enumerar(falta)}.
+                </FrenciaText>
+              ) : null}
 
               {/* En cardio la grilla queda como referencia (plan y ultima) y
                  lo de hoy se carga solo en sus campos, que saben escribir un
@@ -867,6 +912,20 @@ export default function SessionScreen() {
                   ) : null}
                 </View>
               ) : null}
+
+              {/* Fantasma y lejos de la barra de abajo: saltar es ocasional y
+                 no puede quedar donde se toca "Siguiente" de memoria. */}
+              {serieVacia ? (
+                <Button
+                  variant="ghost"
+                  size="md"
+                  icon="skip-forward"
+                  onPress={saltarSerie}
+                  style={styles.saltar}
+                >
+                  {textoSaltar}
+                </Button>
+              ) : null}
             </>
           )}
         </ScrollView>
@@ -887,7 +946,7 @@ export default function SessionScreen() {
             size="lg"
             iconRight={index === pasos.length - 1 ? undefined : 'arrow-right'}
             loading={guardando}
-            disabled={faltaTiempo}
+            disabled={falta.length > 0}
             onPress={siguiente}
             style={styles.flexItem}
           >
@@ -906,9 +965,18 @@ export default function SessionScreen() {
                 Sumar una serie
               </Button>
             ) : null}
-            <Button variant="secondary" size="lg" icon="check" fullWidth onPress={cortarEjercicio}>
-              Terminar este ejercicio
-            </Button>
+            {esSerie ? (
+              <Button variant="secondary" size="lg" icon="skip-forward" fullWidth onPress={saltarSerie}>
+                {textoSaltar}
+              </Button>
+            ) : null}
+            {/* En el cardio, de una sola serie, terminar el ejercicio en la
+               serie actual no cambia nada. */}
+            {!esSerieUnica(ejercicioActual.kind) ? (
+              <Button variant="secondary" size="lg" icon="check" fullWidth onPress={cortarEjercicio}>
+                Terminar este ejercicio
+              </Button>
+            ) : null}
             <Button variant="primary" size="lg" icon="flame" fullWidth loading={guardando} onPress={finalizar}>
               Terminar la sesión
             </Button>
@@ -965,6 +1033,27 @@ function datosAGuardar(
     intensityKind: medidor,
     intensityValue: intensidad,
   };
+}
+
+/** Lo que le falta a la serie para poder guardarse, en palabras: "el peso",
+ *  "las reps". Vacio = completa. Sigue las mismas reglas que datosAGuardar. */
+function faltantes(ej: EjercicioPlan, v: ValoresSerie, medidor: Medidor): string[] {
+  if (esSerieUnica(ej.kind)) {
+    return ej.tracks.duration && !v.tiempo ? ['el tiempo'] : [];
+  }
+  const falta: string[] = [];
+  const peso = parseNum(v.peso);
+  const reps = parseNum(v.reps);
+  if (peso === null || peso < 0) falta.push('el peso');
+  if (reps === null || reps <= 0) falta.push('las reps');
+  if (parseNum(v.intensidad) === null) falta.push(medidor === 'rir' ? 'el RIR' : 'el RPE');
+  return falta;
+}
+
+/** "a", "a y b", "a, b y c". */
+function enumerar(items: string[]): string {
+  if (items.length <= 1) return items.join('');
+  return `${items.slice(0, -1).join(', ')} y ${items[items.length - 1]}`;
 }
 
 // --- Columnas de la grilla --------------------------------------------------
@@ -1069,6 +1158,7 @@ const makeStyles = (colors: Palette) =>
     serieHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
     cardio: { gap: space[6] },
     campoConAviso: { gap: space[3] },
+    saltar: { alignSelf: 'center' },
 
     // Descanso: el aro manda, todo lo demas es contexto.
     descanso: { alignItems: 'center', gap: space[6], paddingVertical: space[6] },

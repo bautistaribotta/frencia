@@ -265,8 +265,24 @@ Un paso de serie muestra:
 - En que ejercicio y serie esta, sobre cuantos.
 - El nombre del ejercicio.
 - La **grilla comparativa** de la serie, ver abajo.
-- Un menu con: sumar una serie a este ejercicio, cortar el ejercicio aca,
-  terminar la sesion.
+- Un menu con: sumar una serie a este ejercicio, saltar la serie, cortar el
+  ejercicio aca, terminar la sesion. En cardio, que es una sola serie, no se
+  ofrecen sumar ni cortar.
+- **Siguiente bloqueado con la serie incompleta.** Una serie a medias no se
+  guarda, asi que avanzar la perderia sin aviso. El boton (o Terminar, en el
+  ultimo paso) queda deshabilitado hasta tener todo lo obligatorio: peso, reps
+  y esfuerzo en fuerza; el tiempo en cardio, donde distancia y RPE son
+  opcionales. Mientras falte algo, un aviso en naranja de alerta dice que
+  ("Falta cargar el peso y las reps."). Con la serie vacia no hay aviso: esta
+  el boton de saltar.
+- **Saltar serie**, un boton fantasma debajo de la serie, solo mientras no
+  tiene ningun dato cargado (con datos, queda en el menu). No guarda la serie y
+  pasa a la proxima, sin el descanso de por medio; en el ultimo paso dice
+  "Saltar y terminar" y cierra la sesion. Va aparte de Siguiente y lejos de la
+  barra de abajo a proposito: ese boton se toca de memoria y no puede cambiar
+  de significado segun lo cargado. Se deshace desde el aviso "Serie
+  salteada". Si la serie ya se habia guardado antes (se volvio con Anterior),
+  saltarla no la borra.
 
 #### La grilla comparativa
 
