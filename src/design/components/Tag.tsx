@@ -5,11 +5,14 @@ import React from 'react';
 import { Pressable, StyleSheet, Text, View, type ViewStyle } from 'react-native';
 import { radius, sans, type Palette } from '../theme';
 import { useColors, useThemedStyles } from '../theme-context';
+import { Icon } from '../Icon';
 
 export interface TagProps {
   selected?: boolean;
   selectable?: boolean;
   dot?: boolean;
+  /** Icono antes del texto, en el mismo color (filtro por tipo del catalogo). */
+  icon?: string;
   onPress?: () => void;
   /** Nombre para el lector de pantalla cuando el texto visible no alcanza. */
   accessibilityLabel?: string;
@@ -21,6 +24,7 @@ export function Tag({
   selected = false,
   selectable = false,
   dot = false,
+  icon,
   onPress,
   accessibilityLabel,
   children,
@@ -32,6 +36,7 @@ export function Tag({
   const content = (
     <>
       {dot ? <View style={[styles.dot, { backgroundColor: fg }]} /> : null}
+      {icon ? <Icon name={icon} size={15} strokeWidth={2} color={fg} /> : null}
       <Text style={[styles.text, { color: fg }]}>{children}</Text>
     </>
   );
