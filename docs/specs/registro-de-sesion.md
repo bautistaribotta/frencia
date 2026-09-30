@@ -272,9 +272,19 @@ Un paso de serie muestra:
   guarda, asi que avanzar la perderia sin aviso. El boton (o Terminar, en el
   ultimo paso) queda deshabilitado hasta tener todo lo obligatorio: peso, reps
   y esfuerzo en fuerza; el tiempo en cardio, donde distancia y RPE son
-  opcionales. Mientras falte algo, un aviso en naranja de alerta dice que
-  ("Falta cargar el peso y las reps."). Con la serie vacia no hay aviso: esta
-  el boton de saltar.
+  opcionales; el tiempo en isometricos, mas el peso si el plan lo prescribe.
+  Mientras falte algo, un aviso en naranja de alerta dice que ("Falta cargar
+  el peso y las reps."). Con la serie vacia no hay aviso: esta el boton de
+  saltar.
+- **Isometricos.** Debajo de la grilla (solo Plan y Ultima, como en cardio) va
+  el cronometro de esfuerzo (`IsoTimer`): Empezar abre una cuenta regresiva de
+  3 s para ponerse en posicion, despues cuenta hacia arriba contra el objetivo
+  del plan y Frenar completa el tiempo de la serie, que queda editable.
+  Llegar al objetivo vibra pero no frena: corta el usuario. Mientras mide, la
+  pantalla no se apaga y la serie no cuenta como vacia (no se ofrece saltarla
+  a la vista). Debajo van el peso y el RPE, los dos opcionales; el peso arranca
+  vacio aunque la vez anterior se haya usado, y pasa a obligatorio si el plan
+  lo prescribe.
 - **Saltar serie**, un boton fantasma debajo de la serie, solo mientras no
   tiene ningun dato cargado (con datos, queda en el menu). No guarda la serie y
   pasa a la proxima, sin el descanso de por medio; en el ultimo paso dice
