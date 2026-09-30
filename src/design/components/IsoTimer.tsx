@@ -344,13 +344,10 @@ const makeStyles = (colors: Palette) =>
     botonTextoEmpezar: { color: colors.textOnAccent },
     botonTextoFrenar: { color: colors.textInverse },
     botonTextoCancelar: { color: colors.textPrimary },
-    fila: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-      gap: space[3],
-    },
-    link: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingVertical: 10, paddingHorizontal: 4 },
+    // La nota arriba y el link abajo, alineados a la izquierda: el link
+    // compensa su padding para quedar al ras del texto.
+    fila: { alignItems: 'flex-start', gap: space[1] },
+    link: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingVertical: 10, marginLeft: -4, paddingHorizontal: 4 },
     linkPresionado: { opacity: 0.6 },
     linkTexto: { fontFamily: sans.semibold, fontSize: 14, color: colors.accentText },
   });
