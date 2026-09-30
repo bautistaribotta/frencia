@@ -55,6 +55,7 @@ export function DayEditor({
   const styles = useThemedStyles(makeStyles);
   const { profile } = useProfile();
   const unidadDistancia = profile?.unidadDistancia ?? 'km';
+  const unidadPeso = profile?.unidadPeso ?? 'kg';
 
   // Los callbacks de la lista tienen que ser referencias estables: la lista
   // memoiza los gestos contra ellas, y si cambian en pleno arrastre el Pan se
@@ -99,9 +100,9 @@ export function DayEditor({
       dia.exercises.map((ex) => ({
         key: ex.uid,
         title: ex.name,
-        detail: <ExerciseSummary {...partesResumen(ex, unidadDistancia)} />,
+        detail: <ExerciseSummary {...partesResumen(ex, unidadDistancia, unidadPeso)} />,
       })),
-    [dia.exercises, unidadDistancia],
+    [dia.exercises, unidadDistancia, unidadPeso],
   );
 
   return (

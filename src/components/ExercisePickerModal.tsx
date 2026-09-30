@@ -346,6 +346,7 @@ function PickerContenido({
       name: selected.name,
       kind: selected.kind,
       tracks: selected.tracks,
+      weightKg: null,
     };
     onSubmit(
       esCardio

@@ -11,6 +11,7 @@ import {
   type FilaTipo,
   type TipoEjercicio,
 } from './exercises';
+import { mostrarPeso, type UnidadPeso } from './peso';
 import { supabase } from './supabase';
 import { duracionCompacta } from './tiempo';
 
@@ -19,8 +20,9 @@ export type Medidor = 'rir' | 'rpe';
 /** Ejercicio de un dia. Vive en memoria mientras se lo edita.
  *
  *  Que campos lleva depende de lo que registra el ejercicio (`tracks`): la
- *  fuerza prescribe reps, el cardio tiempo y/o distancia. Lo que el ejercicio
- *  no registra va en null. El peso nunca se planifica. */
+ *  fuerza prescribe reps, el cardio y el isometrico tiempo, el cardio ademas
+ *  distancia. Lo que el ejercicio no registra va en null. El peso solo se
+ *  planifica en isometricos, y es opcional. */
 export interface DayExercise {
   // Identidad propia de la fila, estable aunque se reordene o se repita el
   // mismo ejercicio en el dia. El indice no sirve como key: al arrastrar
@@ -34,7 +36,9 @@ export interface DayExercise {
   reps: number | null;
   durationSeconds: number | null;
   distanceM: number | null;
-  // null = sin intensidad, que solo admite el cardio (RPE opcional).
+  // Peso por serie, en kg. Solo isometricos; null = sin peso.
+  weightKg: number | null;
+  // null = sin intensidad: en cardio e isometricos el RPE es opcional.
   intensityKind: Medidor | null;
   intensityValue: number | null;
   // Descanso fijo entre series, en segundos. null = sin temporizador.
@@ -45,6 +49,18 @@ export interface DayExercise {
  *  descanso. Ver docs/specs/catalogo-de-ejercicios.md, seccion 6.5. */
 export function esSerieUnica(kind: TipoEjercicio): boolean {
   return kind === 'cardio';
+}
+
+/** Cardio e isometricos miden esfuerzo solo con RPE, y es opcional:
+ *  "repeticiones en reserva" no aplica a correr ni a sostener una posicion. */
+export function esRpeOpcional(kind: TipoEjercicio): boolean {
+  return kind === 'cardio' || kind === 'isometrico';
+}
+
+/** El plan puede prescribir peso solo en isometricos que lo registran (una
+ *  plancha con disco). En fuerza el peso se elige serie por serie. */
+export function planificaPeso(kind: TipoEjercicio, tracks: DatosRegistrados): boolean {
+  return kind === 'isometrico' && tracks.weight;
 }
 
 /** Dia de entrenamiento en edicion. */
@@ -126,6 +142,7 @@ export function restLabel(seconds: number | null): string {
 export function partesResumen(
   ex: DayExercise,
   unidadDistancia: UnidadDistancia,
+  unidadPeso: UnidadPeso,
 ): {
   volume: string;
   intensity: string | null;
@@ -138,6 +155,9 @@ export function partesResumen(
   }
   if (ex.tracks.distance && ex.distanceM !== null) {
     partes.push(distanciaCompacta(ex.distanceM, unidadDistancia));
+  }
+  if (planificaPeso(ex.kind, ex.tracks) && ex.weightKg !== null) {
+    partes.push(`${mostrarPeso(ex.weightKg, unidadPeso)} ${unidadPeso}`);
   }
 
   const conSeries = !(esSerieUnica(ex.kind) && ex.sets === 1);
@@ -157,8 +177,12 @@ export function partesResumen(
 }
 
 /** Linea de resumen en texto plano: "3x10 · RIR 2 · 2 min". */
-export function resumenEjercicio(ex: DayExercise, unidadDistancia: UnidadDistancia): string {
-  const { volume, intensity, rest } = partesResumen(ex, unidadDistancia);
+export function resumenEjercicio(
+  ex: DayExercise,
+  unidadDistancia: UnidadDistancia,
+  unidadPeso: UnidadPeso,
+): string {
+  const { volume, intensity, rest } = partesResumen(ex, unidadDistancia, unidadPeso);
   return [volume, intensity, rest].filter(Boolean).join(' · ');
 }
 
@@ -173,6 +197,7 @@ export function filaEjercicio(ex: DayExercise, position: number) {
     reps: ex.tracks.reps ? ex.reps : null,
     duration_seconds: ex.tracks.duration ? ex.durationSeconds : null,
     distance_m: ex.tracks.distance ? ex.distanceM : null,
+    weight_kg: planificaPeso(ex.kind, ex.tracks) ? ex.weightKg : null,
     intensity_kind: ex.intensityKind,
     intensity_value: ex.intensityKind === null ? null : ex.intensityValue,
     rest_seconds: esSerieUnica(ex.kind) ? null : ex.restSeconds,
@@ -211,7 +236,7 @@ export async function cargarDia(trainingDayId: string): Promise<DiaCargado | nul
   const { data, error } = await supabase
     .from('training_days')
     .select(
-      `name, routines(name), training_day_weekdays(weekday), training_day_exercises(exercise_id, position, sets, reps, duration_seconds, distance_m, intensity_kind, intensity_value, rest_seconds, exercises(name, ${COLUMNAS_TIPO}))`,
+      `name, routines(name), training_day_weekdays(weekday), training_day_exercises(exercise_id, position, sets, reps, duration_seconds, distance_m, weight_kg, intensity_kind, intensity_value, rest_seconds, exercises(name, ${COLUMNAS_TIPO}))`,
     )
     .eq('id', trainingDayId)
     .maybeSingle();
@@ -244,6 +269,7 @@ export async function cargarDia(trainingDayId: string): Promise<DiaCargado | nul
         reps: tracks.reps ? (fila.reps ?? 10) : null,
         durationSeconds: fila.duration_seconds,
         distanceM: fila.distance_m,
+        weightKg: fila.weight_kg === null ? null : Number(fila.weight_kg),
         ...intensidadDeFila(fila.intensity_kind, fila.intensity_value),
         restSeconds: fila.rest_seconds,
       };
@@ -263,6 +289,8 @@ interface FilaPlan {
   reps: number | null;
   duration_seconds: number | null;
   distance_m: number | null;
+  // numeric llega como string desde PostgREST.
+  weight_kg: number | string | null;
   intensity_kind: string | null;
   intensity_value: number | string | null;
   rest_seconds: number | null;

@@ -28,7 +28,10 @@ export interface EjercicioPlan {
   reps: number | null;
   durationSeconds: number | null;
   distanceM: number | null;
-  /** null = sin intensidad (cardio sin RPE). */
+  /** Peso por serie que prescribe el plan, en kg. Solo isometricos: si esta,
+   *  la sesion lo pide en cada serie. */
+  weightKg: number | null;
+  /** null = sin intensidad (cardio o isometrico sin RPE). */
   intensityKind: Medidor | null;
   intensityValue: number | null;
   restSeconds: number | null;
@@ -141,7 +144,7 @@ export async function cargarPlan(trainingDayId: string): Promise<EjercicioPlan[]
   const { data, error } = await supabase
     .from('training_day_exercises')
     .select(
-      `exercise_id, position, sets, reps, duration_seconds, distance_m, intensity_kind, intensity_value, rest_seconds, exercises(name, ${COLUMNAS_TIPO})`,
+      `exercise_id, position, sets, reps, duration_seconds, distance_m, weight_kg, intensity_kind, intensity_value, rest_seconds, exercises(name, ${COLUMNAS_TIPO})`,
     )
     .eq('training_day_id', trainingDayId)
     .order('position');
@@ -162,6 +165,7 @@ export async function cargarPlan(trainingDayId: string): Promise<EjercicioPlan[]
       reps: tracks.reps ? (fila.reps ?? 10) : null,
       durationSeconds: fila.duration_seconds,
       distanceM: fila.distance_m,
+      weightKg: numero(fila.weight_kg),
       ...intensidadDeFila(fila.intensity_kind, fila.intensity_value),
       restSeconds: fila.rest_seconds,
     };
@@ -175,6 +179,7 @@ interface FilaPlanSesion {
   reps: number | null;
   duration_seconds: number | null;
   distance_m: number | null;
+  weight_kg: number | string | null;
   intensity_kind: string | null;
   intensity_value: number | string | null;
   rest_seconds: number | null;
