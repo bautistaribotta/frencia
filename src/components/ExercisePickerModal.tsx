@@ -214,7 +214,8 @@ function PickerContenido({
     editando ? editando.restSeconds : DESCANSO_POR_DEFECTO,
   );
   // Cardio: tiempo en segundos y distancia en la unidad del usuario. null (o
-  // 0) es "el plan no lo dice"; hace falta al menos uno de los dos.
+  // 0) es "el plan no lo dice". El tiempo es obligatorio; la distancia, como el
+  // RPE, es opcional.
   const [tiempo, setTiempo] = useState<number | null>(editando?.durationSeconds ?? null);
   const [distancia, setDistancia] = useState<number | null>(() =>
     editando?.distanceM != null ? mostrarDistancia(editando.distanceM, unidadDistancia) : null,
@@ -231,7 +232,7 @@ function PickerContenido({
   // El cardio solo admite RPE: "repeticiones en reserva" no aplica a correr.
   const medidorActivo: Medidor = esCardio ? 'rpe' : (editando?.intensityKind ?? medidor);
   const rango = intensityRange(medidorActivo);
-  const cardioValido = (tiempo ?? 0) > 0 || (distancia ?? 0) > 0;
+  const cardioValido = !selected?.tracks.duration || (tiempo ?? 0) > 0;
 
   // Hoja con las ruedas del descanso. El borrador solo pasa al ejercicio con
   // Listo; cerrarla tocando afuera lo descarta.
@@ -452,7 +453,7 @@ function PickerContenido({
                 ) : null}
                 {!cardioValido ? (
                   <FrenciaText role="bodySm" color={colors.textTertiary}>
-                    Cargá tiempo o distancia para seguir.
+                    Cargá el tiempo para seguir.
                   </FrenciaText>
                 ) : null}
               </View>

@@ -230,10 +230,14 @@ Migracion `cardio_en_planificacion_y_registro`:
   series con upsert, asi que cualquier camino de escritura pasa por la misma
   regla.
   - Plan: lo que el ejercicio no registra va en null. El cardio es una sola
-    serie sin descanso, con tiempo o distancia (al menos uno) y RPE opcional.
+    serie sin descanso, con tiempo obligatorio y distancia y RPE opcionales.
     Los demas tipos exigen intensidad.
-  - Serie: todo lo que el ejercicio registra, y nada mas. La intensidad es
-    obligatoria salvo en cardio (RPE opcional).
+  - Serie: todo lo que el ejercicio registra, y nada mas, salvo la distancia
+    del cardio, que es opcional: correr sin reloj con GPS no puede impedir
+    registrar la corrida. La intensidad es obligatoria salvo en cardio (RPE
+    opcional). Esta regla la ajusto
+    `cardio_tiempo_obligatorio_distancia_opcional`; la primera version pedia
+    tiempo o distancia en el plan y los dos en la serie.
 - `guardar_dia_entrenamiento` guarda duracion y distancia.
 
 Migracion `seed_ejercicios_de_correr`: Correr, Correr en cinta, Correr en

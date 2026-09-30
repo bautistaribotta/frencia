@@ -909,8 +909,8 @@ export default function SessionScreen() {
 // --- Serie a guardar ---------------------------------------------------------
 
 /** Lo que se escribe de una serie completa, o null si le falta algo. El
- *  cardio pide todo lo que registra el ejercicio y un RPE opcional; la fuerza,
- *  peso, reps y el esfuerzo con el medidor del perfil. */
+ *  cardio pide el tiempo, con distancia y RPE opcionales; la fuerza, peso,
+ *  reps y el esfuerzo con el medidor del perfil. */
 function datosAGuardar(
   ej: EjercicioPlan,
   v: ValoresSerie,
@@ -920,10 +920,13 @@ function datosAGuardar(
 ) {
   if (esSerieUnica(ej.kind)) {
     const durationSeconds = ej.tracks.duration ? v.tiempo : null;
+    // Una distancia que redondea a 0 m cuenta como no cargada.
     const distanceM =
-      ej.tracks.distance && v.distancia ? distanciaACanonico(v.distancia, unidadDistancia) : null;
+      (ej.tracks.distance && v.distancia
+        ? distanciaACanonico(v.distancia, unidadDistancia)
+        : 0) || null;
+    // El tiempo es obligatorio; la distancia y el RPE, opcionales.
     if (ej.tracks.duration && !durationSeconds) return null;
-    if (ej.tracks.distance && !distanceM) return null;
     const rpe = ej.intensityKind === null ? null : parseNum(v.intensidad);
     return {
       weightKg: null,
