@@ -67,6 +67,7 @@ import {
   FrenciaText,
   Icon,
   IconButton,
+  IsoTimer,
   NumberField,
   ProgressBar,
   mono,
@@ -232,6 +233,9 @@ export default function SessionScreen() {
   const [indiceGuardado, setIndex] = useState(0);
   const [guardando, setGuardando] = useState(false);
   const [menuAbierto, setMenuAbierto] = useState(false);
+  // El cronometro del isometrico esta midiendo: la serie ya no esta vacia
+  // aunque todavia no tenga tiempo.
+  const [midiendo, setMidiendo] = useState(false);
 
   // Momento en que se entro a cada paso de descanso. El restante se calcula
   // contra esto y no descontando de a un segundo, asi el numero sigue siendo
@@ -712,17 +716,21 @@ export default function SessionScreen() {
       ? fantasmas.get(claveSerie(ejercicioActual.exerciseId, paso.serie + 1))
       : undefined;
   const cardio = esSerieUnica(ejercicioActual.kind);
+  const isometrico = ejercicioActual.kind === 'isometrico';
+  // Cardio e isometricos se cargan en sus campos, debajo de la grilla; la
+  // fuerza, en la fila Hoy de la grilla.
+  const conCampos = cardio || isometrico;
   const columnas = cardio
     ? columnasCardio(ejercicioActual, fantasma, unidadDistancia)
-    : columnasFuerza(ejercicioActual, fantasma, valorActual, unidad, medidor, setCampo);
-  // En cardio el tiempo es obligatorio: sin el la serie no se guarda y el
-  // ejercicio no llegaria al historial, asi que no se avanza hasta cargarlo.
-  // En fuerza la sesion sigue siendo libre: una serie incompleta no bloquea.
+    : isometrico
+      ? columnasIsometrico(ejercicioActual, fantasma, unidad)
+      : columnasFuerza(ejercicioActual, fantasma, valorActual, unidad, medidor, setCampo);
   const esSerie = paso.tipo === 'serie';
   const ultimoPaso = index === pasos.length - 1;
   // El boton a la vista solo aparece con la serie vacia: apenas se carga un
   // dato, saltar deja de ser lo probable y el camino queda en el menu.
   const serieVacia =
+    !midiendo &&
     valorActual.peso === '' &&
     valorActual.reps === '' &&
     valorActual.intensidad === '' &&
@@ -850,9 +858,9 @@ export default function SessionScreen() {
               <SerieComparativa
                 columnas={columnas}
                 cuandoAnterior={fantasma ? haceCuanto(fantasma.hechaEl) : null}
-                mostrarHoy={!cardio}
+                mostrarHoy={!conCampos}
               />
-              {!cardio && falta.length > 0 && !serieVacia ? (
+              {!conCampos && falta.length > 0 && !serieVacia ? (
                 <FrenciaText role="bodySm" color={colors.warning} style={styles.centrado}>
                   Falta cargar {enumerar(falta)}.
                 </FrenciaText>
@@ -909,6 +917,52 @@ export default function SessionScreen() {
                       size="lg"
                       fullWidth
                     />
+                  ) : null}
+                </View>
+              ) : null}
+
+              {/* Isometrico: el cronometro mide y completa el tiempo, que
+                 queda editable; peso y RPE van debajo, opcionales salvo el
+                 peso cuando el plan lo prescribe. La key reinicia el
+                 cronometro en cada serie. */}
+              {isometrico ? (
+                <View style={styles.cardio}>
+                  <IsoTimer
+                    key={claveActual ?? ''}
+                    target={ejercicioActual.durationSeconds}
+                    value={valorActual.tiempo}
+                    onChange={(v) => setCampo('tiempo', v)}
+                    onMeasuringChange={setMidiendo}
+                  />
+                  {ejercicioActual.tracks.weight ? (
+                    <NumberField
+                      label={ejercicioActual.weightKg === null ? 'Peso · opcional' : 'Peso'}
+                      value={parseNum(valorActual.peso)}
+                      onChange={(v) => setCampo('peso', v !== null && v > 0 ? String(v) : '')}
+                      min={0}
+                      step={unidad === 'lb' ? 5 : 2.5}
+                      decimals={1}
+                      unit={unidad}
+                      size="lg"
+                      fullWidth
+                    />
+                  ) : null}
+                  {ejercicioActual.intensityKind !== null ? (
+                    <NumberField
+                      label="RPE · qué tan duro fue"
+                      hint="1–10"
+                      value={parseNum(valorActual.intensidad)}
+                      onChange={(v) => setCampo('intensidad', v === null ? '' : String(v))}
+                      min={1}
+                      max={10}
+                      size="lg"
+                      fullWidth
+                    />
+                  ) : null}
+                  {falta.length > 0 && !serieVacia && !midiendo ? (
+                    <FrenciaText role="bodySm" color={colors.warning} style={styles.centrado}>
+                      Falta cargar {enumerar(falta)}.
+                    </FrenciaText>
                   ) : null}
                 </View>
               ) : null}
@@ -993,8 +1047,9 @@ export default function SessionScreen() {
 // --- Serie a guardar ---------------------------------------------------------
 
 /** Lo que se escribe de una serie completa, o null si le falta algo. El
- *  cardio pide el tiempo, con distancia y RPE opcionales; la fuerza, peso,
- *  reps y el esfuerzo con el medidor del perfil. */
+ *  cardio pide el tiempo, con distancia y RPE opcionales; el isometrico, el
+ *  tiempo, con RPE opcional y peso opcional salvo que el plan lo prescriba; la
+ *  fuerza, peso, reps y el esfuerzo con el medidor del perfil. */
 function datosAGuardar(
   ej: EjercicioPlan,
   v: ValoresSerie,
@@ -1022,6 +1077,21 @@ function datosAGuardar(
     };
   }
 
+  if (ej.kind === 'isometrico') {
+    if (faltantes(ej, v, medidor).length > 0) return null;
+    const peso = ej.tracks.weight ? parseNum(v.peso) : null;
+    const rpe = ej.intensityKind === null ? null : parseNum(v.intensidad);
+    return {
+      // Sin peso (o en 0) la serie se hizo sin carga.
+      weightKg: peso !== null && peso > 0 ? pesoACanonico(peso, unidad) : null,
+      reps: null,
+      durationSeconds: ej.tracks.duration ? v.tiempo : null,
+      distanceM: null,
+      intensityKind: rpe === null ? null : ('rpe' as const),
+      intensityValue: rpe,
+    };
+  }
+
   const peso = parseNum(v.peso);
   const reps = parseNum(v.reps);
   const intensidad = parseNum(v.intensidad);
@@ -1040,6 +1110,16 @@ function datosAGuardar(
 function faltantes(ej: EjercicioPlan, v: ValoresSerie, medidor: Medidor): string[] {
   if (esSerieUnica(ej.kind)) {
     return ej.tracks.duration && !v.tiempo ? ['el tiempo'] : [];
+  }
+  if (ej.kind === 'isometrico') {
+    const falta: string[] = [];
+    if (ej.tracks.duration && !v.tiempo) falta.push('el tiempo');
+    // El peso es opcional, salvo que el plan lo prescriba.
+    const peso = parseNum(v.peso);
+    if (ej.tracks.weight && ej.weightKg !== null && (peso === null || peso <= 0)) {
+      falta.push('el peso');
+    }
+    return falta;
   }
   const falta: string[] = [];
   const peso = parseNum(v.peso);
@@ -1099,6 +1179,47 @@ function columnasFuerza(
       accesible: etiquetaMedidor,
     },
   ];
+}
+
+/** Isometrico: peso, tiempo y el RPE si el plan lo pide. Solo plan y ultima:
+ *  lo de hoy se carga en el cronometro y los campos de abajo de la grilla. */
+function columnasIsometrico(
+  ej: EjercicioPlan,
+  fantasma: SerieFantasma | undefined,
+  unidad: UnidadPeso,
+): ColumnaSerie[] {
+  const columnas: ColumnaSerie[] = [];
+  if (ej.tracks.weight) {
+    columnas.push({
+      key: 'peso',
+      label: unidad,
+      plan: ej.weightKg === null ? null : String(mostrarPeso(ej.weightKg, unidad)),
+      anterior: fantasma?.weightKg != null ? String(mostrarPeso(fantasma.weightKg, unidad)) : null,
+      hoy: '',
+      accesible: `Peso en ${unidad}`,
+    });
+  }
+  if (ej.tracks.duration) {
+    columnas.push({
+      key: 'tiempo',
+      label: 'Tiempo',
+      plan: ej.durationSeconds === null ? null : reloj(ej.durationSeconds),
+      anterior: fantasma?.durationSeconds != null ? reloj(fantasma.durationSeconds) : null,
+      hoy: '',
+      accesible: 'Tiempo',
+    });
+  }
+  if (ej.intensityKind !== null) {
+    columnas.push({
+      key: 'intensidad',
+      label: 'RPE',
+      plan: valorIntensidad(ej.intensityKind, ej.intensityValue),
+      anterior: fantasma ? valorIntensidad(fantasma.intensityKind, fantasma.intensityValue) : null,
+      hoy: '',
+      accesible: 'RPE',
+    });
+  }
+  return columnas;
 }
 
 /** Cardio: tiempo, distancia y el RPE si el plan lo pide. Solo plan y ultima:
