@@ -1,7 +1,8 @@
 /* Frencia · ExercisePickerModal — buscar un ejercicio y configurarlo.
    Dos caras del mismo modal: primero el catalogo con su buscador y el filtro
    por tipo o grupo muscular, y al elegir uno, lo que prescribe el plan: series,
-   reps, esfuerzo y descanso en fuerza; tiempo, distancia y RPE en cardio.
+   reps, esfuerzo y descanso en fuerza; tiempo, distancia y RPE en cardio;
+   series, tiempo, peso opcional, RPE y descanso en isometricos.
    Lo usan el wizard de creacion y la edicion de un dia.
 
    En el catalogo, tocar una fila la despliega (nombre completo, musculos y
@@ -37,6 +38,7 @@ import { MeasurePicker } from '@/components/MeasurePicker';
 import { useProfile } from '@/contexts/profile';
 import { useToast } from '@/contexts/toast';
 import { distanciaACanonico, mostrarDistancia } from '@/lib/distancia';
+import { mostrarPeso, pesoACanonico } from '@/lib/peso';
 import {
   TIPOS,
   contarTipo,
@@ -52,6 +54,7 @@ import {
 import {
   DESCANSO_POR_DEFECTO,
   defaultIntensity,
+  esRpeOpcional,
   esSerieUnica,
   intensityRange,
   intensityValueLabel,
@@ -68,6 +71,7 @@ import {
   ExerciseTypeTag,
   FrenciaText,
   Icon,
+  NumberField,
   SegmentedControl,
   Stepper,
   Tag,
@@ -109,6 +113,16 @@ const TIPOS_FILTRO: TipoEjercicio[] = ['cardio', 'isometrico', 'hibrido'];
 // RPE de arranque al activar la intensidad en cardio: un ritmo comodo pero
 // sostenido, el mismo valor que usa el design system.
 const RPE_CARDIO_POR_DEFECTO = 6;
+
+// Isometricos: una plancha tipica de arranque y un descanso corto, los mismos
+// valores de ejemplo del design system.
+const TIEMPO_ISOMETRICO_POR_DEFECTO = 30;
+const DESCANSO_ISOMETRICO_POR_DEFECTO = 60;
+
+/** RPE de arranque segun el tipo, cuando la intensidad es un RPE opcional. */
+function rpePorDefecto(kind: TipoEjercicio): number {
+  return kind === 'cardio' ? RPE_CARDIO_POR_DEFECTO : defaultIntensity('rpe');
+}
 
 export interface ExercisePickerModalProps {
   visible: boolean;
@@ -187,6 +201,7 @@ function PickerContenido({
   const { showToast } = useToast();
   const { profile } = useProfile();
   const unidadDistancia = profile?.unidadDistancia ?? 'km';
+  const unidadPeso = profile?.unidadPeso ?? 'kg';
 
   const [query, setQuery] = useState('');
   // Filtro del catalogo: un grupo muscular o un tipo, uno a la vez (null en
@@ -207,32 +222,45 @@ function PickerContenido({
   const [intensityValue, setIntensityValue] = useState(
     () =>
       editando?.intensityValue ??
-      (editando && esSerieUnica(editando.kind) ? RPE_CARDIO_POR_DEFECTO : defaultIntensity(medidor)),
+      (editando && esRpeOpcional(editando.kind)
+        ? rpePorDefecto(editando.kind)
+        : defaultIntensity(medidor)),
   );
   // null es "sin descanso", un valor valido: no se puede usar ?? aca.
   const [restSeconds, setRestSeconds] = useState<number | null>(
     editando ? editando.restSeconds : DESCANSO_POR_DEFECTO,
   );
-  // Cardio: tiempo en segundos y distancia en la unidad del usuario. null (o
-  // 0) es "el plan no lo dice". El tiempo es obligatorio; la distancia, como el
-  // RPE, es opcional.
+  // Cardio e isometricos: tiempo en segundos y distancia en la unidad del
+  // usuario. null (o 0) es "el plan no lo dice". El tiempo es obligatorio; la
+  // distancia, como el RPE, es opcional.
   const [tiempo, setTiempo] = useState<number | null>(editando?.durationSeconds ?? null);
   const [distancia, setDistancia] = useState<number | null>(() =>
     editando?.distanceM != null ? mostrarDistancia(editando.distanceM, unidadDistancia) : null,
   );
-  // En cardio la intensidad es un RPE opcional ("Sin RPE" es la otra opcion).
+  // Isometricos: peso por serie en la unidad del usuario. null = sin peso, lo
+  // habitual en una plancha.
+  const [pesoPlan, setPesoPlan] = useState<number | null>(() =>
+    editando?.weightKg != null ? mostrarPeso(editando.weightKg, unidadPeso) : null,
+  );
+  // En cardio e isometricos la intensidad es un RPE opcional ("Sin RPE" es la
+  // otra opcion).
   const [conRpe, setConRpe] = useState(editando ? editando.intensityKind !== null : false);
 
   const esCardio = selected !== null && esSerieUnica(selected.kind);
+  const esIsometrico = selected?.kind === 'isometrico';
+  const rpeOpcional = selected !== null && esRpeOpcional(selected.kind);
 
   // Editando se respeta el medidor con el que se guardo el ejercicio, no la
   // preferencia actual del perfil. Si el usuario paso de RIR a RPE, reetiquetar
   // un "2 RIR" como "2 RPE" cambiaria el dato sin que nadie lo pida. Ademas el
   // centinela -1 ("al fallo") solo existe en RIR y hay que poder mostrarlo.
-  // El cardio solo admite RPE: "repeticiones en reserva" no aplica a correr.
-  const medidorActivo: Medidor = esCardio ? 'rpe' : (editando?.intensityKind ?? medidor);
+  // Cardio e isometricos solo admiten RPE: "repeticiones en reserva" no aplica
+  // a correr ni a sostener una posicion.
+  const medidorActivo: Medidor = rpeOpcional ? 'rpe' : (editando?.intensityKind ?? medidor);
   const rango = intensityRange(medidorActivo);
-  const cardioValido = !selected?.tracks.duration || (tiempo ?? 0) > 0;
+  // En los dos el tiempo es lo unico obligatorio del plan.
+  const tiempoValido =
+    !(esCardio || esIsometrico) || !selected?.tracks.duration || (tiempo ?? 0) > 0;
 
   // Hoja con las ruedas del descanso. El borrador solo pasa al ejercicio con
   // Listo; cerrarla tocando afuera lo descarta.
@@ -293,13 +321,19 @@ function PickerContenido({
   const pickExercise = useCallback(
     (hit: Exercise) => {
       const cardio = esSerieUnica(hit.kind);
+      const isometrico = hit.kind === 'isometrico';
       setSelected({ id: hit.id, name: hit.name, kind: hit.kind, tracks: hit.tracks });
       setSets(cardio ? 1 : 3);
       setReps(10);
-      setIntensityValue(cardio ? RPE_CARDIO_POR_DEFECTO : defaultIntensity(medidor));
-      setRestSeconds(cardio ? null : DESCANSO_POR_DEFECTO);
-      setTiempo(null);
+      setIntensityValue(
+        esRpeOpcional(hit.kind) ? rpePorDefecto(hit.kind) : defaultIntensity(medidor),
+      );
+      setRestSeconds(
+        cardio ? null : isometrico ? DESCANSO_ISOMETRICO_POR_DEFECTO : DESCANSO_POR_DEFECTO,
+      );
+      setTiempo(isometrico ? TIEMPO_ISOMETRICO_POR_DEFECTO : null);
       setDistancia(null);
+      setPesoPlan(null);
       setConRpe(false);
     },
     [medidor],
@@ -339,7 +373,7 @@ function PickerContenido({
 
   function saveExercise() {
     if (!selected) return;
-    if (esCardio && !cardioValido) return;
+    if (!tiempoValido) return;
     const base = {
       uid: editando?.uid ?? nextUid(),
       exerciseId: selected.id,
@@ -363,7 +397,20 @@ function PickerContenido({
             intensityValue: conRpe ? intensityValue : null,
             restSeconds: null,
           }
-        : {
+        : esIsometrico
+          ? {
+              ...base,
+              sets,
+              reps: null,
+              durationSeconds: selected.tracks.duration && tiempo ? tiempo : null,
+              distanceM: null,
+              weightKg:
+                selected.tracks.weight && pesoPlan ? pesoACanonico(pesoPlan, unidadPeso) : null,
+              intensityKind: conRpe ? 'rpe' : null,
+              intensityValue: conRpe ? intensityValue : null,
+              restSeconds,
+            }
+          : {
             ...base,
             sets,
             reps,
@@ -379,6 +426,70 @@ function PickerContenido({
     // "Dia actualizado" de la edicion del dia.
     showToast({ message: editMode ? 'Ejercicio actualizado' : 'Ejercicio agregado', type: 'success' });
   }
+
+  // RPE opcional de cardio e isometricos: "Sin RPE" o un objetivo de 1 a 10.
+  const bloqueRpeOpcional = (
+    <View style={styles.campoBloque}>
+      <View style={styles.captionFila}>
+        <FrenciaText role="dataLabel" color={colors.textTertiary}>
+          Intensidad
+        </FrenciaText>
+        <FrenciaText role="dataLabel" color={colors.textDisabled}>
+          opcional
+        </FrenciaText>
+      </View>
+      <SegmentedControl
+        fullWidth
+        value={conRpe ? 'rpe' : 'none'}
+        onChange={(v) => setConRpe(v === 'rpe')}
+        options={[
+          { value: 'none', label: 'Sin RPE' },
+          { value: 'rpe', label: 'RPE' },
+        ]}
+      />
+      {conRpe ? (
+        <Stepper
+          label="RPE objetivo"
+          value={intensityValue}
+          onChange={setIntensityValue}
+          min={rango.min}
+          max={rango.max}
+          size="lg"
+          fullWidth
+          style={styles.campoSeparado}
+        />
+      ) : null}
+    </View>
+  );
+
+  // Descanso libre: el campo muestra el valor y abre las ruedas, igual que la
+  // edad o el peso en el perfil.
+  const bloqueDescanso = (
+    <View style={styles.campoBloque}>
+      <FrenciaText role="dataLabel" color={colors.textTertiary}>
+        Descanso entre series
+      </FrenciaText>
+      <Pressable
+        onPress={abrirDescanso}
+        accessibilityRole="button"
+        accessibilityLabel={`Descanso entre series: ${restLabel(restSeconds)}`}
+        accessibilityHint="Abre las ruedas para elegir minutos y segundos"
+        style={({ pressed }) => [styles.campo, pressed && styles.campoPresionado]}
+      >
+        <Icon name="timer" size={20} color={colors.textTertiary} />
+        {restSeconds === null ? (
+          <FrenciaText role="body" color={colors.textSecondary} style={styles.campoTexto}>
+            Sin descanso
+          </FrenciaText>
+        ) : (
+          <FrenciaText style={[styles.campoValor, styles.campoTexto]}>
+            {restLabel(restSeconds)}
+          </FrenciaText>
+        )}
+        <Icon name="chevron-right" size={18} color={colors.textTertiary} />
+      </Pressable>
+    </View>
+  );
 
   return (
     <KeyboardAvoidingView
@@ -452,44 +563,83 @@ function PickerContenido({
                     fullWidth
                   />
                 ) : null}
-                {!cardioValido ? (
+                {!tiempoValido ? (
                   <FrenciaText role="bodySm" color={colors.textTertiary}>
                     Cargá el tiempo para seguir.
                   </FrenciaText>
                 ) : null}
               </View>
 
-              <View style={styles.campoBloque}>
-                <View style={styles.captionFila}>
-                  <FrenciaText role="dataLabel" color={colors.textTertiary}>
-                    Intensidad
-                  </FrenciaText>
-                  <FrenciaText role="dataLabel" color={colors.textDisabled}>
-                    opcional
-                  </FrenciaText>
-                </View>
-                <SegmentedControl
+              {bloqueRpeOpcional}
+            </>
+          ) : esIsometrico ? (
+            <>
+              {/* Series con descanso, como la fuerza, pero el volumen es el
+                 tiempo sostenido. Como en el design system, las series van
+                 solas en su fila: el campo de tiempo no entra a media anchura. */}
+              <View style={styles.par}>
+                <Stepper
+                  label="Series"
+                  value={sets}
+                  onChange={setSets}
+                  min={1}
+                  max={20}
+                  size="lg"
                   fullWidth
-                  value={conRpe ? 'rpe' : 'none'}
-                  onChange={(v) => setConRpe(v === 'rpe')}
-                  options={[
-                    { value: 'none', label: 'Sin RPE' },
-                    { value: 'rpe', label: 'RPE' },
-                  ]}
+                  style={styles.parItem}
                 />
-                {conRpe ? (
-                  <Stepper
-                    label="RPE objetivo"
-                    value={intensityValue}
-                    onChange={setIntensityValue}
-                    min={rango.min}
-                    max={rango.max}
+                <View style={styles.parItem} />
+              </View>
+              <View style={styles.cardioCampos}>
+                {selected.tracks.duration ? (
+                  <DurationField
+                    label={sets > 1 ? 'Tiempo por serie' : 'Tiempo'}
+                    value={tiempo}
+                    onChange={(v) => setTiempo(v > 0 ? v : null)}
+                    step={5}
                     size="lg"
                     fullWidth
-                    style={styles.campoSeparado}
                   />
                 ) : null}
+                {!tiempoValido ? (
+                  <FrenciaText role="bodySm" color={colors.textTertiary}>
+                    Cargá el tiempo para seguir.
+                  </FrenciaText>
+                ) : null}
               </View>
+
+              {/* El peso es opcional: la plancha suele ir sin carga. Si el plan
+                 lo prescribe, la sesion lo pide en cada serie. */}
+              {selected.tracks.weight ? (
+                <View style={styles.campoBloque}>
+                  <View style={styles.captionFila}>
+                    <FrenciaText role="dataLabel" color={colors.textTertiary}>
+                      {sets > 1 ? 'Peso por serie' : 'Peso'}
+                    </FrenciaText>
+                    <FrenciaText role="dataLabel" color={colors.textDisabled}>
+                      opcional
+                    </FrenciaText>
+                  </View>
+                  <NumberField
+                    value={pesoPlan}
+                    onChange={(v) => setPesoPlan(v !== null && v > 0 ? v : null)}
+                    min={0}
+                    step={unidadPeso === 'lb' ? 5 : 2.5}
+                    decimals={1}
+                    unit={unidadPeso}
+                    size="lg"
+                    fullWidth
+                  />
+                  <FrenciaText role="bodySm" color={colors.textTertiary}>
+                    {pesoPlan
+                      ? 'Con peso en el plan, la sesión lo pide en cada serie.'
+                      : 'Sin peso en el plan, en la sesión es opcional.'}
+                  </FrenciaText>
+                </View>
+              ) : null}
+
+              {bloqueRpeOpcional}
+              {bloqueDescanso}
             </>
           ) : (
             <>
@@ -529,32 +679,7 @@ function PickerContenido({
                 fullWidth
               />
 
-              {/* Descanso libre: el campo muestra el valor y abre las ruedas,
-                 igual que la edad o el peso en el perfil. */}
-              <View style={styles.campoBloque}>
-                <FrenciaText role="dataLabel" color={colors.textTertiary}>
-                  Descanso entre series
-                </FrenciaText>
-                <Pressable
-                  onPress={abrirDescanso}
-                  accessibilityRole="button"
-                  accessibilityLabel={`Descanso entre series: ${restLabel(restSeconds)}`}
-                  accessibilityHint="Abre las ruedas para elegir minutos y segundos"
-                  style={({ pressed }) => [styles.campo, pressed && styles.campoPresionado]}
-                >
-                  <Icon name="timer" size={20} color={colors.textTertiary} />
-                  {restSeconds === null ? (
-                    <FrenciaText role="body" color={colors.textSecondary} style={styles.campoTexto}>
-                      Sin descanso
-                    </FrenciaText>
-                  ) : (
-                    <FrenciaText style={[styles.campoValor, styles.campoTexto]}>
-                      {restLabel(restSeconds)}
-                    </FrenciaText>
-                  )}
-                  <Icon name="chevron-right" size={18} color={colors.textTertiary} />
-                </Pressable>
-              </View>
+              {bloqueDescanso}
             </>
           )}
         </ScrollView>
@@ -728,7 +853,7 @@ function PickerContenido({
             size="lg"
             fullWidth
             icon="check"
-            disabled={esCardio && !cardioValido}
+            disabled={!tiempoValido}
             onPress={saveExercise}
           >
             {editMode ? 'Guardar cambios' : 'Guardar ejercicio'}
