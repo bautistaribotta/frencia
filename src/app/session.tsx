@@ -688,6 +688,11 @@ export default function SessionScreen() {
   const columnas = cardio
     ? columnasCardio(ejercicioActual, fantasma, unidadDistancia)
     : columnasFuerza(ejercicioActual, fantasma, valorActual, unidad, medidor, setCampo);
+  // En cardio el tiempo es obligatorio: sin el la serie no se guarda y el
+  // ejercicio no llegaria al historial, asi que no se avanza hasta cargarlo.
+  // En fuerza la sesion sigue siendo libre: una serie incompleta no bloquea.
+  const faltaTiempo =
+    paso.tipo === 'serie' && cardio && ejercicioActual.tracks.duration && !valorActual.tiempo;
 
   return (
     <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
@@ -825,6 +830,11 @@ export default function SessionScreen() {
                       fullWidth
                     />
                   ) : null}
+                  {faltaTiempo ? (
+                    <FrenciaText role="bodySm" color={colors.textTertiary}>
+                      Cargá el tiempo para seguir.
+                    </FrenciaText>
+                  ) : null}
                   {ejercicioActual.tracks.distance ? (
                     <DistanceField
                       label="Distancia"
@@ -872,6 +882,7 @@ export default function SessionScreen() {
             size="lg"
             iconRight={index === pasos.length - 1 ? undefined : 'arrow-right'}
             loading={guardando}
+            disabled={faltaTiempo}
             onPress={siguiente}
             style={styles.flexItem}
           >
