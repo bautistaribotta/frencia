@@ -21,6 +21,7 @@ import {
   Icon,
   shadow,
   radius,
+  sans,
   space,
   spacing,
   useColors,
@@ -34,6 +35,9 @@ type ToastType = 'success' | 'error' | 'info';
 interface ToastOptions {
   message: string;
   type?: ToastType;
+  /** Boton a la derecha del mensaje, por ejemplo "Deshacer". Tocarlo corre
+   *  la accion y cierra el toast. */
+  action?: { label: string; onPress: () => void };
 }
 
 interface ToastState extends ToastOptions {
@@ -47,8 +51,10 @@ interface ToastContextValue {
 
 const ToastContext = createContext<ToastContextValue>({ showToast: () => {} });
 
-// Duracion antes de auto-descartar (ms). Estandar: ~3.5s sin accion.
+// Duracion antes de auto-descartar (ms). Estandar: ~3.5s sin accion; con
+// accion un poco mas, para que de tiempo a leer y decidir.
 const TOAST_DURATION = 3500;
+const TOAST_DURATION_ACCION = 5000;
 
 const ICON_BY_TYPE: Record<ToastType, IconName> = {
   success: 'check',
@@ -69,10 +75,13 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
     setToast(null);
   }, []);
 
-  const showToast = useCallback(({ message, type = 'success' }: ToastOptions) => {
+  const showToast = useCallback(({ message, type = 'success', action }: ToastOptions) => {
     if (timerRef.current) clearTimeout(timerRef.current);
-    setToast({ id: Date.now(), message, type });
-    timerRef.current = setTimeout(() => setToast(null), TOAST_DURATION);
+    setToast({ id: Date.now(), message, type, action });
+    timerRef.current = setTimeout(
+      () => setToast(null),
+      action ? TOAST_DURATION_ACCION : TOAST_DURATION,
+    );
   }, []);
 
   useEffect(() => {
@@ -99,17 +108,36 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
             exiting={FadeOutUp.duration(180)}
             style={[styles.toast, { marginTop: insets.top + space[4] }]}
           >
-            <Pressable
-              onPress={dismiss}
-              accessibilityRole="button"
-              accessibilityLabel="Cerrar notificacion"
-              style={styles.pressable}
-            >
-              <Icon name={ICON_BY_TYPE[toast.type]} size={20} color={accentByType[toast.type]} />
-              <FrenciaText role="bodySm" color={colors.textPrimary} style={styles.message}>
-                {toast.message}
-              </FrenciaText>
-            </Pressable>
+            <View style={styles.fila}>
+              <Pressable
+                onPress={dismiss}
+                accessibilityRole="button"
+                accessibilityLabel="Cerrar notificacion"
+                style={styles.pressable}
+              >
+                <Icon name={ICON_BY_TYPE[toast.type]} size={20} color={accentByType[toast.type]} />
+                <FrenciaText role="bodySm" color={colors.textPrimary} style={styles.message}>
+                  {toast.message}
+                </FrenciaText>
+              </Pressable>
+              {/* Hermano y no hijo del de cerrar: un boton adentro de otro no
+                 lo alcanza VoiceOver. */}
+              {toast.action ? (
+                <Pressable
+                  onPress={() => {
+                    toast.action?.onPress();
+                    dismiss();
+                  }}
+                  accessibilityRole="button"
+                  hitSlop={8}
+                  style={({ pressed }) => [styles.accion, pressed && styles.accionPresionada]}
+                >
+                  <FrenciaText role="bodySm" color={colors.accentText} style={styles.accionTexto}>
+                    {toast.action.label}
+                  </FrenciaText>
+                </Pressable>
+              ) : null}
+            </View>
           </Animated.View>
         ) : null}
       </View>
@@ -139,7 +167,12 @@ const makeStyles = (colors: Palette) =>
       borderColor: colors.borderSubtle,
       ...shadow.lg,
     },
+    fila: { flexDirection: 'row', alignItems: 'center' },
+    accion: { paddingHorizontal: space[4], paddingVertical: space[4] },
+    accionPresionada: { opacity: 0.6 },
+    accionTexto: { fontFamily: sans.semibold },
     pressable: {
+      flex: 1,
       flexDirection: 'row',
       alignItems: 'center',
       gap: space[3],
