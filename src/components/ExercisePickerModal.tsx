@@ -575,21 +575,18 @@ function PickerContenido({
           ) : esIsometrico ? (
             <>
               {/* Series con descanso, como la fuerza, pero el volumen es el
-                 tiempo sostenido. Como en el design system, las series van
-                 solas en su fila: el campo de tiempo no entra a media anchura. */}
-              <View style={styles.par}>
-                <Stepper
-                  label="Series"
-                  value={sets}
-                  onChange={setSets}
-                  min={1}
-                  max={20}
-                  size="lg"
-                  fullWidth
-                  style={styles.parItem}
-                />
-                <View style={styles.parItem} />
-              </View>
+                 tiempo sostenido. Las series van solas y a todo el ancho,
+                 igual que el tiempo de abajo: el campo de tiempo no entra a
+                 media anchura. */}
+              <Stepper
+                label="Series"
+                value={sets}
+                onChange={setSets}
+                min={1}
+                max={20}
+                size="lg"
+                fullWidth
+              />
               <View style={styles.cardioCampos}>
                 {selected.tracks.duration ? (
                   <DurationField
