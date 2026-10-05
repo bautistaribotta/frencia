@@ -26,6 +26,14 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
 
 import { supabase } from '@/lib/supabase';
+import { esSerieUnica } from '@/lib/dia';
+import { reloj } from '@/lib/tiempo';
+import {
+  distanciaACanonico,
+  distanciaTabla,
+  mostrarDistancia,
+  type UnidadDistancia,
+} from '@/lib/distancia';
 import { mostrarPeso, pesoACanonico, type UnidadPeso } from '@/lib/peso';
 import {
   cargarFantasmas,
@@ -43,19 +51,24 @@ import {
   terminarSesion,
   type EjercicioPlan,
   type Medidor,
+  type SerieCargada,
   type SerieFantasma,
 } from '@/lib/session';
 import { useProfile } from '@/contexts/profile';
 import { useToast } from '@/contexts/toast';
 import { MarqueeText } from '@/components/MarqueeText';
 import { RestRing } from '@/components/RestRing';
-import { SerieComparativa } from '@/components/SerieComparativa';
+import { SerieComparativa, type ColumnaSerie } from '@/components/SerieComparativa';
 
 import {
   Button,
+  DistanceField,
+  DurationField,
   FrenciaText,
   Icon,
   IconButton,
+  IsoTimer,
+  NumberField,
   ProgressBar,
   mono,
   radius,
@@ -119,8 +132,10 @@ function mmss(segundos: number): string {
   return `${m}:${String(s).padStart(2, '0')}`;
 }
 
-/** Intensidad pelada para una celda: la columna ya dice si es RIR o RPE. */
-function valorIntensidad(kind: Medidor, value: number): string {
+/** Intensidad pelada para una celda: la columna ya dice si es RIR o RPE.
+ *  null si no hay intensidad. */
+function valorIntensidad(kind: Medidor | null, value: number | null): string | null {
+  if (kind === null || value === null) return null;
   if (kind === 'rir' && value < 0) return 'Fallo';
   return String(value);
 }
@@ -148,13 +163,38 @@ function seriesHechas(hechas: number, total: number): string {
   return `${hechas} de ${total} ${total === 1 ? 'serie hecha' : 'series hechas'}`;
 }
 
+/** Lo cargado en una serie. Peso, reps e intensidad son el texto de su caja;
+ *  el tiempo va en segundos y la distancia en la unidad del usuario, que es lo
+ *  que manejan sus campos. */
 interface ValoresSerie {
   peso: string;
   reps: string;
   intensidad: string;
+  tiempo: number | null;
+  distancia: number | null;
 }
 
-const VACIO: ValoresSerie = { peso: '', reps: '', intensidad: '' };
+const VACIO: ValoresSerie = { peso: '', reps: '', intensidad: '', tiempo: null, distancia: null };
+
+/** Una serie guardada (en la base o pendiente en el telefono) vuelta a los
+ *  campos, en las unidades del usuario. */
+function aValores(
+  serie: Omit<SerieCargada, 'durationSeconds' | 'distanceM' | 'intensityKind'> & {
+    durationSeconds?: number | null;
+    distanceM?: number | null;
+  },
+  unidad: UnidadPeso,
+  unidadDistancia: UnidadDistancia,
+): ValoresSerie {
+  return {
+    peso: serie.weightKg === null ? '' : String(mostrarPeso(serie.weightKg, unidad)),
+    reps: serie.reps === null ? '' : String(serie.reps),
+    intensidad: serie.intensityValue === null ? '' : String(serie.intensityValue),
+    tiempo: serie.durationSeconds ?? null,
+    distancia:
+      serie.distanceM == null ? null : mostrarDistancia(serie.distanceM, unidadDistancia),
+  };
+}
 
 // --- Pantalla ----------------------------------------------------------------
 
@@ -173,6 +213,7 @@ export default function SessionScreen() {
 
   const medidor: Medidor = profile?.medidorEsfuerzo ?? 'rir';
   const unidad: UnidadPeso = profile?.unidadPeso ?? 'kg';
+  const unidadDistancia: UnidadDistancia = profile?.unidadDistancia ?? 'km';
 
   const [fase, setFase] = useState<'cargando' | 'conflicto' | 'sinEjercicios' | 'listo'>('cargando');
   // Sesion en curso que no es de este dia. Bloquea empezar (solo puede haber
@@ -192,6 +233,9 @@ export default function SessionScreen() {
   const [indiceGuardado, setIndex] = useState(0);
   const [guardando, setGuardando] = useState(false);
   const [menuAbierto, setMenuAbierto] = useState(false);
+  // El cronometro del isometrico esta midiendo: la serie ya no esta vacia
+  // aunque todavia no tenga tiempo.
+  const [midiendo, setMidiendo] = useState(false);
 
   // Momento en que se entro a cada paso de descanso. El restante se calcula
   // contra esto y no descontando de a un segundo, asi el numero sigue siendo
@@ -238,19 +282,11 @@ export default function SessionScreen() {
       // que retomar muestre exactamente lo que se habia anotado.
       const previos: Record<string, ValoresSerie> = {};
       yaCargadas.forEach((v, clave) => {
-        previos[clave] = {
-          peso: String(mostrarPeso(v.weightKg, unidad)),
-          reps: String(v.reps),
-          intensidad: String(v.intensityValue),
-        };
+        previos[clave] = aValores(v, unidad, unidadDistancia);
       });
       // Lo que quedo solo en el telefono es mas nuevo que lo de la base.
       for (const p of pendientes) {
-        previos[claveSerie(p.exerciseId, p.setIndex)] = {
-          peso: String(mostrarPeso(p.weightKg, unidad)),
-          reps: String(p.reps),
-          intensidad: String(p.intensityValue),
-        };
+        previos[claveSerie(p.exerciseId, p.setIndex)] = aValores(p, unidad, unidadDistancia);
       }
       if (pendientes.length > 0) sincronizarPendientes(sesId).catch(() => {});
 
@@ -271,7 +307,7 @@ export default function SessionScreen() {
       setIndex(arranque);
       setFase('listo');
     },
-    [unidad],
+    [unidad, unidadDistancia],
   );
 
   useEffect(() => {
@@ -429,11 +465,11 @@ export default function SessionScreen() {
   const valorActual = claveActual ? (valores[claveActual] ?? VACIO) : VACIO;
 
   const setCampo = useCallback(
-    (campo: keyof ValoresSerie, texto: string) => {
+    <K extends keyof ValoresSerie>(campo: K, valor: ValoresSerie[K]) => {
       if (!claveActual) return;
       setValores((prev) => ({
         ...prev,
-        [claveActual]: { ...(prev[claveActual] ?? VACIO), [campo]: texto },
+        [claveActual]: { ...(prev[claveActual] ?? VACIO), [campo]: valor },
       }));
     },
     [claveActual],
@@ -449,20 +485,14 @@ export default function SessionScreen() {
     const v = valores[claveActual];
     if (!v) return;
 
-    const peso = parseNum(v.peso);
-    const reps = parseNum(v.reps);
-    const intensidad = parseNum(v.intensidad);
-    if (peso === null || reps === null || intensidad === null) return;
-    if (peso < 0 || reps <= 0) return;
+    const datos = datosAGuardar(ejercicioActual, v, unidad, unidadDistancia, medidor);
+    if (!datos) return;
 
     const resultado = await guardarSerieConRespaldo({
       sessionId,
       exerciseId: ejercicioActual.exerciseId,
       setIndex: paso.serie + 1,
-      weightKg: pesoACanonico(peso, unidad),
-      reps: Math.round(reps),
-      intensityKind: medidor,
-      intensityValue: intensidad,
+      ...datos,
     });
 
     if (resultado === 'guardada') {
@@ -475,7 +505,7 @@ export default function SessionScreen() {
         type: 'error',
       });
     }
-  }, [paso, ejercicioActual, sessionId, claveActual, valores, unidad, medidor, showToast]);
+  }, [paso, ejercicioActual, sessionId, claveActual, valores, unidad, unidadDistancia, medidor, showToast]);
 
   async function siguiente() {
     if (guardando) return;
@@ -503,10 +533,16 @@ export default function SessionScreen() {
     else router.replace('/home');
   }
 
-  async function finalizar() {
+  function finalizar() {
+    return terminar(true);
+  }
+
+  /** Cierra la sesion. Con `guardarActual` en false la serie del paso actual
+   *  no se escribe: es lo que pasa al saltearla en el ultimo paso. */
+  async function terminar(guardarActual: boolean) {
     if (!sessionId) return;
     setGuardando(true);
-    await persistirSiCorresponde();
+    if (guardarActual) await persistirSiCorresponde();
 
     // No se cierra una sesion con series que todavia no llegaron a la base:
     // el historial y las fantasmas de la proxima vez saldrian incompletos.
@@ -595,6 +631,27 @@ export default function SessionScreen() {
     setMenuAbierto(false);
   }
 
+  /** Saltea la serie actual: no se guarda y se pasa a la proxima serie, sin
+   *  el descanso de por medio, que era para despues de esta. En la ultima
+   *  serie de la sesion la cierra. Se puede deshacer desde el aviso, por si
+   *  fue un toque sin querer: la serie sigue en la lista, solo se la pasa. */
+  function saltarSerie() {
+    if (!paso || paso.tipo !== 'serie') return;
+    setMenuAbierto(false);
+    const desde = index;
+    const proxima = pasos.findIndex((p, i) => i > index && p.tipo === 'serie');
+    if (proxima < 0) {
+      terminar(false);
+      return;
+    }
+    irAPaso(proxima);
+    showToast({
+      message: 'Serie salteada',
+      type: 'info',
+      action: { label: 'Deshacer', onPress: () => setIndex(desde) },
+    });
+  }
+
   // --- Render ----------------------------------------------------------------
 
   if (fase === 'cargando') {
@@ -658,6 +715,32 @@ export default function SessionScreen() {
     paso.tipo === 'serie'
       ? fantasmas.get(claveSerie(ejercicioActual.exerciseId, paso.serie + 1))
       : undefined;
+  const cardio = esSerieUnica(ejercicioActual.kind);
+  const isometrico = ejercicioActual.kind === 'isometrico';
+  // Cardio e isometricos se cargan en sus campos, debajo de la grilla; la
+  // fuerza, en la fila Hoy de la grilla.
+  const conCampos = cardio || isometrico;
+  const columnas = cardio
+    ? columnasCardio(ejercicioActual, fantasma, unidadDistancia)
+    : isometrico
+      ? columnasIsometrico(ejercicioActual, fantasma, unidad)
+      : columnasFuerza(ejercicioActual, fantasma, valorActual, unidad, medidor, setCampo);
+  const esSerie = paso.tipo === 'serie';
+  const ultimoPaso = index === pasos.length - 1;
+  // El boton a la vista solo aparece con la serie vacia: apenas se carga un
+  // dato, saltar deja de ser lo probable y el camino queda en el menu.
+  const serieVacia =
+    !midiendo &&
+    valorActual.peso === '' &&
+    valorActual.reps === '' &&
+    valorActual.intensidad === '' &&
+    valorActual.tiempo === null &&
+    valorActual.distancia === null;
+  // No se avanza con una serie incompleta: no se guardaria y se perderia sin
+  // aviso. Para no hacerla esta Saltar serie.
+  const falta = esSerie ? faltantes(ejercicioActual, valorActual, medidor) : [];
+  const faltaTiempo = cardio && falta.includes('el tiempo');
+  const textoSaltar = ultimoPaso ? 'Saltar y terminar' : 'Saltar serie';
 
   return (
     <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
@@ -763,7 +846,9 @@ export default function SessionScreen() {
             <>
               <View style={styles.serieHead}>
                 <FrenciaText role="subtitle">
-                  Serie {paso.serie + 1} de {seriesDelEjercicio}
+                  {seriesDelEjercicio === 1
+                    ? 'Serie única'
+                    : `Serie ${paso.serie + 1} de ${seriesDelEjercicio}`}
                 </FrenciaText>
               </View>
 
@@ -771,33 +856,130 @@ export default function SessionScreen() {
                  de hoy van vacios a proposito, para que la progresion sea una
                  decision y no inercia: se ve lo anterior y se escribe igual. */}
               <SerieComparativa
-                unidadPeso={unidad}
-                medidor={medidor === 'rir' ? 'RIR' : 'RPE'}
-                planReps={String(ejercicioActual.reps)}
-                planIntensidad={valorIntensidad(
-                  ejercicioActual.intensityKind,
-                  ejercicioActual.intensityValue,
-                )}
-                anterior={
-                  fantasma
-                    ? {
-                        peso: String(mostrarPeso(fantasma.weightKg, unidad)),
-                        reps: String(fantasma.reps),
-                        intensidad: valorIntensidad(
-                          fantasma.intensityKind,
-                          fantasma.intensityValue,
-                        ),
-                        cuando: haceCuanto(fantasma.hechaEl),
-                      }
-                    : null
-                }
-                peso={valorActual.peso}
-                reps={valorActual.reps}
-                intensidad={valorActual.intensidad}
-                onPeso={(t) => setCampo('peso', t)}
-                onReps={(t) => setCampo('reps', t)}
-                onIntensidad={(t) => setCampo('intensidad', t)}
+                columnas={columnas}
+                cuandoAnterior={fantasma ? haceCuanto(fantasma.hechaEl) : null}
+                mostrarHoy={!conCampos}
               />
+              {!conCampos && falta.length > 0 && !serieVacia ? (
+                <FrenciaText role="bodySm" color={colors.warning} style={styles.centrado}>
+                  Falta cargar {enumerar(falta)}.
+                </FrenciaText>
+              ) : null}
+
+              {/* En cardio la grilla queda como referencia (plan y ultima) y
+                 lo de hoy se carga solo en sus campos, que saben escribir un
+                 reloj y una distancia con decimales. Repetirlo en una fila de
+                 solo lectura era mostrar el mismo dato dos veces. */}
+              {cardio ? (
+                <View style={styles.cardio}>
+                  {ejercicioActual.tracks.duration ? (
+                    /* El aviso va pegado al campo y en el naranja de alerta
+                       (warning): es lo que bloquea el avance y tiene que
+                       leerse como parte del campo, no como otro bloque. */
+                    <View style={styles.campoConAviso}>
+                      <DurationField
+                        label="Tiempo"
+                        value={valorActual.tiempo}
+                        onChange={(v) => setCampo('tiempo', v > 0 ? v : null)}
+                        step={60}
+                        allowHours
+                        size="lg"
+                        fullWidth
+                      />
+                      {faltaTiempo ? (
+                        <FrenciaText role="bodySm" color={colors.warning} style={styles.centrado}>
+                          Cargá el tiempo para seguir.
+                        </FrenciaText>
+                      ) : null}
+                    </View>
+                  ) : null}
+                  {ejercicioActual.tracks.distance ? (
+                    <DistanceField
+                      label="Distancia"
+                      value={valorActual.distancia}
+                      onChange={(v) => setCampo('distancia', v !== null && v > 0 ? v : null)}
+                      unit={unidadDistancia}
+                      size="lg"
+                      fullWidth
+                    />
+                  ) : null}
+                  {/* Misma mecanica que tiempo y distancia, con la escala
+                     entera de 1 a 10 que se ofrece al planificar. Es
+                     opcional: borrar el numero deja la serie sin RPE. */}
+                  {ejercicioActual.intensityKind !== null ? (
+                    <NumberField
+                      label="RPE · qué tan duro fue"
+                      hint="1–10"
+                      value={parseNum(valorActual.intensidad)}
+                      onChange={(v) => setCampo('intensidad', v === null ? '' : String(v))}
+                      min={1}
+                      max={10}
+                      size="lg"
+                      fullWidth
+                    />
+                  ) : null}
+                </View>
+              ) : null}
+
+              {/* Isometrico: el cronometro mide y completa el tiempo, que
+                 queda editable; peso y RPE van debajo, opcionales salvo el
+                 peso cuando el plan lo prescribe. La key reinicia el
+                 cronometro en cada serie. */}
+              {isometrico ? (
+                <View style={styles.cardio}>
+                  <IsoTimer
+                    key={claveActual ?? ''}
+                    target={ejercicioActual.durationSeconds}
+                    value={valorActual.tiempo}
+                    onChange={(v) => setCampo('tiempo', v)}
+                    onMeasuringChange={setMidiendo}
+                  />
+                  {ejercicioActual.tracks.weight ? (
+                    <NumberField
+                      label={ejercicioActual.weightKg === null ? 'Peso · opcional' : 'Peso'}
+                      value={parseNum(valorActual.peso)}
+                      onChange={(v) => setCampo('peso', v !== null && v > 0 ? String(v) : '')}
+                      min={0}
+                      step={unidad === 'lb' ? 5 : 2.5}
+                      decimals={1}
+                      unit={unidad}
+                      size="lg"
+                      fullWidth
+                    />
+                  ) : null}
+                  {ejercicioActual.intensityKind !== null ? (
+                    <NumberField
+                      label="RPE · qué tan duro fue"
+                      hint="1–10"
+                      value={parseNum(valorActual.intensidad)}
+                      onChange={(v) => setCampo('intensidad', v === null ? '' : String(v))}
+                      min={1}
+                      max={10}
+                      size="lg"
+                      fullWidth
+                    />
+                  ) : null}
+                  {falta.length > 0 && !serieVacia && !midiendo ? (
+                    <FrenciaText role="bodySm" color={colors.warning} style={styles.centrado}>
+                      Falta cargar {enumerar(falta)}.
+                    </FrenciaText>
+                  ) : null}
+                </View>
+              ) : null}
+
+              {/* Fantasma y lejos de la barra de abajo: saltar es ocasional y
+                 no puede quedar donde se toca "Siguiente" de memoria. */}
+              {serieVacia ? (
+                <Button
+                  variant="ghost"
+                  size="md"
+                  icon="skip-forward"
+                  onPress={saltarSerie}
+                  style={styles.saltar}
+                >
+                  {textoSaltar}
+                </Button>
+              ) : null}
             </>
           )}
         </ScrollView>
@@ -818,6 +1000,7 @@ export default function SessionScreen() {
             size="lg"
             iconRight={index === pasos.length - 1 ? undefined : 'arrow-right'}
             loading={guardando}
+            disabled={falta.length > 0}
             onPress={siguiente}
             style={styles.flexItem}
           >
@@ -830,12 +1013,24 @@ export default function SessionScreen() {
         <View style={styles.menuFondo}>
           <View style={styles.menu}>
             <MarqueeText text={ejercicioActual.name} role="subtitle" />
-            <Button variant="secondary" size="lg" icon="plus" fullWidth onPress={sumarSerie}>
-              Sumar una serie
-            </Button>
-            <Button variant="secondary" size="lg" icon="check" fullWidth onPress={cortarEjercicio}>
-              Terminar este ejercicio
-            </Button>
+            {/* El cardio es una sola serie continua: no se le suman series. */}
+            {!esSerieUnica(ejercicioActual.kind) ? (
+              <Button variant="secondary" size="lg" icon="plus" fullWidth onPress={sumarSerie}>
+                Sumar una serie
+              </Button>
+            ) : null}
+            {esSerie ? (
+              <Button variant="secondary" size="lg" icon="skip-forward" fullWidth onPress={saltarSerie}>
+                {textoSaltar}
+              </Button>
+            ) : null}
+            {/* En el cardio, de una sola serie, terminar el ejercicio en la
+               serie actual no cambia nada. */}
+            {!esSerieUnica(ejercicioActual.kind) ? (
+              <Button variant="secondary" size="lg" icon="check" fullWidth onPress={cortarEjercicio}>
+                Terminar este ejercicio
+              </Button>
+            ) : null}
             <Button variant="primary" size="lg" icon="flame" fullWidth loading={guardando} onPress={finalizar}>
               Terminar la sesión
             </Button>
@@ -847,6 +1042,226 @@ export default function SessionScreen() {
       </Modal>
     </SafeAreaView>
   );
+}
+
+// --- Serie a guardar ---------------------------------------------------------
+
+/** Lo que se escribe de una serie completa, o null si le falta algo. El
+ *  cardio pide el tiempo, con distancia y RPE opcionales; el isometrico, el
+ *  tiempo, con RPE opcional y peso opcional salvo que el plan lo prescriba; la
+ *  fuerza, peso, reps y el esfuerzo con el medidor del perfil. */
+function datosAGuardar(
+  ej: EjercicioPlan,
+  v: ValoresSerie,
+  unidad: UnidadPeso,
+  unidadDistancia: UnidadDistancia,
+  medidor: Medidor,
+) {
+  if (esSerieUnica(ej.kind)) {
+    const durationSeconds = ej.tracks.duration ? v.tiempo : null;
+    // Una distancia que redondea a 0 m cuenta como no cargada.
+    const distanceM =
+      (ej.tracks.distance && v.distancia
+        ? distanciaACanonico(v.distancia, unidadDistancia)
+        : 0) || null;
+    // El tiempo es obligatorio; la distancia y el RPE, opcionales.
+    if (ej.tracks.duration && !durationSeconds) return null;
+    const rpe = ej.intensityKind === null ? null : parseNum(v.intensidad);
+    return {
+      weightKg: null,
+      reps: null,
+      durationSeconds,
+      distanceM,
+      intensityKind: rpe === null ? null : ('rpe' as const),
+      intensityValue: rpe,
+    };
+  }
+
+  if (ej.kind === 'isometrico') {
+    if (faltantes(ej, v, medidor).length > 0) return null;
+    const peso = ej.tracks.weight ? parseNum(v.peso) : null;
+    const rpe = ej.intensityKind === null ? null : parseNum(v.intensidad);
+    return {
+      // Sin peso (o en 0) la serie se hizo sin carga.
+      weightKg: peso !== null && peso > 0 ? pesoACanonico(peso, unidad) : null,
+      reps: null,
+      durationSeconds: ej.tracks.duration ? v.tiempo : null,
+      distanceM: null,
+      intensityKind: rpe === null ? null : ('rpe' as const),
+      intensityValue: rpe,
+    };
+  }
+
+  const peso = parseNum(v.peso);
+  const reps = parseNum(v.reps);
+  const intensidad = parseNum(v.intensidad);
+  if (peso === null || reps === null || intensidad === null) return null;
+  if (peso < 0 || reps <= 0) return null;
+  return {
+    weightKg: pesoACanonico(peso, unidad),
+    reps: Math.round(reps),
+    intensityKind: medidor,
+    intensityValue: intensidad,
+  };
+}
+
+/** Lo que le falta a la serie para poder guardarse, en palabras: "el peso",
+ *  "las reps". Vacio = completa. Sigue las mismas reglas que datosAGuardar. */
+function faltantes(ej: EjercicioPlan, v: ValoresSerie, medidor: Medidor): string[] {
+  if (esSerieUnica(ej.kind)) {
+    return ej.tracks.duration && !v.tiempo ? ['el tiempo'] : [];
+  }
+  if (ej.kind === 'isometrico') {
+    const falta: string[] = [];
+    if (ej.tracks.duration && !v.tiempo) falta.push('el tiempo');
+    // El peso es opcional, salvo que el plan lo prescriba.
+    const peso = parseNum(v.peso);
+    if (ej.tracks.weight && ej.weightKg !== null && (peso === null || peso <= 0)) {
+      falta.push('el peso');
+    }
+    return falta;
+  }
+  const falta: string[] = [];
+  const peso = parseNum(v.peso);
+  const reps = parseNum(v.reps);
+  if (peso === null || peso < 0) falta.push('el peso');
+  if (reps === null || reps <= 0) falta.push('las reps');
+  if (parseNum(v.intensidad) === null) falta.push(medidor === 'rir' ? 'el RIR' : 'el RPE');
+  return falta;
+}
+
+/** "a", "a y b", "a, b y c". */
+function enumerar(items: string[]): string {
+  if (items.length <= 1) return items.join('');
+  return `${items.slice(0, -1).join(', ')} y ${items[items.length - 1]}`;
+}
+
+// --- Columnas de la grilla --------------------------------------------------
+
+/** Fuerza: peso, reps y esfuerzo, las tres editables en la fila de hoy. */
+function columnasFuerza(
+  ej: EjercicioPlan,
+  fantasma: SerieFantasma | undefined,
+  hoy: ValoresSerie,
+  unidad: UnidadPeso,
+  medidor: Medidor,
+  setCampo: <K extends keyof ValoresSerie>(campo: K, valor: ValoresSerie[K]) => void,
+): ColumnaSerie[] {
+  const etiquetaMedidor = medidor === 'rir' ? 'RIR' : 'RPE';
+  return [
+    {
+      key: 'peso',
+      label: unidad,
+      // La rutina nunca prescribe peso.
+      plan: null,
+      anterior: fantasma?.weightKg != null ? String(mostrarPeso(fantasma.weightKg, unidad)) : null,
+      hoy: hoy.peso,
+      onHoy: (t) => setCampo('peso', t),
+      teclado: 'decimal-pad',
+      accesible: `Peso en ${unidad}`,
+    },
+    {
+      key: 'reps',
+      label: 'Reps',
+      plan: ej.reps === null ? null : String(ej.reps),
+      anterior: fantasma?.reps != null ? String(fantasma.reps) : null,
+      hoy: hoy.reps,
+      onHoy: (t) => setCampo('reps', t),
+      accesible: 'Repeticiones',
+    },
+    {
+      key: 'intensidad',
+      label: etiquetaMedidor,
+      plan: valorIntensidad(ej.intensityKind, ej.intensityValue),
+      anterior: fantasma ? valorIntensidad(fantasma.intensityKind, fantasma.intensityValue) : null,
+      hoy: hoy.intensidad,
+      onHoy: (t) => setCampo('intensidad', t),
+      accesible: etiquetaMedidor,
+    },
+  ];
+}
+
+/** Isometrico: peso, tiempo y el RPE si el plan lo pide. Solo plan y ultima:
+ *  lo de hoy se carga en el cronometro y los campos de abajo de la grilla. */
+function columnasIsometrico(
+  ej: EjercicioPlan,
+  fantasma: SerieFantasma | undefined,
+  unidad: UnidadPeso,
+): ColumnaSerie[] {
+  const columnas: ColumnaSerie[] = [];
+  if (ej.tracks.weight) {
+    columnas.push({
+      key: 'peso',
+      label: unidad,
+      plan: ej.weightKg === null ? null : String(mostrarPeso(ej.weightKg, unidad)),
+      anterior: fantasma?.weightKg != null ? String(mostrarPeso(fantasma.weightKg, unidad)) : null,
+      hoy: '',
+      accesible: `Peso en ${unidad}`,
+    });
+  }
+  if (ej.tracks.duration) {
+    columnas.push({
+      key: 'tiempo',
+      label: 'Tiempo',
+      plan: ej.durationSeconds === null ? null : reloj(ej.durationSeconds),
+      anterior: fantasma?.durationSeconds != null ? reloj(fantasma.durationSeconds) : null,
+      hoy: '',
+      accesible: 'Tiempo',
+    });
+  }
+  if (ej.intensityKind !== null) {
+    columnas.push({
+      key: 'intensidad',
+      label: 'RPE',
+      plan: valorIntensidad(ej.intensityKind, ej.intensityValue),
+      anterior: fantasma ? valorIntensidad(fantasma.intensityKind, fantasma.intensityValue) : null,
+      hoy: '',
+      accesible: 'RPE',
+    });
+  }
+  return columnas;
+}
+
+/** Cardio: tiempo, distancia y el RPE si el plan lo pide. Solo plan y ultima:
+ *  lo de hoy se carga en los campos de abajo de la grilla. */
+function columnasCardio(
+  ej: EjercicioPlan,
+  fantasma: SerieFantasma | undefined,
+  unidadDistancia: UnidadDistancia,
+): ColumnaSerie[] {
+  const columnas: ColumnaSerie[] = [];
+  if (ej.tracks.duration) {
+    columnas.push({
+      key: 'tiempo',
+      label: 'Tiempo',
+      plan: ej.durationSeconds === null ? null : reloj(ej.durationSeconds),
+      anterior: fantasma?.durationSeconds != null ? reloj(fantasma.durationSeconds) : null,
+      hoy: '',
+      accesible: 'Tiempo',
+    });
+  }
+  if (ej.tracks.distance) {
+    columnas.push({
+      key: 'distancia',
+      label: unidadDistancia,
+      plan: ej.distanceM === null ? null : distanciaTabla(ej.distanceM, unidadDistancia),
+      anterior:
+        fantasma?.distanceM != null ? distanciaTabla(fantasma.distanceM, unidadDistancia) : null,
+      hoy: '',
+      accesible: `Distancia en ${unidadDistancia}`,
+    });
+  }
+  if (ej.intensityKind !== null) {
+    columnas.push({
+      key: 'intensidad',
+      label: 'RPE',
+      plan: valorIntensidad(ej.intensityKind, ej.intensityValue),
+      anterior: fantasma ? valorIntensidad(fantasma.intensityKind, fantasma.intensityValue) : null,
+      hoy: '',
+      accesible: 'RPE',
+    });
+  }
+  return columnas;
 }
 
 const makeStyles = (colors: Palette) =>
@@ -862,6 +1277,9 @@ const makeStyles = (colors: Palette) =>
     scroll: { flexGrow: 1, justifyContent: 'center', paddingVertical: space[8], gap: space[7] },
     bloque: { gap: space[2] },
     serieHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+    cardio: { gap: space[6] },
+    campoConAviso: { gap: space[3] },
+    saltar: { alignSelf: 'center' },
 
     // Descanso: el aro manda, todo lo demas es contexto.
     descanso: { alignItems: 'center', gap: space[6], paddingVertical: space[6] },

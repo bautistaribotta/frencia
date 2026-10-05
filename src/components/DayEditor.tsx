@@ -10,6 +10,7 @@ import React, { useCallback, useMemo, useRef } from 'react';
 import { Pressable, StyleSheet, TextInput, View } from 'react-native';
 
 import { DraggableRowList } from '@/components/DraggableRowList';
+import { useProfile } from '@/contexts/profile';
 import {
   SEMANA,
   SEMANA_NOMBRES,
@@ -52,6 +53,9 @@ export function DayEditor({
 }: DayEditorProps) {
   const colors = useColors();
   const styles = useThemedStyles(makeStyles);
+  const { profile } = useProfile();
+  const unidadDistancia = profile?.unidadDistancia ?? 'km';
+  const unidadPeso = profile?.unidadPeso ?? 'kg';
 
   // Los callbacks de la lista tienen que ser referencias estables: la lista
   // memoiza los gestos contra ellas, y si cambian en pleno arrastre el Pan se
@@ -96,9 +100,9 @@ export function DayEditor({
       dia.exercises.map((ex) => ({
         key: ex.uid,
         title: ex.name,
-        detail: <ExerciseSummary {...partesResumen(ex)} />,
+        detail: <ExerciseSummary {...partesResumen(ex, unidadDistancia, unidadPeso)} />,
       })),
-    [dia.exercises],
+    [dia.exercises, unidadDistancia, unidadPeso],
   );
 
   return (

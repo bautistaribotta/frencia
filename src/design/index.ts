@@ -56,6 +56,16 @@ export { ExerciseSummary } from './components/ExerciseSummary';
 export type { ExerciseSummaryProps } from './components/ExerciseSummary';
 export { SeriesTable } from './components/SeriesTable';
 export type { SeriesTableProps, SeriesTableColumn } from './components/SeriesTable';
+export { DurationField } from './components/DurationField';
+export type { DurationFieldProps } from './components/DurationField';
+export { IsoTimer } from './components/IsoTimer';
+export type { IsoTimerProps } from './components/IsoTimer';
+export { NumberField } from './components/NumberField';
+export type { NumberFieldProps } from './components/NumberField';
+export { DistanceField } from './components/DistanceField';
+export type { DistanceFieldProps } from './components/DistanceField';
+export { ExerciseTypeTag } from './components/ExerciseTypeTag';
+export type { ExerciseTypeTagProps } from './components/ExerciseTypeTag';
 
 // Components — navigation
 export { SegmentedControl } from './components/SegmentedControl';

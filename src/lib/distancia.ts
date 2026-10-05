@@ -19,3 +19,16 @@ export function mostrarDistancia(metros: number, unidad: UnidadDistancia): numbe
 export function distanciaACanonico(valor: number, unidad: UnidadDistancia): number {
   return Math.round(valor * (unidad === 'mi' ? M_POR_MI : M_POR_KM));
 }
+
+// Formatos del design system (tipos de ejercicio, seccion 05): la escala larga
+// va siempre en km o mi, aunque el valor sea chico ("0.80 km", no "800 m").
+
+/** Para grillas y campos: dos decimales fijos, "4.82", "5.00". */
+export function distanciaTabla(metros: number, unidad: UnidadDistancia): string {
+  return mostrarDistancia(metros, unidad).toFixed(2);
+}
+
+/** Para resumenes: ceros recortados y con unidad, "5 km", "4.82 km". */
+export function distanciaCompacta(metros: number, unidad: UnidadDistancia): string {
+  return `${mostrarDistancia(metros, unidad)} ${unidad}`;
+}

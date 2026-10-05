@@ -49,7 +49,11 @@ export function SegmentedControl({
             ]}
           >
             {icon ? <Icon name={icon} size={16} color={fg} /> : null}
-            <Text style={[styles.label, { color: fg }]}>{label}</Text>
+            {/* Una sola linea: una etiqueta partida ("1" arriba y "0" abajo) no se
+               lee como un solo valor. */}
+            <Text style={[styles.label, { color: fg }]} numberOfLines={1}>
+              {label}
+            </Text>
           </Pressable>
         );
       })}

@@ -183,8 +183,10 @@ los usuarios existentes hubieran quedado con objetos sin ese campo.
 
 ## 6. Tipos de ejercicio
 
-Estado: esquema del catalogo escrito (`add_kind_and_metrics_to_exercises`);
-falta extender las tablas de planificacion y registro.
+Estado: cardio implementado de punta a punta (catalogo, planificacion, sesion e
+historial) con los primeros cuatro ejercicios de correr; isometricos tambien,
+con la plancha frontal y la lateral. Los hibridos tienen esquema pero no
+interfaz ni ejercicios.
 
 ### 6.1 Una sola tabla
 
@@ -208,23 +210,71 @@ coherentes:
 | | Peso | Reps | Duracion | Distancia | Intensidad |
 |---|---|---|---|---|---|
 | Fuerza | si | si | no | no | RIR o RPE |
-| Isometrico | segun ejercicio | no | si | no | RIR o RPE |
+| Isometrico | segun ejercicio, opcional | no | si | no | RPE opcional |
 | Cardio | no | no | si | segun ejercicio | RPE opcional |
 | Hibrido | libre, minimo dos datos | | | | a definir |
 
 La intensidad no se guarda en el catalogo: se valida al guardar la
 planificacion y la sesion.
 
-### 6.3 Pendiente
+### 6.3 Planificacion y registro
 
-- `training_day_exercises` y `session_sets`: sumar `duration_seconds` y
-  `distance_m`, y volver opcionales `reps`, `weight_kg` e `intensity_*`.
-- `guardar_dia_entrenamiento`: validar cada ejercicio contra sus `tracks_*`.
-- Volumen, PRs y progresion: filtrar por `kind` o definir la metrica de cada
-  tipo.
-- Sembrar ejercicios de cardio, isometricos e hibridos.
+Migracion `cardio_en_planificacion_y_registro`:
 
-### 6.4 Decisiones de interfaz
+- `training_day_exercises` y `session_sets` suman `duration_seconds` y
+  `distance_m` (enteros, segundos y metros). `weight_kg`, `reps` e
+  `intensity_*` pasan a ser opcionales; un `check` exige que medidor y valor
+  de intensidad vayan juntos.
+- La coherencia con el catalogo la validan dos triggers
+  (`validar_plan_de_ejercicio`, `validar_serie_de_ejercicio`) y no la RPC: el
+  wizard de creacion inserta los ejercicios directo y la sesion escribe las
+  series con upsert, asi que cualquier camino de escritura pasa por la misma
+  regla.
+  - Plan: lo que el ejercicio no registra va en null. El cardio es una sola
+    serie sin descanso, con tiempo obligatorio y distancia y RPE opcionales.
+    Los demas tipos exigen intensidad.
+  - Serie: todo lo que el ejercicio registra, y nada mas, salvo la distancia
+    del cardio, que es opcional: correr sin reloj con GPS no puede impedir
+    registrar la corrida. La intensidad es obligatoria salvo en cardio (RPE
+    opcional). Esta regla la ajusto
+    `cardio_tiempo_obligatorio_distancia_opcional`; la primera version pedia
+    tiempo o distancia en el plan y los dos en la serie.
+- `guardar_dia_entrenamiento` guarda duracion y distancia.
+
+Migracion `seed_ejercicios_de_correr`: Correr, Correr en cinta, Correr en
+cinta 5% y Correr en cinta 10%. Tiempo y distancia, sin musculo objetivo (los
+musculos van como asistentes) y con equipamiento `cinta` los de maquina.
+
+Migracion `isometricos_en_planificacion_y_registro`:
+
+- `training_day_exercises` suma `weight_kg`: el peso por serie que prescribe
+  el plan, solo en isometricos que registran peso. En fuerza la rutina sigue
+  sin prescribir peso.
+- Plan del isometrico: series y descanso como la fuerza, tiempo por serie
+  obligatorio, peso y RPE opcionales. Sin RIR.
+- Serie del isometrico: tiempo obligatorio, peso y RPE opcionales. Que el peso
+  pase a obligatorio cuando el plan lo prescribe es regla de la sesion y no del
+  trigger: la serie no guarda contra que version del plan se hizo.
+- `guardar_dia_entrenamiento` guarda el peso del plan.
+
+Migracion `seed_planchas`: Plancha frontal y Plancha lateral. Registran tiempo
+y peso, con abdomen como objetivo y hombros y gluteos como asistentes. La
+lateral es un solo ejercicio: el tiempo de la serie es por lado y el otro lado
+se hace antes del descanso.
+
+### 6.4 Pendiente
+
+- Volumen, PRs y progresion: todavia no existen. Cuando existan, el cardio
+  queda fuera del tonelaje y los PR de fuerza.
+- Escala de distancia por ejercicio (corta en metros, larga en km o mi, ver el
+  design system). Hoy toda distancia es larga, que es lo unico que hay.
+- Interfaz de hibridos: la sesion los trata como fuerza (peso, reps y
+  esfuerzo).
+- Cardio en varias series (intervalos, soga): el trigger del plan lo rechaza a
+  proposito. Sumarlo es relajar esa regla y mostrar series y descanso en la
+  configuracion.
+
+### 6.5 Decisiones de interfaz
 
 - **Unidad de distancia.** Preferencia propia `profiles.unidad_distancia`
   (`km` o `mi`), con su switch en Perfil debajo del de altura. La distancia se
@@ -232,6 +282,30 @@ planificacion y la sesion.
 - **Descanso.** El temporizador de descanso se oculta cuando el ejercicio tiene
   una sola serie, sin importar el tipo. Cubre el cardio continuo sin atarlo a
   `kind`.
+- **Cardio de una sola serie.** Correr se planifica y se registra como un bloque
+  continuo: la configuracion no ofrece series ni descanso, y la sesion no deja
+  sumar series. El resumen omite el prefijo `Nx`: "30 min · 5 km · RPE 6".
+- **Inclinacion.** Cada pendiente es un ejercicio aparte, en porcentaje (lo que
+  muestra la cinta): 5% y 10%. Cada una tiene su historial y su referencia de
+  la vez anterior; un dato de inclinacion por serie quedo descartado.
+- **Buscador.** Los tipos distintos de fuerza que tengan ejercicios aparecen
+  como chips antes de los musculos, con su icono, y comparten la seleccion
+  unica con ellos. Correr no tiene musculo objetivo, asi que no aparece en
+  Piernas. Escribir el nombre del tipo ("cardio") tambien lo encuentra.
+- **Sesion.** En cardio la grilla muestra solo Plan y Ultima (tiempo,
+  distancia y RPE) como referencia. Lo de hoy se carga en DurationField,
+  DistanceField y un NumberField de RPE de 1 a 10, la misma escala que al
+  planificar: menos y mas a los costados y el numero al medio para
+  escribirlo. Borrar el numero deja la serie sin RPE. Sin fila Hoy: repetir en la grilla
+  lo que ya muestran los campos era ver el mismo dato dos veces.
+- **Isometricos: solo RPE, opcional.** "Repeticiones en reserva" no se lee en
+  una plancha; el design system pedia RIR o RPE obligatorio y se cambio.
+- **Isometricos: peso en el plan.** Opcional. Sin peso en el plan, la sesion
+  lo deja opcional; con peso, lo pide en cada serie. El resumen lo suma al
+  volumen: "3x30 s · 10 kg · RPE 8 · 1 min".
+- **Isometricos: sesion.** La grilla muestra Plan y Ultima (peso, tiempo y
+  RPE) y lo de hoy se carga en `IsoTimer`, con cuenta regresiva de 3 s, y en
+  campos de peso y RPE. El detalle esta en registro-de-sesion.md.
 
 ## 7. Fuera de alcance
 

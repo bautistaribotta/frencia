@@ -1,22 +1,49 @@
 /* Detalle historico: lee las series realizadas, nunca el plan actual del dia. */
 
+import { intensidadDeFila } from './dia';
+import {
+  COLUMNAS_TIPO,
+  tipoDeFila,
+  type DatosRegistrados,
+  type FilaTipo,
+  type TipoEjercicio,
+} from './exercises';
 import { supabase } from './supabase';
 import type { Medidor, SesionTerminada } from './session';
 
+/** Una serie tal como se guardo. Lo que el ejercicio no registra es null. */
 export interface SerieRealizada {
   id: string;
   setIndex: number;
-  weightKg: number;
-  reps: number;
-  intensityKind: Medidor;
-  intensityValue: number;
+  weightKg: number | null;
+  reps: number | null;
+  durationSeconds: number | null;
+  distanceM: number | null;
+  intensityKind: Medidor | null;
+  intensityValue: number | null;
   completedAt: number;
 }
 
 export interface EjercicioRealizado {
   exerciseId: string;
   name: string;
+  kind: TipoEjercicio;
+  tracks: DatosRegistrados;
   series: SerieRealizada[];
+}
+
+interface FilaSerieRealizada {
+  id: string;
+  exercise_id: string;
+  set_index: number;
+  weight_kg: number | string | null;
+  reps: number | null;
+  duration_seconds: number | null;
+  distance_m: number | null;
+  intensity_kind: string | null;
+  intensity_value: number | string | null;
+  completed_at: string;
+  exercises: ({ name?: string } & FilaTipo) | ({ name?: string } & FilaTipo)[] | null;
 }
 
 export interface SesionDetalle extends SesionTerminada {
@@ -60,14 +87,17 @@ export async function cargarDetalleSesion(
       if (signal?.aborted) return { estado: 'error' };
       const consulta = supabase
         .from('session_sets')
-        .select('id, exercise_id, set_index, weight_kg, reps, intensity_kind, intensity_value, completed_at, exercises(name)')
+        .select(
+          `id, exercise_id, set_index, weight_kg, reps, duration_seconds, distance_m, intensity_kind, intensity_value, completed_at, exercises(name, ${COLUMNAS_TIPO})`,
+        )
         .eq('session_id', sessionId)
         .order('exercise_id')
         .order('set_index')
         .range(desde, desde + SERIES_PAGINA - 1);
       if (signal) consulta.abortSignal(signal);
-      const { data: filas, error: errorSeries } = await consulta;
-      if (errorSeries || !filas) return { estado: 'error' };
+      const { data, error: errorSeries } = await consulta;
+      if (errorSeries || !data) return { estado: 'error' };
+      const filas = data as unknown as FilaSerieRealizada[];
 
       for (const fila of filas) {
         let grupo = grupos.get(fila.exercise_id);
@@ -75,7 +105,8 @@ export async function cargarDetalleSesion(
           const ejercicio = Array.isArray(fila.exercises) ? fila.exercises[0] : fila.exercises;
           grupo = {
             exerciseId: fila.exercise_id,
-            name: (ejercicio as { name?: string } | null)?.name ?? 'Ejercicio',
+            name: ejercicio?.name ?? 'Ejercicio',
+            ...tipoDeFila(ejercicio),
             series: [],
           };
           grupos.set(fila.exercise_id, grupo);
@@ -83,10 +114,11 @@ export async function cargarDetalleSesion(
         grupo.series.push({
           id: fila.id,
           setIndex: fila.set_index,
-          weightKg: Number(fila.weight_kg),
+          weightKg: fila.weight_kg === null ? null : Number(fila.weight_kg),
           reps: fila.reps,
-          intensityKind: fila.intensity_kind === 'rpe' ? 'rpe' : 'rir',
-          intensityValue: Number(fila.intensity_value),
+          durationSeconds: fila.duration_seconds,
+          distanceM: fila.distance_m,
+          ...intensidadDeFila(fila.intensity_kind, fila.intensity_value),
           completedAt: Date.parse(fila.completed_at),
         });
       }

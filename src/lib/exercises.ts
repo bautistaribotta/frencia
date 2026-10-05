@@ -21,6 +21,68 @@ export interface MuscleGroup {
   position: number;
 }
 
+/** Categoria del ejercicio (exercises.kind). Sirve para filtrar y decidir
+ *  defaults; lo que se dibuja sale de `DatosRegistrados`. */
+export type TipoEjercicio = 'fuerza' | 'isometrico' | 'cardio' | 'hibrido';
+
+/** Que datos se piden en cada serie (exercises.tracks_*). */
+export interface DatosRegistrados {
+  weight: boolean;
+  reps: boolean;
+  duration: boolean;
+  distance: boolean;
+}
+
+/** Nombre e icono de cada tipo, segun el design system (tipos de ejercicio,
+ *  seccion 09). Sin color propio. */
+export const TIPOS: Record<TipoEjercicio, { label: string; icon: string }> = {
+  fuerza: { label: 'Fuerza', icon: 'dumbbell' },
+  isometrico: { label: 'Isométrico', icon: 'hourglass' },
+  cardio: { label: 'Cardio', icon: 'heart-pulse' },
+  hibrido: { label: 'Híbrido', icon: 'combine' },
+};
+
+/** Datos que registra un ejercicio, abreviados y en el orden fijo de las
+ *  columnas del design system: Peso · Reps · Tiempo · Dist. */
+export function datosAbreviados(tracks: DatosRegistrados): string[] {
+  const datos: string[] = [];
+  if (tracks.weight) datos.push('Peso');
+  if (tracks.reps) datos.push('Reps');
+  if (tracks.duration) datos.push('Tiempo');
+  if (tracks.distance) datos.push('Dist.');
+  return datos;
+}
+
+/** Columnas de exercises que describen el tipo, para sumar a cualquier select
+ *  que embeba el ejercicio. */
+export const COLUMNAS_TIPO = 'kind, tracks_weight, tracks_reps, tracks_duration, tracks_distance';
+
+export interface FilaTipo {
+  kind?: string | null;
+  tracks_weight?: boolean | null;
+  tracks_reps?: boolean | null;
+  tracks_duration?: boolean | null;
+  tracks_distance?: boolean | null;
+}
+
+/** Tipo y datos registrados de una fila de exercises. Sin datos se asume
+ *  fuerza, que es lo que era todo el catalogo antes de los tipos. */
+export function tipoDeFila(fila: FilaTipo | null | undefined): {
+  kind: TipoEjercicio;
+  tracks: DatosRegistrados;
+} {
+  const kind = fila?.kind;
+  return {
+    kind: kind === 'isometrico' || kind === 'cardio' || kind === 'hibrido' ? kind : 'fuerza',
+    tracks: {
+      weight: fila?.tracks_weight ?? true,
+      reps: fila?.tracks_reps ?? true,
+      duration: fila?.tracks_duration ?? false,
+      distance: fila?.tracks_distance ?? false,
+    },
+  };
+}
+
 export interface Exercise {
   id: string;
   name: string;
@@ -32,11 +94,13 @@ export interface Exercise {
   primary: MuscleGroup | null;
   /** Musculos que asisten, en el orden del catalogo. */
   secondary: MuscleGroup[];
+  kind: TipoEjercicio;
+  tracks: DatosRegistrados;
 }
 
-// v3: el catalogo pasa a incluir musculos y equipamiento, asi que el cache
-// viejo no sirve.
-const STORAGE_KEY = 'frencia.exercises.catalog.v3';
+// v4: el catalogo pasa a incluir el tipo y los datos que registra cada
+// ejercicio, asi que el cache viejo no sirve.
+const STORAGE_KEY = 'frencia.exercises.catalog.v4';
 
 // Cache en memoria compartido entre montajes del hook.
 let memoryCache: Exercise[] | null = null;
@@ -46,7 +110,7 @@ let memoryCache: Exercise[] | null = null;
 // el bucle la tomaria por la ultima y el resto del catalogo quedaria afuera.
 const CATALOGO_PAGINA = 1000;
 
-interface FilaEjercicio {
+interface FilaEjercicio extends FilaTipo {
   id: string;
   name: string;
   name_en: string | null;
@@ -82,6 +146,7 @@ function aEjercicio(e: FilaEjercicio): Exercise {
     // pasa a secundarios en vez de perderse.
     primary: primarios[0] ?? null,
     secondary: [...primarios.slice(1), ...secundarios],
+    ...tipoDeFila(e),
   };
 }
 
@@ -95,7 +160,7 @@ async function fetchAll(): Promise<Exercise[] | null> {
     // paginas y ningun ejercicio se repita o se pierda en el corte.
     const { data, error } = await supabase
       .from('exercises')
-      .select('id, name, name_en, equipment, exercise_muscles(is_primary, muscle_groups(slug, name, position))')
+      .select(`id, name, name_en, equipment, ${COLUMNAS_TIPO}, exercise_muscles(is_primary, muscle_groups(slug, name, position))`)
       .order('name')
       .order('id')
       .range(desde, desde + CATALOGO_PAGINA - 1);
@@ -120,6 +185,7 @@ export function foldText(s: string): string {
 
 const EQUIPAMIENTO: Record<string, string> = {
   barra: 'Barra',
+  cinta: 'Cinta',
   mancuernas: 'Mancuernas',
   maquina: 'Máquina',
   multipower: 'Multipower',
@@ -145,6 +211,12 @@ export function muscleGroupsOf(catalog: Exercise[]): { group: MuscleGroup; count
     else porSlug.set(e.primary.slug, { group: e.primary, count: 1 });
   }
   return [...porSlug.values()].sort((a, b) => porPosicion(a.group, b.group));
+}
+
+/** Cuantos ejercicios hay de un tipo. Con 0 el filtro de ese tipo no se
+ *  ofrece, igual que un grupo muscular sin ejercicios. */
+export function contarTipo(catalog: Exercise[], kind: TipoEjercicio): number {
+  return catalog.reduce((n, e) => (e.kind === kind ? n + 1 : n), 0);
 }
 
 /** Catalogo completo de ejercicios, listo para filtrar en memoria. */

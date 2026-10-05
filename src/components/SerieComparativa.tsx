@@ -6,6 +6,10 @@
    misma grilla: mismas columnas, mismo orden, misma tipografia. Alineadas, la
    comparacion se lee de arriba hacia abajo sin que nadie la explique.
 
+   Las columnas salen de los datos que registra el ejercicio, en el orden fijo
+   del design system: peso, reps, tiempo, distancia e intensidad. Lo que el
+   ejercicio no registra no tiene columna.
+
    El plan no trae peso: la rutina prescribe reps e intensidad, nunca kilos. Esa
    celda queda vacia a proposito y es lo mas importante de la pantalla: el plan
    da la forma del esfuerzo y el peso es lo que elige el usuario para que esa
@@ -37,36 +41,38 @@ import {
 // registro" y "todavia no lo cargaste": en los tres casos no hay numero.
 const VACIO = '—';
 
+/** Una columna de la grilla: el mismo dato en las tres filas. */
+export interface ColumnaSerie {
+  key: string;
+  /** Encabezado: "kg", "Reps", "RIR", "Tiempo", "km". */
+  label: string;
+  /** Lo indicado por quien armo la rutina. null = el plan no lo dice. */
+  plan: string | null;
+  /** Lo hecho la vez anterior. null = sin registro. */
+  anterior: string | null;
+  /** Lo que se esta cargando ahora. '' = todavia no. */
+  hoy: string;
+  /** Sin handler la celda de hoy es solo lectura: el dato se carga con un
+   *  campo propio fuera de la grilla (el tiempo y la distancia del cardio). */
+  onHoy?: (texto: string) => void;
+  teclado?: 'decimal-pad' | 'number-pad';
+  /** Nombre del dato para el lector de pantalla: "Peso en kg". */
+  accesible: string;
+}
+
 export interface SerieComparativaProps {
-  /** Etiquetas de las columnas: unidad de peso y medidor de esfuerzo. */
-  unidadPeso: string;
-  medidor: string;
-  /** Lo indicado por quien armo la rutina. Sin peso, que no se prescribe. */
-  planReps: string;
-  planIntensidad: string;
-  /** Lo hecho la vez anterior. null = sin registro en la ventana. */
-  anterior: { peso: string; reps: string; intensidad: string; cuando: string } | null;
-  /** Lo que se esta cargando ahora. */
-  peso: string;
-  reps: string;
-  intensidad: string;
-  onPeso: (t: string) => void;
-  onReps: (t: string) => void;
-  onIntensidad: (t: string) => void;
+  columnas: ColumnaSerie[];
+  /** Hace cuanto fue la vez anterior. null = sin registro en la ventana. */
+  cuandoAnterior: string | null;
+  /** Sin la fila de hoy la grilla es solo referencia: lo de hoy se carga en
+   *  campos propios fuera de ella (el cardio). */
+  mostrarHoy?: boolean;
 }
 
 export function SerieComparativa({
-  unidadPeso,
-  medidor,
-  planReps,
-  planIntensidad,
-  anterior,
-  peso,
-  reps,
-  intensidad,
-  onPeso,
-  onReps,
-  onIntensidad,
+  columnas,
+  cuandoAnterior,
+  mostrarHoy = true,
 }: SerieComparativaProps) {
   const colors = useColors();
   const styles = useThemedStyles(makeStyles);
@@ -76,81 +82,44 @@ export function SerieComparativa({
       {/* Encabezado de columnas, una sola vez para las tres filas */}
       <View style={styles.fila}>
         <View style={styles.etiqueta} />
-        <Columna label={unidadPeso} styles={styles} colors={colors} />
-        <Columna label="Reps" styles={styles} colors={colors} />
-        <Columna label={medidor} styles={styles} colors={colors} />
+        {columnas.map((c) => (
+          <View key={c.key} style={styles.celda}>
+            <FrenciaText role="dataLabel" color={colors.textTertiary} style={styles.centrado}>
+              {c.label}
+            </FrenciaText>
+          </View>
+        ))}
       </View>
 
       <Referencia
         etiqueta="Plan"
         detalle={null}
-        valores={[VACIO, planReps, planIntensidad]}
+        valores={columnas.map((c) => c.plan)}
         styles={styles}
         colors={colors}
       />
 
       <Referencia
         etiqueta="Última"
-        detalle={anterior ? anterior.cuando : 'sin registro'}
-        valores={
-          anterior
-            ? [anterior.peso, anterior.reps, anterior.intensidad]
-            : [VACIO, VACIO, VACIO]
-        }
+        detalle={cuandoAnterior ?? 'sin registro'}
+        valores={columnas.map((c) => (cuandoAnterior ? c.anterior : null))}
         styles={styles}
         colors={colors}
       />
 
       {/* Hoy: la unica fila con cajas, porque es la unica que se completa. */}
-      <View style={[styles.fila, styles.filaHoy]}>
-        <View style={styles.etiqueta}>
-          <FrenciaText role="dataLabel" color={colors.accentText}>
-            Hoy
-          </FrenciaText>
+      {mostrarHoy ? (
+        <View style={[styles.fila, styles.filaHoy]}>
+          <View style={styles.etiqueta}>
+            <FrenciaText role="dataLabel" color={colors.accentText}>
+              Hoy
+            </FrenciaText>
+          </View>
+          {columnas.map((c) => (
+            <Caja key={c.key} columna={c} styles={styles} colors={colors} />
+          ))}
         </View>
-        <Caja
-          value={peso}
-          onChangeText={onPeso}
-          keyboardType="decimal-pad"
-          accessibilityLabel={`Peso en ${unidadPeso}`}
-          styles={styles}
-          colors={colors}
-        />
-        <Caja
-          value={reps}
-          onChangeText={onReps}
-          keyboardType="number-pad"
-          accessibilityLabel="Repeticiones"
-          styles={styles}
-          colors={colors}
-        />
-        <Caja
-          value={intensidad}
-          onChangeText={onIntensidad}
-          keyboardType="number-pad"
-          accessibilityLabel={medidor}
-          styles={styles}
-          colors={colors}
-        />
-      </View>
-    </View>
-  );
-}
-
-function Columna({
-  label,
-  styles,
-  colors,
-}: {
-  label: string;
-  styles: ReturnType<typeof makeStyles>;
-  colors: Palette;
-}) {
-  return (
-    <View style={styles.celda}>
-      <FrenciaText role="dataLabel" color={colors.textTertiary} style={styles.centrado}>
-        {label}
-      </FrenciaText>
+      ) : null}
     </View>
   );
 }
@@ -166,7 +135,7 @@ function Referencia({
 }: {
   etiqueta: string;
   detalle: string | null;
-  valores: [string, string, string];
+  valores: (string | null)[];
   styles: ReturnType<typeof makeStyles>;
   colors: Palette;
 }) {
@@ -185,13 +154,17 @@ function Referencia({
       {valores.map((v, i) => (
         <View key={i} style={styles.celda}>
           <View style={styles.cajaRef}>
+            {/* Un tiempo largo ("1:05:00") no entra en un tercio de pantalla:
+               se achica en vez de cortarse. */}
             <Text
+              numberOfLines={1}
+              adjustsFontSizeToFit
               style={[
                 styles.numeroRef,
-                { color: v === VACIO ? colors.textDisabled : colors.textSecondary },
+                { color: v === null ? colors.textDisabled : colors.textSecondary },
               ]}
             >
-              {v}
+              {v ?? VACIO}
             </Text>
           </View>
         </View>
@@ -201,29 +174,44 @@ function Referencia({
 }
 
 function Caja({
-  value,
-  onChangeText,
-  keyboardType,
-  accessibilityLabel,
+  columna,
   styles,
   colors,
 }: {
-  value: string;
-  onChangeText: (t: string) => void;
-  keyboardType: 'decimal-pad' | 'number-pad';
-  accessibilityLabel: string;
+  columna: ColumnaSerie;
   styles: ReturnType<typeof makeStyles>;
   colors: Palette;
 }) {
-  const cargado = value !== '';
+  const cargado = columna.hoy !== '';
+
+  if (!columna.onHoy) {
+    return (
+      <View style={styles.celda}>
+        <View
+          style={[styles.caja, styles.cajaLectura, cargado && styles.cajaCargada]}
+          accessible
+          accessibilityLabel={`${columna.accesible}: ${cargado ? columna.hoy : 'sin cargar'}`}
+        >
+          <Text
+            numberOfLines={1}
+            adjustsFontSizeToFit
+            style={[styles.numeroHoy, !cargado && { color: colors.textDisabled }]}
+          >
+            {cargado ? columna.hoy : VACIO}
+          </Text>
+        </View>
+      </View>
+    );
+  }
+
   return (
     <View style={styles.celda}>
       <TextInput
-        style={[styles.caja, cargado && styles.cajaCargada]}
-        value={value}
-        onChangeText={onChangeText}
-        keyboardType={keyboardType}
-        accessibilityLabel={accessibilityLabel}
+        style={[styles.caja, styles.numeroHoy, cargado && styles.cajaCargada]}
+        value={columna.hoy}
+        onChangeText={columna.onHoy}
+        keyboardType={columna.teclado ?? 'number-pad'}
+        accessibilityLabel={columna.accesible}
         placeholder={VACIO}
         placeholderTextColor={colors.textDisabled}
         maxLength={5}
@@ -250,6 +238,7 @@ const makeStyles = (colors: Palette) =>
       lineHeight: 26,
       textAlign: 'center',
       includeFontPadding: false,
+      paddingHorizontal: space[1],
     },
 
     // Plan y ultima comparten la caja redondeada de hoy, pero mas bajas y en el
@@ -280,6 +269,9 @@ const makeStyles = (colors: Palette) =>
       backgroundColor: colors.surfaceCard,
       borderWidth: 1,
       borderColor: colors.borderSubtle,
+    },
+    cajaLectura: { alignItems: 'center', justifyContent: 'center', paddingHorizontal: space[1] },
+    numeroHoy: {
       textAlign: 'center',
       fontFamily: mono.bold,
       fontSize: 24,

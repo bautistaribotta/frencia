@@ -4,30 +4,65 @@
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
+import { esSerieUnica, intensidadDeFila } from './dia';
+import {
+  COLUMNAS_TIPO,
+  tipoDeFila,
+  type DatosRegistrados,
+  type FilaTipo,
+  type TipoEjercicio,
+} from './exercises';
 import { supabase } from './supabase';
 
 export type Medidor = 'rir' | 'rpe';
 
-/** Un ejercicio tal como quedo planificado en el dia. */
+/** Un ejercicio tal como quedo planificado en el dia. Lo que el ejercicio no
+ *  registra (`tracks`) llega en null. */
 export interface EjercicioPlan {
   exerciseId: string;
   name: string;
+  kind: TipoEjercicio;
+  tracks: DatosRegistrados;
   /** Series planificadas. Es el punto de partida del wizard, no un limite. */
   sets: number;
-  reps: number;
-  intensityKind: Medidor;
-  intensityValue: number;
+  reps: number | null;
+  durationSeconds: number | null;
+  distanceM: number | null;
+  /** Peso por serie que prescribe el plan, en kg. Solo isometricos: si esta,
+   *  la sesion lo pide en cada serie. */
+  weightKg: number | null;
+  /** null = sin intensidad (cardio o isometrico sin RPE). */
+  intensityKind: Medidor | null;
+  intensityValue: number | null;
   restSeconds: number | null;
 }
 
-/** Lo que se hizo en esta misma serie la vez anterior. */
+/** Lo que se hizo en esta misma serie la vez anterior. Cada dato es null si el
+ *  ejercicio no lo registra. */
 export interface SerieFantasma {
-  weightKg: number;
-  reps: number;
-  intensityKind: Medidor;
-  intensityValue: number;
+  weightKg: number | null;
+  reps: number | null;
+  durationSeconds: number | null;
+  distanceM: number | null;
+  intensityKind: Medidor | null;
+  intensityValue: number | null;
   /** Cuando termino esa sesion, en epoch ms. */
   hechaEl: number;
+}
+
+/** Los datos de una serie tal como llegan de session_sets. */
+interface FilaSerie {
+  weight_kg: number | string | null;
+  reps: number | null;
+  duration_seconds: number | null;
+  distance_m: number | null;
+  intensity_kind: string | null;
+  intensity_value: number | string | null;
+}
+
+/** numeric llega como string desde PostgREST; null sigue siendo null. */
+function numero(v: number | string | null): number | null {
+  return v === null ? null : Number(v);
 }
 
 /**
@@ -108,26 +143,47 @@ export async function cargarNombreDia(trainingDayId: string): Promise<string | n
 export async function cargarPlan(trainingDayId: string): Promise<EjercicioPlan[]> {
   const { data, error } = await supabase
     .from('training_day_exercises')
-    .select('exercise_id, position, sets, reps, intensity_kind, intensity_value, rest_seconds, exercises(name)')
+    .select(
+      `exercise_id, position, sets, reps, duration_seconds, distance_m, weight_kg, intensity_kind, intensity_value, rest_seconds, exercises(name, ${COLUMNAS_TIPO})`,
+    )
     .eq('training_day_id', trainingDayId)
     .order('position');
 
   if (error || !data) return [];
 
-  return data.map((fila) => {
+  return (data as unknown as FilaPlanSesion[]).map((fila) => {
     // El embed de una relacion to-one puede llegar como objeto o como array de
     // uno segun la version del cliente; normalizamos.
     const ejercicio = Array.isArray(fila.exercises) ? fila.exercises[0] : fila.exercises;
+    const { kind, tracks } = tipoDeFila(ejercicio);
     return {
       exerciseId: fila.exercise_id,
-      name: (ejercicio as { name?: string } | null)?.name ?? 'Ejercicio',
-      sets: fila.sets ?? 3,
-      reps: fila.reps ?? 10,
-      intensityKind: fila.intensity_kind === 'rpe' ? 'rpe' : 'rir',
-      intensityValue: Number(fila.intensity_value),
+      name: ejercicio?.name ?? 'Ejercicio',
+      kind,
+      tracks,
+      sets: fila.sets ?? (esSerieUnica(kind) ? 1 : 3),
+      reps: tracks.reps ? (fila.reps ?? 10) : null,
+      durationSeconds: fila.duration_seconds,
+      distanceM: fila.distance_m,
+      weightKg: numero(fila.weight_kg),
+      ...intensidadDeFila(fila.intensity_kind, fila.intensity_value),
       restSeconds: fila.rest_seconds,
     };
   });
+}
+
+/** Un ejercicio del plan tal como llega de la base, con su ejercicio embebido. */
+interface FilaPlanSesion {
+  exercise_id: string;
+  sets: number | null;
+  reps: number | null;
+  duration_seconds: number | null;
+  distance_m: number | null;
+  weight_kg: number | string | null;
+  intensity_kind: string | null;
+  intensity_value: number | string | null;
+  rest_seconds: number | null;
+  exercises: ({ name?: string } & FilaTipo) | ({ name?: string } & FilaTipo)[] | null;
 }
 
 /**
@@ -150,7 +206,7 @@ export async function cargarFantasmas(
   const { data, error } = await supabase
     .from('session_sets')
     .select(
-      'exercise_id, set_index, weight_kg, reps, intensity_kind, intensity_value, workout_sessions!inner(finished_at, training_day_id)',
+      'exercise_id, set_index, weight_kg, reps, duration_seconds, distance_m, intensity_kind, intensity_value, workout_sessions!inner(finished_at, training_day_id)',
     )
     .eq('workout_sessions.training_day_id', trainingDayId)
     .not('workout_sessions.finished_at', 'is', null)
@@ -173,16 +229,21 @@ export async function cargarFantasmas(
   for (const fila of ordenadas) {
     const clave = claveSerie(fila.exercise_id, fila.set_index);
     if (mapa.has(clave)) continue;
-    mapa.set(clave, {
-      weightKg: Number(fila.weight_kg),
-      reps: fila.reps,
-      intensityKind: fila.intensity_kind === 'rpe' ? 'rpe' : 'rir',
-      intensityValue: Number(fila.intensity_value),
-      hechaEl: finDe(fila),
-    });
+    mapa.set(clave, { ...datosDeSerie(fila), hechaEl: finDe(fila) });
   }
 
   return mapa;
+}
+
+/** Datos de una serie de la base, con los que el ejercicio no registra en null. */
+function datosDeSerie(fila: FilaSerie): SerieCargada {
+  return {
+    weightKg: numero(fila.weight_kg),
+    reps: fila.reps,
+    durationSeconds: fila.duration_seconds,
+    distanceM: fila.distance_m,
+    ...intensidadDeFila(fila.intensity_kind, fila.intensity_value),
+  };
 }
 
 /**
@@ -194,10 +255,15 @@ export async function guardarSerie(params: {
   sessionId: string;
   exerciseId: string;
   setIndex: number;
-  weightKg: number;
-  reps: number;
-  intensityKind: Medidor;
-  intensityValue: number;
+  /** Lo que el ejercicio no registra va en null. Las series que quedaron
+   *  pendientes antes de que existiera el cardio no traen duracion ni
+   *  distancia: por eso son opcionales. */
+  weightKg: number | null;
+  reps: number | null;
+  durationSeconds?: number | null;
+  distanceM?: number | null;
+  intensityKind: Medidor | null;
+  intensityValue: number | null;
 }): Promise<boolean> {
   const { error } = await supabase.from('session_sets').upsert(
     {
@@ -206,6 +272,8 @@ export async function guardarSerie(params: {
       set_index: params.setIndex,
       weight_kg: params.weightKg,
       reps: params.reps,
+      duration_seconds: params.durationSeconds ?? null,
+      distance_m: params.distanceM ?? null,
       intensity_kind: params.intensityKind,
       intensity_value: params.intensityValue,
       completed_at: new Date().toISOString(),
@@ -279,22 +347,19 @@ export async function borrarPendientes(sessionId: string): Promise<void> {
   await escribirPendientes(sessionId, []);
 }
 
+/** Una serie ya cargada en esta sesion. */
+export type SerieCargada = Omit<SerieFantasma, 'hechaEl'>;
+
 /** Series ya cargadas en esta sesion, para retomarla donde quedo. */
-export async function cargarSeriesDeSesion(
-  sessionId: string,
-): Promise<Map<string, { weightKg: number; reps: number; intensityValue: number }>> {
+export async function cargarSeriesDeSesion(sessionId: string): Promise<Map<string, SerieCargada>> {
   const { data } = await supabase
     .from('session_sets')
-    .select('exercise_id, set_index, weight_kg, reps, intensity_value')
+    .select('exercise_id, set_index, weight_kg, reps, duration_seconds, distance_m, intensity_kind, intensity_value')
     .eq('session_id', sessionId);
 
-  const mapa = new Map<string, { weightKg: number; reps: number; intensityValue: number }>();
+  const mapa = new Map<string, SerieCargada>();
   for (const fila of data ?? []) {
-    mapa.set(claveSerie(fila.exercise_id, fila.set_index), {
-      weightKg: Number(fila.weight_kg),
-      reps: fila.reps,
-      intensityValue: Number(fila.intensity_value),
-    });
+    mapa.set(claveSerie(fila.exercise_id, fila.set_index), datosDeSerie(fila));
   }
   return mapa;
 }

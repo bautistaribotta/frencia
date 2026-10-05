@@ -24,7 +24,7 @@ hasta que cargan. Si creás otro root, hacé lo mismo.
 ### Componentes
 core: `Button` `IconButton` `Card` `Badge` `Tag` `Avatar` `FrenciaText`
 data: `StatTile` `MetricPill` `ProgressBar` `Stepper` `SetRow`
-log: `ExerciseSummary` `SeriesTable`
+log: `ExerciseSummary` `SeriesTable` `DurationField` `DistanceField` `NumberField` `IsoTimer` `ExerciseTypeTag`
 nav: `SegmentedControl` `TabBar`
 feedback: `Switch` `Checkbox`
 
@@ -50,5 +50,9 @@ está en `Icon.tsx` (`REGISTRY`) — si falta uno, importalo ahí y agregalo al 
   Para blur real, meté `expo-blur` (`<BlurView>`) detrás del `TabBar`.
 - **letter-spacing:** CSS en `em`, RN en px. Convertido en `tracking`.
 - **Hover:** no existe en touch; sólo se portó `press`/`active`/`selected`/`disabled`.
+- **IsoTimer:** suma una cuenta regresiva de 3 s cancelable antes de contar, vibra en la
+  cuenta, al arrancar y al llegar al objetivo, y mantiene la pantalla encendida mientras
+  mide (`expo-keep-awake`). Los dígitos van en mono y no en la display, como el descanso:
+  cambian cada segundo y sin ancho fijo el número baila.
 
 El skill original queda como fuente de verdad de diseño en `.claude/skills/frencia-design/`.
