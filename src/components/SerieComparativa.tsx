@@ -67,18 +67,22 @@ export interface SerieComparativaProps {
   /** Sin la fila de hoy la grilla es solo referencia: lo de hoy se carga en
    *  campos propios fuera de ella (el cardio). */
   mostrarHoy?: boolean;
+  /** Amplia: mas aire entre filas y cajas de hoy mas altas, para la fuerza,
+   *  donde la grilla es lo unico que se completa en la pantalla. */
+  amplia?: boolean;
 }
 
 export function SerieComparativa({
   columnas,
   cuandoAnterior,
   mostrarHoy = true,
+  amplia = false,
 }: SerieComparativaProps) {
   const colors = useColors();
   const styles = useThemedStyles(makeStyles);
 
   return (
-    <View style={styles.grilla}>
+    <View style={[styles.grilla, amplia && styles.grillaAmplia]}>
       {/* Encabezado de columnas, una sola vez para las tres filas */}
       <View style={styles.fila}>
         <View style={styles.etiqueta} />
@@ -95,6 +99,7 @@ export function SerieComparativa({
         etiqueta="Plan"
         detalle={null}
         valores={columnas.map((c) => c.plan)}
+        amplia={amplia}
         styles={styles}
         colors={colors}
       />
@@ -103,20 +108,21 @@ export function SerieComparativa({
         etiqueta="Última"
         detalle={cuandoAnterior ?? 'sin registro'}
         valores={columnas.map((c) => (cuandoAnterior ? c.anterior : null))}
+        amplia={amplia}
         styles={styles}
         colors={colors}
       />
 
       {/* Hoy: la unica fila con cajas, porque es la unica que se completa. */}
       {mostrarHoy ? (
-        <View style={[styles.fila, styles.filaHoy]}>
+        <View style={[styles.fila, styles.filaHoy, amplia && styles.filaHoyAmplia]}>
           <View style={styles.etiqueta}>
             <FrenciaText role="dataLabel" color={colors.accentText}>
               Hoy
             </FrenciaText>
           </View>
           {columnas.map((c) => (
-            <Caja key={c.key} columna={c} styles={styles} colors={colors} />
+            <Caja key={c.key} columna={c} amplia={amplia} styles={styles} colors={colors} />
           ))}
         </View>
       ) : null}
@@ -130,12 +136,14 @@ function Referencia({
   etiqueta,
   detalle,
   valores,
+  amplia,
   styles,
   colors,
 }: {
   etiqueta: string;
   detalle: string | null;
   valores: (string | null)[];
+  amplia: boolean;
   styles: ReturnType<typeof makeStyles>;
   colors: Palette;
 }) {
@@ -153,7 +161,7 @@ function Referencia({
       </View>
       {valores.map((v, i) => (
         <View key={i} style={styles.celda}>
-          <View style={styles.cajaRef}>
+          <View style={[styles.cajaRef, amplia && styles.cajaRefAmplia]}>
             {/* Un tiempo largo ("1:05:00") no entra en un tercio de pantalla:
                se achica en vez de cortarse. */}
             <Text
@@ -161,6 +169,7 @@ function Referencia({
               adjustsFontSizeToFit
               style={[
                 styles.numeroRef,
+                amplia && styles.numeroRefAmplio,
                 { color: v === null ? colors.textDisabled : colors.textSecondary },
               ]}
             >
@@ -175,10 +184,12 @@ function Referencia({
 
 function Caja({
   columna,
+  amplia,
   styles,
   colors,
 }: {
   columna: ColumnaSerie;
+  amplia: boolean;
   styles: ReturnType<typeof makeStyles>;
   colors: Palette;
 }) {
@@ -188,14 +199,23 @@ function Caja({
     return (
       <View style={styles.celda}>
         <View
-          style={[styles.caja, styles.cajaLectura, cargado && styles.cajaCargada]}
+          style={[
+            styles.caja,
+            amplia && styles.cajaAmplia,
+            styles.cajaLectura,
+            cargado && styles.cajaCargada,
+          ]}
           accessible
           accessibilityLabel={`${columna.accesible}: ${cargado ? columna.hoy : 'sin cargar'}`}
         >
           <Text
             numberOfLines={1}
             adjustsFontSizeToFit
-            style={[styles.numeroHoy, !cargado && { color: colors.textDisabled }]}
+            style={[
+              styles.numeroHoy,
+              amplia && styles.numeroHoyAmplio,
+              !cargado && { color: colors.textDisabled },
+            ]}
           >
             {cargado ? columna.hoy : VACIO}
           </Text>
@@ -207,7 +227,13 @@ function Caja({
   return (
     <View style={styles.celda}>
       <TextInput
-        style={[styles.caja, styles.numeroHoy, cargado && styles.cajaCargada]}
+        style={[
+          styles.caja,
+          styles.numeroHoy,
+          amplia && styles.cajaAmplia,
+          amplia && styles.numeroHoyAmplio,
+          cargado && styles.cajaCargada,
+        ]}
         value={columna.hoy}
         onChangeText={columna.onHoy}
         keyboardType={columna.teclado ?? 'number-pad'}
@@ -279,4 +305,18 @@ const makeStyles = (colors: Palette) =>
     },
     // El borde de acento marca lo ya cargado sin necesidad de leer el numero.
     cajaCargada: { borderColor: colors.accent },
+
+    // Variante amplia. Las referencias pierden la caja y quedan como numeros
+    // sueltos: con menos bordes la grilla deja de leerse como planilla y las
+    // unicas cajas de la pantalla son las que se completan.
+    grillaAmplia: { gap: space[3] },
+    cajaRefAmplia: {
+      height: sizing.controlHMd,
+      backgroundColor: 'transparent',
+      borderColor: 'transparent',
+    },
+    numeroRefAmplio: { fontSize: 22, lineHeight: 28 },
+    filaHoyAmplia: { marginTop: space[2], paddingTop: space[5] },
+    cajaAmplia: { height: 72 },
+    numeroHoyAmplio: { fontSize: 32 },
   });

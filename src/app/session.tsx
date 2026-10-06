@@ -72,6 +72,7 @@ import {
   ProgressBar,
   mono,
   radius,
+  sizing,
   space,
   spacing,
   useColors,
@@ -767,7 +768,7 @@ export default function SessionScreen() {
 
         <ScrollView
           style={styles.flex}
-          contentContainerStyle={styles.scroll}
+          contentContainerStyle={[styles.scroll, esSerie && !conCampos && styles.scrollAnclado]}
           keyboardShouldPersistTaps="handled"
           keyboardDismissMode="interactive"
           showsVerticalScrollIndicator={false}
@@ -843,13 +844,23 @@ export default function SessionScreen() {
               ) : null}
             </View>
           ) : (
-            <>
+            /* En fuerza la serie baja a la zona del pulgar, pegada a
+               Siguiente: el contexto queda arriba y lo que se completa, abajo.
+               Cardio e isometricos siguen centrados, con sus campos. */
+            <View style={conCampos ? styles.serieCampos : styles.serieAnclada}>
               <View style={styles.serieHead}>
                 <FrenciaText role="subtitle">
                   {seriesDelEjercicio === 1
                     ? 'Serie única'
                     : `Serie ${paso.serie + 1} de ${seriesDelEjercicio}`}
                 </FrenciaText>
+                {/* Con la grilla abajo, saltar sube al titulo de la serie:
+                   queda a mano pero lejos de la barra que se toca de memoria. */}
+                {serieVacia && !conCampos ? (
+                  <Button variant="ghost" size="sm" icon="skip-forward" onPress={saltarSerie}>
+                    {textoSaltar}
+                  </Button>
+                ) : null}
               </View>
 
               {/* Las tres lecturas de la serie en una sola grilla. Los campos
@@ -859,6 +870,7 @@ export default function SessionScreen() {
                 columnas={columnas}
                 cuandoAnterior={fantasma ? haceCuanto(fantasma.hechaEl) : null}
                 mostrarHoy={!conCampos}
+                amplia={!conCampos}
               />
               {!conCampos && falta.length > 0 && !serieVacia ? (
                 <FrenciaText role="bodySm" color={colors.warning} style={styles.centrado}>
@@ -969,7 +981,7 @@ export default function SessionScreen() {
 
               {/* Fantasma y lejos de la barra de abajo: saltar es ocasional y
                  no puede quedar donde se toca "Siguiente" de memoria. */}
-              {serieVacia ? (
+              {serieVacia && conCampos ? (
                 <Button
                   variant="ghost"
                   size="md"
@@ -980,7 +992,7 @@ export default function SessionScreen() {
                   {textoSaltar}
                 </Button>
               ) : null}
-            </>
+            </View>
           )}
         </ScrollView>
 
@@ -1276,7 +1288,16 @@ const makeStyles = (colors: Palette) =>
 
     scroll: { flexGrow: 1, justifyContent: 'center', paddingVertical: space[8], gap: space[7] },
     bloque: { gap: space[2] },
-    serieHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+    // Fuerza: el bloque de arriba y la serie se separan hasta los bordes.
+    scrollAnclado: { justifyContent: 'space-between', paddingTop: space[6], paddingBottom: space[2] },
+    serieAnclada: { gap: space[5] },
+    serieCampos: { gap: space[7] },
+    serieHead: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      minHeight: sizing.controlHSm,
+    },
     cardio: { gap: space[6] },
     campoConAviso: { gap: space[3] },
     saltar: { alignSelf: 'center' },
