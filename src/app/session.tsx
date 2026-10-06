@@ -59,6 +59,7 @@ import { useToast } from '@/contexts/toast';
 import { MarqueeText } from '@/components/MarqueeText';
 import { RestRing } from '@/components/RestRing';
 import { SerieComparativa, type ColumnaSerie } from '@/components/SerieComparativa';
+import { SerieFilas } from '@/components/SerieFilas';
 
 import {
   Button,
@@ -855,11 +856,21 @@ export default function SessionScreen() {
               {/* Las tres lecturas de la serie en una sola grilla. Los campos
                  de hoy van vacios a proposito, para que la progresion sea una
                  decision y no inercia: se ve lo anterior y se escribe igual. */}
-              <SerieComparativa
-                columnas={columnas}
-                cuandoAnterior={fantasma ? haceCuanto(fantasma.hechaEl) : null}
-                mostrarHoy={!conCampos}
-              />
+              {/* Fuerza: una fila por dato, con la caja de hoy a la derecha.
+                 Cardio e isometricos mantienen la grilla de solo referencia,
+                 porque lo de hoy va en sus campos. */}
+              {conCampos ? (
+                <SerieComparativa
+                  columnas={columnas}
+                  cuandoAnterior={fantasma ? haceCuanto(fantasma.hechaEl) : null}
+                  mostrarHoy={false}
+                />
+              ) : (
+                <SerieFilas
+                  columnas={columnas}
+                  cuandoAnterior={fantasma ? haceCuanto(fantasma.hechaEl) : null}
+                />
+              )}
               {!conCampos && falta.length > 0 && !serieVacia ? (
                 <FrenciaText role="bodySm" color={colors.warning} style={styles.centrado}>
                   Falta cargar {enumerar(falta)}.
