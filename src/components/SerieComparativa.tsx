@@ -96,7 +96,7 @@ export function SerieComparativa({
       </View>
 
       <Referencia
-        etiqueta="Plan"
+        etiqueta="Rutina"
         detalle={null}
         valores={columnas.map((c) => c.plan)}
         amplia={amplia}

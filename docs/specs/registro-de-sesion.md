@@ -285,7 +285,8 @@ Un paso de serie muestra:
   a la vista). Debajo van el peso y el RPE, los dos opcionales; el peso arranca
   vacio aunque la vez anterior se haya usado, y pasa a obligatorio si el plan
   lo prescribe.
-- **Saltar serie**, un boton fantasma debajo de la serie, solo mientras no
+- **Saltar serie**, un boton de solo texto en verde (al lado del titulo de la serie en
+  fuerza, debajo de la serie en cardio e isometricos), solo mientras no
   tiene ningun dato cargado (con datos, queda en el menu). No guarda la serie y
   pasa a la proxima, sin el descanso de por medio; en el ultimo paso dice
   "Saltar y terminar" y cierra la sesion. Va aparte de Siguiente y lejos de la
@@ -304,7 +305,7 @@ grilla, con las mismas columnas, el mismo orden y la misma tipografia:
 
 ```
               KG      REPS     RIR
-PLAN           —        8       2
+RUTINA         —        8       2
 ÚLTIMA        80        8       2     hace 6 dias
 HOY         [ 82 ]   [    ]  [    ]
 ```

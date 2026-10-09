@@ -14,6 +14,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
+  Keyboard,
   KeyboardAvoidingView,
   Modal,
   Platform,
@@ -251,6 +252,16 @@ export default function SessionScreen() {
   // Se avisa una sola vez por sesion que hay series guardadas solo en el
   // telefono; repetirlo en cada paso sin senal seria puro ruido.
   const avisoPendientes = useRef(false);
+
+  // Con el teclado abierto el alto se achica y la serie anclada abajo queda
+  // fuera de vista: el scroll baja hasta el final para mostrar la fila de hoy.
+  const scrollRef = useRef<ScrollView>(null);
+  useEffect(() => {
+    const sub = Keyboard.addListener('keyboardDidShow', () => {
+      scrollRef.current?.scrollToEnd({ animated: true });
+    });
+    return () => sub.remove();
+  }, []);
 
   const pasos = useMemo(() => generarPasos(plan, cantidades), [plan, cantidades]);
   // Cortar un ejercicio saca pasos de la lista y puede dejar el indice guardado
@@ -767,7 +778,8 @@ export default function SessionScreen() {
         </View>
 
         <ScrollView
-          style={styles.flex}
+          ref={scrollRef}
+          style={styles.scrollView}
           contentContainerStyle={[styles.scroll, esSerie && !conCampos && styles.scrollAnclado]}
           keyboardShouldPersistTaps="handled"
           keyboardDismissMode="interactive"
@@ -857,7 +869,7 @@ export default function SessionScreen() {
                 {/* Con la grilla abajo, saltar sube al titulo de la serie:
                    queda a mano pero lejos de la barra que se toca de memoria. */}
                 {serieVacia && !conCampos ? (
-                  <Button variant="ghost" size="sm" icon="skip-forward" onPress={saltarSerie}>
+                  <Button variant="soft" size="sm" icon="skip-forward" onPress={saltarSerie}>
                     {textoSaltar}
                   </Button>
                 ) : null}
@@ -979,11 +991,11 @@ export default function SessionScreen() {
                 </View>
               ) : null}
 
-              {/* Fantasma y lejos de la barra de abajo: saltar es ocasional y
+              {/* Verde y lejos de la barra de abajo: saltar es ocasional y
                  no puede quedar donde se toca "Siguiente" de memoria. */}
               {serieVacia && conCampos ? (
                 <Button
-                  variant="ghost"
+                  variant="soft"
                   size="md"
                   icon="skip-forward"
                   onPress={saltarSerie}
@@ -1281,15 +1293,19 @@ const makeStyles = (colors: Palette) =>
     safe: { flex: 1, backgroundColor: colors.bgApp },
     flex: { flex: 1, paddingHorizontal: spacing.padScreen, paddingVertical: space[5] },
     flexItem: { flex: 1 },
+    // El scroll no lleva padding vertical propio: en iOS ese padding recorta el
+    // contenido en vez de sumarle aire, y la fila de hoy quedaba cortada abajo.
+    // El aire vertical vive en el contentContainerStyle.
+    scrollView: { flex: 1, paddingHorizontal: spacing.padScreen },
     centro: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: space[5], padding: spacing.padScreen },
     centrado: { textAlign: 'center' },
 
     header: { flexDirection: 'row', alignItems: 'center', gap: space[4] },
 
-    scroll: { flexGrow: 1, justifyContent: 'center', paddingVertical: space[8], gap: space[7] },
+    scroll: { flexGrow: 1, justifyContent: 'center', paddingVertical: space[8] + space[5], gap: space[7] },
     bloque: { gap: space[2] },
     // Fuerza: el bloque de arriba y la serie se separan hasta los bordes.
-    scrollAnclado: { justifyContent: 'space-between', paddingTop: space[6], paddingBottom: space[2] },
+    scrollAnclado: { justifyContent: 'space-between', paddingTop: space[6] + space[5], paddingBottom: space[2] },
     serieAnclada: { gap: space[5] },
     serieCampos: { gap: space[7] },
     serieHead: {
@@ -1314,7 +1330,15 @@ const makeStyles = (colors: Palette) =>
       includeFontPadding: false,
     },
 
-    nav: { flexDirection: 'row', gap: space[3], paddingHorizontal: spacing.padScreen, paddingBottom: space[5] },
+    // El aire de arriba es de la barra y no del scroll: con el teclado abierto
+    // el scroll lleva la caja enfocada justo al borde y su padding no se ve.
+    nav: {
+      flexDirection: 'row',
+      gap: space[3],
+      paddingHorizontal: spacing.padScreen,
+      paddingTop: space[5],
+      paddingBottom: space[5],
+    },
 
     // RN no parsea oklch, por eso el velo va en rgba como el resto de los
     // tokens (ver la nota en tokens/colors.ts). Mismo tratamiento que el sheet

@@ -15,7 +15,7 @@ import { radius, sans, sizing, space, motion, type Palette } from '../theme';
 import { useColors } from '../theme-context';
 import { Icon } from '../Icon';
 
-type Variant = 'primary' | 'intensity' | 'secondary' | 'ghost' | 'danger';
+type Variant = 'primary' | 'intensity' | 'secondary' | 'soft' | 'ghost' | 'danger';
 type Size = 'sm' | 'md' | 'lg';
 
 export interface ButtonProps extends Omit<PressableProps, 'children' | 'style'> {
@@ -44,6 +44,9 @@ const makeFill = (colors: Palette): Record<Variant, ViewStyle> => ({
   primary: { backgroundColor: colors.accent },
   intensity: { backgroundColor: colors.intensity },
   secondary: { backgroundColor: colors.surfaceCard, borderColor: colors.borderDefault, borderWidth: 1 },
+  // Como ghost pero en el verde de marca: solo texto e icono. Una accion
+  // secundaria que se ve sin pelearle el peso al primary de la misma pantalla.
+  soft: { backgroundColor: 'transparent' },
   ghost: { backgroundColor: 'transparent' },
   // Destructivo: rojo delineado, sin relleno pleno, para leerse claro sin
   // volverse el elemento mas dominante de la pantalla.
@@ -53,6 +56,7 @@ const makeLabelColor = (colors: Palette): Record<Variant, string> => ({
   primary: colors.textOnAccent,
   intensity: colors.textOnAccent,
   secondary: colors.textPrimary,
+  soft: colors.accentText,
   ghost: colors.textSecondary,
   danger: colors.danger,
 });
