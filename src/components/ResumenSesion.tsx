@@ -106,7 +106,7 @@ export function ResumenSesion({
                  del design system, iOS recorta el acento y el tope de Anton.
                  Cada linea lleva su aire y la segunda se sube sobre la primera. */}
               <View accessible accessibilityRole="header" accessibilityLabel="Sesión completa">
-                <FrenciaText style={styles.completa}>Sesión</FrenciaText>
+                <FrenciaText style={[styles.completa, styles.completaPrimera]}>Sesión</FrenciaText>
                 <FrenciaText style={[styles.completa, styles.completaSegunda]}>completa</FrenciaText>
               </View>
               <FrenciaText style={styles.meta} numberOfLines={2}>
@@ -305,7 +305,10 @@ const makeStyles = (colors: Palette) =>
       textTransform: 'uppercase',
       color: colors.accent,
     },
-    completaSegunda: { marginTop: -12 },
+    // El acento de la O sobresale mas que el tope de Anton: la primera linea
+    // necesita mas alto, y la segunda sube lo mismo para no separarse.
+    completaPrimera: { lineHeight: 58 },
+    completaSegunda: { marginTop: -16 },
     meta: {
       fontFamily: mono.regular,
       fontSize: 11,
