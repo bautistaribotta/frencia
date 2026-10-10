@@ -10,12 +10,12 @@ import { Modal, Pressable, StyleSheet, View } from 'react-native';
 import {
   FrenciaText,
   radius,
-  shadow,
   space,
   spacing,
   useColors,
   useThemedStyles,
   type Palette,
+  type Shadows,
 } from '@/design';
 
 export interface DialogoProps {
@@ -53,7 +53,7 @@ export function Dialogo({ visible, titulo, mensaje, onDescartar, children }: Dia
   );
 }
 
-const makeStyles = (colors: Palette) =>
+const makeStyles = (colors: Palette, shadows: Shadows) =>
   StyleSheet.create({
     backdrop: {
       flex: 1,
@@ -71,7 +71,7 @@ const makeStyles = (colors: Palette) =>
       borderRadius: radius.xl,
       padding: spacing.padCard,
       gap: space[7],
-      ...shadow.lg,
+      ...shadows.lg,
     },
     texts: { gap: space[3] },
     actions: { gap: space[3] },

@@ -18,7 +18,12 @@ hasta que cargan. Si creás otro root, hacé lo mismo.
 - `colors` — aliases semánticos (`colors.accent`, `colors.surfaceCard`, `colors.textPrimary`…)
 - `palette` — escala cruda (`palette.green500`, `palette.ink800`…)
 - `spacing` / `space` / `sizing` — grid 8px, gutters, alturas de control
-- `radius`, `shadow`, `motion` — bordes, elevación/glow (aprox. de CSS), duraciones
+- `radius`, `shadows`, `motion` — bordes, elevación/glow (aprox. de CSS), duraciones.
+  Las sombras cambian con el tema: en componentes usar `useShadows()` o el segundo
+  argumento de `useThemedStyles((colors, shadows) => …)`. `shadow` (singular) es la
+  del tema oscuro, solo para código fuera del tema.
+- `withAlpha(hex, alpha)` — un color del tema con alpha, para degradados que funden
+  contra el fondo
 - `textRole`, `sans`, `mono`, `display` — roles de texto y familias por peso
 
 ### Componentes

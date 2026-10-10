@@ -16,7 +16,7 @@
   --radius-pill: 999px;
   --radius-circle: 50%;
 
-  /* ---- Elevation shadows (dark UI — subtle) ---- */
+  /* ---- Elevation shadows (dark UI — subtle; light theme overrides below) ---- */
   --shadow-none: none;
   --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
   --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.45);
@@ -41,4 +41,20 @@
 
   /* Press scale (tactile feedback) */
   --press-scale: 0.97; /* @kind other */
+}
+
+/* ============================================================
+   LIGHT THEME — sombras "cemento".
+   La sombra negra fuerte del oscuro sobre el gris piedra se lee como
+   una mancha (y dibuja el rectangulo debajo de recortes como los del
+   ticket). Aca va teñida con la tinta del tema (stone-900) y mucho mas
+   tenue, con una capa corta de contacto para que no flote.
+   Port RN: src/design/tokens/radius.ts (una sola capa: la larga).
+   ============================================================ */
+:root[data-theme="light"], [data-theme="light"] {
+  --shadow-sm: 0 1px 2px oklch(15.1% 0.005 145.3 / 0.10);
+  --shadow-md: 0 1px 2px oklch(15.1% 0.005 145.3 / 0.04), 0 4px 16px oklch(15.1% 0.005 145.3 / 0.08);
+  --shadow-lg: 0 2px 6px oklch(15.1% 0.005 145.3 / 0.04), 0 12px 32px oklch(15.1% 0.005 145.3 / 0.12);
+  --shadow-sheet: 0 -8px 40px oklch(15.1% 0.005 145.3 / 0.14);
+  --shadow-inset: inset 0 1px 2px oklch(15.1% 0.005 145.3 / 0.10);
 }

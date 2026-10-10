@@ -3,8 +3,8 @@
 
 import React, { useMemo } from 'react';
 import { Pressable, type PressableProps, StyleSheet, View, type ViewProps, type ViewStyle } from 'react-native';
-import { radius, shadow, spacing, type Palette } from '../theme';
-import { useColors } from '../theme-context';
+import { radius, spacing, type Palette, type Shadows } from '../theme';
+import { useTheme } from '../theme-context';
 
 type Variant = 'default' | 'raised' | 'elevated' | 'inset' | 'green' | 'orange';
 
@@ -17,10 +17,10 @@ export interface CardProps extends ViewProps {
   children?: React.ReactNode;
 }
 
-const makeVariant = (colors: Palette): Record<Variant, ViewStyle> => ({
+const makeVariant = (colors: Palette, shadows: Shadows): Record<Variant, ViewStyle> => ({
   default: { backgroundColor: colors.surfaceCard },
   raised: { backgroundColor: colors.surfaceRaised },
-  elevated: { backgroundColor: colors.surfaceCardElevated, ...shadow.md },
+  elevated: { backgroundColor: colors.surfaceCardElevated, ...shadows.md },
   inset: { backgroundColor: colors.surfaceInset },
   green: { backgroundColor: colors.surfaceGreenSoft, borderColor: colors.surfaceGreenLine, borderWidth: 1 },
   orange: { backgroundColor: colors.surfaceOrangeSoft, borderColor: colors.surfaceOrangeLine, borderWidth: 1 },
@@ -35,8 +35,8 @@ export function Card({
   children,
   ...rest
 }: CardProps) {
-  const colors = useColors();
-  const VARIANT = useMemo(() => makeVariant(colors), [colors]);
+  const { colors, shadows } = useTheme();
+  const VARIANT = useMemo(() => makeVariant(colors, shadows), [colors, shadows]);
   const base: ViewStyle[] = [
     styles.base,
     VARIANT[variant],

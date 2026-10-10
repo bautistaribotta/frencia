@@ -3,7 +3,7 @@
 
 import React from 'react';
 import { Pressable, StyleSheet, Text, View, type ViewStyle } from 'react-native';
-import { radius, sans, shadow, type Palette } from '../theme';
+import { radius, sans, type Palette, type Shadows } from '../theme';
 import { useColors, useThemedStyles } from '../theme-context';
 import { Icon } from '../Icon';
 
@@ -61,7 +61,7 @@ export function SegmentedControl({
   );
 }
 
-const makeStyles = (colors: Palette) =>
+const makeStyles = (colors: Palette, shadows: Shadows) =>
   StyleSheet.create({
     base: {
       flexDirection: 'row',
@@ -84,7 +84,7 @@ const makeStyles = (colors: Palette) =>
       paddingHorizontal: 16,
       borderRadius: radius.sm,
     },
-    optActive: { backgroundColor: colors.surfaceCardElevated, ...shadow.sm },
+    optActive: { backgroundColor: colors.surfaceCardElevated, ...shadows.sm },
     optActiveAccent: { backgroundColor: colors.accent },
     label: { fontFamily: sans.semibold, fontSize: 14 },
   });

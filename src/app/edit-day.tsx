@@ -43,18 +43,10 @@ import {
   spacing,
   useColors,
   useThemedStyles,
+  withAlpha,
   type Palette,
 } from '@/design';
 
-// Interpolar hacia 'transparent' no sirve: es negro con alpha 0, y en el tema
-// claro el degradado saldria gris sucio en vez de desvanecerse.
-function withAlpha(hex: string, alpha: number): string {
-  const h = hex.replace('#', '');
-  const r = parseInt(h.slice(0, 2), 16);
-  const g = parseInt(h.slice(2, 4), 16);
-  const b = parseInt(h.slice(4, 6), 16);
-  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
-}
 
 // Firma del dia para saber si hay cambios sin guardar. Compara lo que se
 // persiste y nada mas: el uid de cada fila es de la vista, no del dato.

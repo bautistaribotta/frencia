@@ -135,6 +135,11 @@ a **green glow** on the primary CTA and active timer (`--glow-green`) — a soft
 neon halo, never a blur-heavy material shadow. Orange has a matching `--glow-orange`
 for PR/intensity moments.
 
+In the **light theme** the dark shadows read as dirty grey patches on the stone
+ground, so `--shadow-*` are overridden there: tinted with the theme ink
+(stone-900) at 4–14% alpha, with a short contact layer under the long blur.
+Same token names in both themes; components never pick a shadow per theme.
+
 **Transparency & blur.** Used for chrome over content: nav bars and the tab bar
 use a translucent `--bg-app` with `backdrop-filter: blur()`; bottom sheets dim the
 field behind them. Tinted soft surfaces (`--surface-green-soft` at ~10% alpha) wash

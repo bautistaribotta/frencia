@@ -27,6 +27,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import { supabase } from '@/lib/supabase';
 import { themes, type Palette, type ThemeMode } from './tokens/colors';
+import { shadows, type Shadows } from './tokens/radius';
 
 const STORAGE_KEY = 'frencia.theme';
 
@@ -39,6 +40,7 @@ interface ThemeContextValue {
   /** Preferencia elegida por el usuario. */
   preference: ThemePreference;
   colors: Palette;
+  shadows: Shadows;
   setPreference: (preference: ThemePreference) => void;
 }
 
@@ -144,7 +146,7 @@ export function FrenciaThemeProvider({ children }: { children: React.ReactNode }
   const mode: ThemeMode = signedIn && preference !== 'system' ? preference : systemMode;
 
   const value = useMemo<ThemeContextValue>(
-    () => ({ mode, preference, colors: themes[mode], setPreference }),
+    () => ({ mode, preference, colors: themes[mode], shadows: shadows[mode], setPreference }),
     [mode, preference, setPreference],
   );
 
@@ -160,6 +162,7 @@ export function useTheme(): ThemeContextValue {
     mode: 'dark',
     preference: 'system',
     colors: themes.dark,
+    shadows: shadows.dark,
     setPreference: () => {},
   };
 }
@@ -167,6 +170,11 @@ export function useTheme(): ThemeContextValue {
 /** Paleta activa. Reemplaza al `colors` estatico dentro de componentes. */
 export function useColors(): Palette {
   return useTheme().colors;
+}
+
+/** Sombras del tema activo. Mismas claves en los dos temas. */
+export function useShadows(): Shadows {
+  return useTheme().shadows;
 }
 
 /** Memoiza una fabrica de estilos contra la paleta activa.
@@ -179,8 +187,8 @@ export function useColors(): Palette {
  *  version. Se omite a proposito: incluirla haria que cada render de un
  *  componente descuidado rehiciera todo el StyleSheet, que es justo lo que este
  *  hook evita. */
-export function useThemedStyles<T>(factory: (colors: Palette) => T): T {
-  const colors = useColors();
+export function useThemedStyles<T>(factory: (colors: Palette, shadows: Shadows) => T): T {
+  const { colors, shadows: sombras } = useTheme();
   // eslint-disable-next-line react-hooks/exhaustive-deps -- ver nota de arriba
-  return useMemo(() => factory(colors), [colors]);
+  return useMemo(() => factory(colors, sombras), [colors, sombras]);
 }

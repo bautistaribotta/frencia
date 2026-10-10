@@ -3,8 +3,8 @@
 
 import React, { useEffect, useRef } from 'react';
 import { Animated, Pressable, StyleSheet, type ViewStyle } from 'react-native';
-import { radius, motion, shadow } from '../theme';
-import { useColors } from '../theme-context';
+import { radius, motion } from '../theme';
+import { useColors, useShadows } from '../theme-context';
 
 export interface SwitchProps {
   checked?: boolean;
@@ -15,6 +15,7 @@ export interface SwitchProps {
 
 export function Switch({ checked = false, onChange, disabled = false, style }: SwitchProps) {
   const colors = useColors();
+  const shadows = useShadows();
   const t = useRef(new Animated.Value(checked ? 1 : 0)).current;
 
   useEffect(() => {
@@ -50,7 +51,7 @@ export function Switch({ checked = false, onChange, disabled = false, style }: S
       <Animated.View
         style={[styles.track, { backgroundColor: trackColor, borderColor }, disabled && styles.disabled]}
       >
-        <Animated.View style={[styles.thumb, { backgroundColor: thumbColor, transform: [{ translateX }] }]} />
+        <Animated.View style={[styles.thumb, shadows.sm, { backgroundColor: thumbColor, transform: [{ translateX }] }]} />
       </Animated.View>
     </Pressable>
   );
@@ -69,7 +70,6 @@ const styles = StyleSheet.create({
     width: 24,
     height: 24,
     borderRadius: 12,
-    ...shadow.sm,
   },
   disabled: { opacity: 0.4 },
 });

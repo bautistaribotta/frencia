@@ -12,6 +12,7 @@ export {
   FrenciaThemeProvider,
   useTheme,
   useColors,
+  useShadows,
   useThemedStyles,
 } from './theme-context';
 export type { ThemePreference } from './theme-context';

@@ -212,3 +212,14 @@ export type Palette = { [K in keyof typeof darkColors]: string };
 export const colors = darkColors;
 
 export type ColorToken = keyof typeof darkColors;
+
+/** Un color hex del tema con alpha. Para degradados que funden contra el
+ *  fondo: interpolar hacia 'transparent' no sirve, porque es negro con alpha 0
+ *  y en el tema claro el degradado saldria gris sucio. */
+export function withAlpha(hex: string, alpha: number): string {
+  const h = hex.replace('#', '');
+  const r = parseInt(h.slice(0, 2), 16);
+  const g = parseInt(h.slice(2, 4), 16);
+  const b = parseInt(h.slice(4, 6), 16);
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+}

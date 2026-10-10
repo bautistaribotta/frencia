@@ -19,7 +19,6 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   FrenciaText,
   Icon,
-  shadow,
   radius,
   sans,
   space,
@@ -28,6 +27,7 @@ import {
   useThemedStyles,
   type IconName,
   type Palette,
+  type Shadows,
 } from '@/design';
 
 type ToastType = 'success' | 'error' | 'info';
@@ -149,7 +149,7 @@ export function useToast(): ToastContextValue {
   return useContext(ToastContext);
 }
 
-const makeStyles = (colors: Palette) =>
+const makeStyles = (colors: Palette, shadows: Shadows) =>
   StyleSheet.create({
     overlay: {
       pointerEvents: 'box-none',
@@ -165,7 +165,7 @@ const makeStyles = (colors: Palette) =>
       borderRadius: radius.lg,
       borderWidth: 1,
       borderColor: colors.borderSubtle,
-      ...shadow.lg,
+      ...shadows.lg,
     },
     fila: { flexDirection: 'row', alignItems: 'center' },
     accion: { paddingHorizontal: space[4], paddingVertical: space[4] },

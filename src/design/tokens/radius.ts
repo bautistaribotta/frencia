@@ -27,7 +27,17 @@ type Elevation = Pick<
   'shadowColor' | 'shadowOffset' | 'shadowOpacity' | 'shadowRadius' | 'elevation'
 >;
 
-const make = (color: string, y: number, blur: number, opacity: number, elevation: number): Elevation =>
+/** Una sombra en crudo, como en CSS: color, caida, desenfoque y opacidad.
+ *  `elevation` es su equivalente aproximado en Android. */
+export interface ShadowSpec {
+  color: string;
+  y: number;
+  blur: number;
+  opacity: number;
+  elevation: number;
+}
+
+const make = ({ color, y, blur, opacity, elevation }: ShadowSpec): Elevation =>
   Platform.select<Elevation>({
     ios: {
       shadowColor: color,
@@ -39,18 +49,57 @@ const make = (color: string, y: number, blur: number, opacity: number, elevation
     default: {},
   })!;
 
-export const shadow = {
-  none: {} as Elevation,
-  sm: make('#000', 1, 2, 0.4, 1),
-  md: make('#000', 4, 16, 0.45, 6),
-  lg: make('#000', 12, 32, 0.55, 12),
-  sheet: make('#000', -8, 40, 0.6, 16),
-  // Brand glow — halo retirado en el design system: el CTA se sostiene por
-  // color. Se conservan las claves para no romper consumidores.
+type Nivel = 'sm' | 'md' | 'lg' | 'sheet';
+
+/** Las sombras en crudo por tema. Para dibujar una sombra que siga una forma
+ *  (por ejemplo con un filtro SVG), donde shadow* y elevation no alcanzan. */
+export const shadowSpecs: Record<'dark' | 'light', Record<Nivel, ShadowSpec>> = {
+  dark: {
+    sm: { color: '#000', y: 1, blur: 2, opacity: 0.4, elevation: 1 },
+    md: { color: '#000', y: 4, blur: 16, opacity: 0.45, elevation: 6 },
+    lg: { color: '#000', y: 12, blur: 32, opacity: 0.55, elevation: 12 },
+    sheet: { color: '#000', y: -8, blur: 40, opacity: 0.6, elevation: 16 },
+  },
+  // Tema claro: la sombra negra fuerte del oscuro sobre el gris piedra se lee
+  // como una mancha. Aca va teñida con la tinta del tema (stone-900) y mucho
+  // mas tenue; en Android la elevacion baja en proporcion.
+  light: {
+    sm: { color: '#0A0C0A', y: 1, blur: 2, opacity: 0.1, elevation: 1 },
+    md: { color: '#0A0C0A', y: 4, blur: 16, opacity: 0.08, elevation: 3 },
+    lg: { color: '#0A0C0A', y: 12, blur: 32, opacity: 0.12, elevation: 6 },
+    sheet: { color: '#0A0C0A', y: -8, blur: 40, opacity: 0.14, elevation: 10 },
+  },
+};
+
+// Brand glow — halo retirado en el design system: el CTA se sostiene por
+// color. Se conservan las claves para no romper consumidores.
+const glows = {
   glowGreen: {} as Elevation,
   glowGreenSoft: {} as Elevation,
   glowOrange: {} as Elevation,
+};
+
+const build = (specs: Record<Nivel, ShadowSpec>) => ({
+  none: {} as Elevation,
+  sm: make(specs.sm),
+  md: make(specs.md),
+  lg: make(specs.lg),
+  sheet: make(specs.sheet),
+  ...glows,
+});
+
+export type Shadows = ReturnType<typeof build>;
+
+/** Sombras por tema, con las mismas claves. Dentro de componentes se consumen
+ *  con useShadows() o el segundo argumento de useThemedStyles. */
+export const shadows = {
+  dark: build(shadowSpecs.dark),
+  light: build(shadowSpecs.light),
 } as const;
+
+/** Sombras del tema oscuro. Solo para codigo fuera del tema; en componentes
+ *  usar las del tema activo. */
+export const shadow = shadows.dark;
 
 // Motion (use with Animated / Reanimated)
 export const motion = {
