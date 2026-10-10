@@ -25,8 +25,6 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
-import * as Sharing from 'expo-sharing';
-import { captureRef } from 'react-native-view-shot';
 
 import { supabase } from '@/lib/supabase';
 import { esSerieUnica } from '@/lib/dia';
@@ -67,6 +65,7 @@ import { useProfile } from '@/contexts/profile';
 import { useToast } from '@/contexts/toast';
 import { MarqueeText } from '@/components/MarqueeText';
 import { ResumenSesion } from '@/components/ResumenSesion';
+import { AVISO_COMPARTIR, compartirTicket } from '@/lib/compartir-ticket';
 import { RestRing } from '@/components/RestRing';
 import { SerieComparativa, type ColumnaSerie } from '@/components/SerieComparativa';
 
@@ -663,22 +662,9 @@ export default function SessionScreen() {
   async function compartirResumen() {
     if (!resumen || compartiendo) return;
     setCompartiendo(true);
-    try {
-      if (!(await Sharing.isAvailableAsync())) {
-        showToast({ message: 'Este dispositivo no permite compartir imágenes.', type: 'error' });
-        return;
-      }
-      const uri = await captureRef(capturaRef, { format: 'png', quality: 1, result: 'tmpfile' });
-      await Sharing.shareAsync(uri, {
-        mimeType: 'image/png',
-        UTI: 'public.png',
-        dialogTitle: 'Compartir sesión',
-      });
-    } catch {
-      showToast({ message: 'No pudimos compartir el resumen.', type: 'error' });
-    } finally {
-      setCompartiendo(false);
-    }
+    const resultado = await compartirTicket(capturaRef);
+    setCompartiendo(false);
+    if (resultado !== 'ok') showToast({ message: AVISO_COMPARTIR[resultado], type: 'error' });
   }
 
   // --- Resolucion del conflicto de sesiones ----------------------------------
