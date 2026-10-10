@@ -1,7 +1,9 @@
-// Detalle de una sesión del historial con tipos mezclados.
+// Detalle de una sesión del historial con tipos mezclados. Abajo de todo,
+// Ver ticket abre la sesión en el formato del SessionStub y Compartir manda
+// esa misma imagen sin abrirla.
 function HistoryDetailScreen() {
   const NS = window.FrenciaDesignSystem_377129;
-  const { IconButton, StatTile, SeriesTable, ExerciseSummary, ExerciseTypeTag, ExerciseMetrics: M } = NS;
+  const { Button, IconButton, StatTile, SeriesTable, ExerciseSummary, ExerciseTypeTag, ExerciseMetrics: M } = NS;
   const D = window.FRENCIA_TIPOS;
   const H = D.history;
   React.useEffect(() => { window.lucide && lucide.createIcons(); });
@@ -38,6 +40,11 @@ function HistoryDetailScreen() {
           </div>
         );
       })}
+
+      <div style={{ display: 'flex', gap: 10, paddingTop: 4 }}>
+        <Button variant="secondary" size="lg" icon="ticket" style={{ flex: 1 }}>Ver ticket</Button>
+        <Button variant="primary" size="lg" icon="share" style={{ flex: 1 }}>Compartir</Button>
+      </div>
     </div>
   );
 }

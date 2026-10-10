@@ -413,6 +413,11 @@ Setea `finished_at`. Resumen de la sesion: duracion, series totales, volumen
   Compartir manda el ticket como **imagen PNG**, tal como se ve en pantalla
   (con el tema activo), entero aunque no entre sin scroll y con un margen del
   fondo de la app para que se lean las muescas y los festones.
+- El mismo ticket se puede ver y compartir despues, desde el **detalle del
+  historial**: abajo de todo van **Ver ticket** (abre el ticket en una pantalla
+  propia, con Compartir) y **Compartir** (manda la imagen sin abrirlo). Se arma
+  con las series guardadas de esa sesion; la duracion es de inicio a cierre.
+  Una sesion sin series no muestra estas acciones.
 
 ## 7. Fuera de alcance
 

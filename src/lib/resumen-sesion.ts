@@ -7,6 +7,7 @@
 
 import type { DatosRegistrados, TipoEjercicio } from './exercises.ts';
 import type { SerieRegistrada } from './session.ts';
+import type { EjercicioRealizado } from './session-history.ts';
 import { distanciaCompacta, type UnidadDistancia } from './distancia.ts';
 import { mostrarPeso, type UnidadPeso } from './peso.ts';
 import { reloj } from './tiempo.ts';
@@ -48,6 +49,33 @@ export function agruparPorEjercicio(
   }
 
   return resumen;
+}
+
+/**
+ * El detalle de una sesion del historial en la forma del ticket. Ya viene
+ * agrupado y en orden; solo falta que cada serie diga de que ejercicio es.
+ */
+export function ejerciciosDelHistorial(ejercicios: EjercicioRealizado[]): EjercicioResumen[] {
+  return ejercicios
+    .filter((ej) => ej.series.length > 0)
+    .map(({ series, ...ej }) => ({
+      ...ej,
+      series: series.map((s) => ({
+        exerciseId: ej.exerciseId,
+        setIndex: s.setIndex,
+        weightKg: s.weightKg,
+        reps: s.reps,
+        durationSeconds: s.durationSeconds,
+        distanceM: s.distanceM,
+        intensityKind: s.intensityKind,
+        intensityValue: s.intensityValue,
+      })),
+    }));
+}
+
+/** Segundos entre el arranque y el cierre, para la duracion del ticket. */
+export function duracionEnSegundos(inicio: number, fin: number): number {
+  return Math.max(0, Math.round((fin - inicio) / 1000));
 }
 
 /**

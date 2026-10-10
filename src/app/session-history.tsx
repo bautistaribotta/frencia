@@ -1,27 +1,30 @@
 /* Frencia · Detalle de un entrenamiento terminado.
    Muestra las series guardadas en la sesion, sin reconstruirlas desde el plan
-   actual ni ofrecer controles que puedan cambiar un registro historico. */
+   actual ni ofrecer controles que puedan cambiar un registro historico.
 
-import React, { useEffect, useMemo, useState } from 'react';
+   Abajo de todo se puede ver la sesion en formato ticket o compartirla. Para
+   compartir sin abrir el ticket, este se dibuja detras del contenido, tapado:
+   no se ve, pero la captura lo encuentra igual. */
+
+import React, { useMemo, useRef, useState } from 'react';
 import { SectionList, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 
 import { useProfile } from '@/contexts/profile';
 import { useSession } from '@/contexts/session';
+import { useToast } from '@/contexts/toast';
 import { CargaCentrada } from '@/components/CargaCentrada';
 import { MarqueeText } from '@/components/MarqueeText';
+import { TicketSesion } from '@/components/TicketSesion';
+import { AVISO_COMPARTIR, compartirTicket } from '@/lib/compartir-ticket';
+import { useDetalleSesion } from '@/lib/detalle-sesion';
+import { duracionEnSegundos, ejerciciosDelHistorial } from '@/lib/resumen-sesion';
 import { reloj } from '@/lib/tiempo';
 import { distanciaTabla, type UnidadDistancia } from '@/lib/distancia';
 import type { DatosRegistrados } from '@/lib/exercises';
 import { mostrarPeso, type UnidadPeso } from '@/lib/peso';
-import {
-  cargarDetalleSesion,
-  duracionSesion,
-  fechaSesion,
-  type ResultadoDetalleSesion,
-  type SerieRealizada,
-} from '@/lib/session-history';
+import { duracionSesion, fechaSesion, type SerieRealizada } from '@/lib/session-history';
 import {
   Badge,
   Button,
@@ -36,13 +39,6 @@ import {
   useThemedStyles,
   type Palette,
 } from '@/design';
-
-interface LecturaDetalle {
-  userId: string;
-  sessionId: string;
-  intento: number;
-  resultado: ResultadoDetalleSesion | null;
-}
 
 interface SeccionEjercicio {
   key: string;
@@ -89,51 +85,19 @@ export default function SessionHistoryScreen() {
   const colors = useColors();
   const styles = useThemedStyles(makeStyles);
   const router = useRouter();
-  const { user, initializing } = useSession();
+  const { user } = useSession();
   const { profile } = useProfile();
+  const { showToast } = useToast();
   const { id } = useLocalSearchParams<{ id?: string | string[] }>();
   const sessionId = typeof id === 'string' && id.length > 0 ? id : null;
   const userId = user?.id ?? null;
   const unidad = profile?.unidadPeso ?? 'kg';
   const unidadDistancia = profile?.unidadDistancia ?? 'km';
 
-  const [lectura, setLectura] = useState<LecturaDetalle | null>(null);
-  const [intento, setIntento] = useState(0);
+  const { resultado, noEncontrada, reintentar } = useDetalleSesion(sessionId);
+  const capturaRef = useRef<View>(null);
+  const [compartiendo, setCompartiendo] = useState(false);
 
-  useEffect(() => {
-    if (!userId || !sessionId) return;
-
-    const controller = new AbortController();
-    const propietario = { userId, sessionId, intento };
-
-    async function cargar() {
-      let resultado: ResultadoDetalleSesion;
-      try {
-        resultado = await cargarDetalleSesion(
-          propietario.userId,
-          propietario.sessionId,
-          controller.signal,
-        );
-      } catch {
-        resultado = { estado: 'error' };
-      }
-      if (!controller.signal.aborted) setLectura({ ...propietario, resultado });
-    }
-
-    void cargar();
-    return () => controller.abort();
-  }, [userId, sessionId, intento]);
-
-  // Se comprueba el propietario antes del render: el efecto de una cuenta o
-  // ruta nueva todavia puede no haberse ejecutado y conservar la lectura vieja.
-  const resultado =
-    lectura?.userId === userId &&
-    lectura?.sessionId === sessionId &&
-    lectura?.intento === intento
-      ? lectura.resultado
-      : null;
-  const noEncontrada =
-    !sessionId || (!userId && !initializing) || resultado?.estado === 'no-encontrada';
   const sesion = resultado?.estado === 'ok' ? resultado.sesion : null;
   const secciones = useMemo<SeccionEjercicio[]>(
     () => sesion?.ejercicios.map((ejercicio) => ({
@@ -145,6 +109,24 @@ export default function SessionHistoryScreen() {
     [sesion],
   );
   const totalSeries = secciones.reduce((total, seccion) => total + seccion.data.length, 0);
+  const ejerciciosTicket = useMemo(
+    () => (sesion ? ejerciciosDelHistorial(sesion.ejercicios) : []),
+    [sesion],
+  );
+
+  function verTicket() {
+    if (sessionId) router.push({ pathname: '/session-ticket', params: { id: sessionId } });
+  }
+
+  async function compartir() {
+    if (compartiendo) return;
+    setCompartiendo(true);
+    const resultadoCompartir = await compartirTicket(capturaRef);
+    setCompartiendo(false);
+    if (resultadoCompartir !== 'ok') {
+      showToast({ message: AVISO_COMPARTIR[resultadoCompartir], type: 'error' });
+    }
+  }
 
   function volver() {
     if (router.canGoBack()) router.back();
@@ -152,156 +134,210 @@ export default function SessionHistoryScreen() {
   }
 
   return (
-    <SafeAreaView style={styles.safe} edges={['top', 'bottom', 'left', 'right']}>
-      <View style={styles.header}>
-        <Button variant="ghost" size="sm" icon="chevron-left" style={styles.boton} onPress={volver}>
-          Atrás
-        </Button>
-      </View>
-
-      {noEncontrada ? (
-        <View style={styles.centro}>
-          <FrenciaText role="subtitle" style={styles.centerText}>
-            No encontramos este entrenamiento
-          </FrenciaText>
-          <FrenciaText role="bodySm" color={colors.textSecondary} style={styles.centerText}>
-            Puede que ya no esté disponible en tu historial.
-          </FrenciaText>
+    <View style={styles.raiz}>
+      {/* El ticket que se comparte. Va antes de la pantalla y afuera de su
+         safe area: la pantalla, opaca y a pantalla completa, lo tapa entero,
+         incluida la zona de la barra de estado. */}
+      {sesion && totalSeries > 0 && (
+        <View
+          style={styles.ticketOculto}
+          accessibilityElementsHidden
+          importantForAccessibility="no-hide-descendants"
+        >
+          <TicketSesion
+            sessionId={sesion.id}
+            nombreDia={sesion.dayName ?? 'Día eliminado'}
+            inicio={sesion.startedAt}
+            duracionSegundos={duracionEnSegundos(sesion.startedAt, sesion.finishedAt)}
+            ejercicios={ejerciciosTicket}
+            unidad={unidad}
+            unidadDistancia={unidadDistancia}
+            capturaRef={capturaRef}
+          />
         </View>
-      ) : resultado?.estado === 'error' ? (
-        <View style={styles.centro}>
-          <FrenciaText role="subtitle" style={styles.centerText}>
-            No pudimos cargar el entrenamiento
-          </FrenciaText>
-          <FrenciaText role="bodySm" color={colors.textSecondary} style={styles.centerText}>
-            Comprueba tu conexión y vuelve a intentarlo.
-          </FrenciaText>
-          <Button variant="secondary" style={styles.boton} onPress={() => setIntento((n) => n + 1)}>
-            Reintentar
+      )}
+
+      <SafeAreaView style={styles.safe} edges={['top', 'bottom', 'left', 'right']}>
+        <View style={styles.header}>
+          <Button variant="ghost" size="sm" icon="chevron-left" style={styles.boton} onPress={volver}>
+            Atrás
           </Button>
         </View>
-      ) : !sesion ? (
-        <CargaCentrada texto="Cargando entrenamiento…" />
-      ) : (
-        <SectionList<SerieRealizada, SeccionEjercicio>
-          key={`${userId}:${sessionId}`}
-          sections={secciones}
-          keyExtractor={(serie) => serie.id}
-          contentContainerStyle={styles.scroll}
-          showsVerticalScrollIndicator={false}
-          stickySectionHeadersEnabled={false}
-          extraData={`${unidad}:${unidadDistancia}`}
-          ListHeaderComponent={
-            <View style={styles.intro}>
-              <View style={styles.titulo}>
-                <Badge tone="green">Completada</Badge>
-                <FrenciaText role="display" style={styles.nombre} accessibilityRole="header">
-                  {sesion.dayName ?? 'Día eliminado'}
-                </FrenciaText>
-                <FrenciaText role="data" color={colors.textSecondary}>
-                  {fechaSesion(sesion.finishedAt)}
-                </FrenciaText>
-              </View>
 
-              <View style={styles.resumen}>
-                <View style={[styles.metrica, styles.duracion]}>
-                  <FrenciaText role="dataLabel" color={colors.textSecondary}>Duración</FrenciaText>
-                  <FrenciaText role="display" style={styles.valorMetrica}>
-                    {duracionSesion(sesion.startedAt, sesion.finishedAt)}
+        {noEncontrada ? (
+          <View style={styles.centro}>
+            <FrenciaText role="subtitle" style={styles.centerText}>
+              No encontramos este entrenamiento
+            </FrenciaText>
+            <FrenciaText role="bodySm" color={colors.textSecondary} style={styles.centerText}>
+              Puede que ya no esté disponible en tu historial.
+            </FrenciaText>
+          </View>
+        ) : resultado?.estado === 'error' ? (
+          <View style={styles.centro}>
+            <FrenciaText role="subtitle" style={styles.centerText}>
+              No pudimos cargar el entrenamiento
+            </FrenciaText>
+            <FrenciaText role="bodySm" color={colors.textSecondary} style={styles.centerText}>
+              Comprueba tu conexión y vuelve a intentarlo.
+            </FrenciaText>
+            <Button variant="secondary" style={styles.boton} onPress={reintentar}>
+              Reintentar
+            </Button>
+          </View>
+        ) : !sesion ? (
+          <CargaCentrada texto="Cargando entrenamiento…" />
+        ) : (
+          <SectionList<SerieRealizada, SeccionEjercicio>
+            key={`${userId}:${sessionId}`}
+            sections={secciones}
+            keyExtractor={(serie) => serie.id}
+            contentContainerStyle={styles.scroll}
+            showsVerticalScrollIndicator={false}
+            stickySectionHeadersEnabled={false}
+            extraData={`${unidad}:${unidadDistancia}`}
+            ListHeaderComponent={
+              <View style={styles.intro}>
+                <View style={styles.titulo}>
+                  <Badge tone="green">Completada</Badge>
+                  <FrenciaText role="display" style={styles.nombre} accessibilityRole="header">
+                    {sesion.dayName ?? 'Día eliminado'}
+                  </FrenciaText>
+                  <FrenciaText role="data" color={colors.textSecondary}>
+                    {fechaSesion(sesion.finishedAt)}
                   </FrenciaText>
                 </View>
-                <View style={styles.metrica}>
-                  <FrenciaText role="dataLabel" color={colors.textSecondary}>Series</FrenciaText>
-                  <FrenciaText role="display" style={styles.valorMetrica}>{totalSeries}</FrenciaText>
-                </View>
-                <View style={styles.metrica}>
-                  <FrenciaText role="dataLabel" color={colors.textSecondary}>Ejercicios</FrenciaText>
-                  <FrenciaText role="display" style={styles.valorMetrica}>{secciones.length}</FrenciaText>
-                </View>
-              </View>
 
-              {totalSeries > 0 && (
+                <View style={styles.resumen}>
+                  <View style={[styles.metrica, styles.duracion]}>
+                    <FrenciaText role="dataLabel" color={colors.textSecondary}>Duración</FrenciaText>
+                    <FrenciaText role="display" style={styles.valorMetrica}>
+                      {duracionSesion(sesion.startedAt, sesion.finishedAt)}
+                    </FrenciaText>
+                  </View>
+                  <View style={styles.metrica}>
+                    <FrenciaText role="dataLabel" color={colors.textSecondary}>Series</FrenciaText>
+                    <FrenciaText role="display" style={styles.valorMetrica}>{totalSeries}</FrenciaText>
+                  </View>
+                  <View style={styles.metrica}>
+                    <FrenciaText role="dataLabel" color={colors.textSecondary}>Ejercicios</FrenciaText>
+                    <FrenciaText role="display" style={styles.valorMetrica}>{secciones.length}</FrenciaText>
+                  </View>
+                </View>
+
+                {totalSeries > 0 && (
+                  <FrenciaText role="dataLabel" color={colors.textSecondary}>
+                    Series realizadas
+                  </FrenciaText>
+                )}
+              </View>
+            }
+            renderSectionHeader={({ section }) => (
+              <View style={styles.ejercicio}>
+                <MarqueeText text={section.name} role="subtitle" boxStyle={styles.ejercicioNombre} />
                 <FrenciaText role="dataLabel" color={colors.textSecondary}>
-                  Series realizadas
+                  {section.data.length} {section.data.length === 1 ? 'serie' : 'series'}
                 </FrenciaText>
-              )}
-            </View>
-          }
-          renderSectionHeader={({ section }) => (
-            <View style={styles.ejercicio}>
-              <MarqueeText text={section.name} role="subtitle" boxStyle={styles.ejercicioNombre} />
-              <FrenciaText role="dataLabel" color={colors.textSecondary}>
-                {section.data.length} {section.data.length === 1 ? 'serie' : 'series'}
-              </FrenciaText>
-            </View>
-          )}
-          renderItem={({ item: serie, section }) => {
-            const datos = datosSerie(serie, section.tracks, unidad, unidadDistancia);
-            const esfuerzo = esfuerzoSerie(serie);
-            // Peso por reps se lee como un producto; los demas datos van uno
-            // al lado del otro.
-            const separador = section.tracks.weight && section.tracks.reps ? ' × ' : ' · ';
-            const accesible = [datos.map((d) => d.accesible).join(', '), esfuerzo]
-              .filter(Boolean)
-              .join('. ');
-            return (
-              <View
-                style={styles.serie}
-                accessible
-                accessibilityLabel={`Serie ${serie.setIndex}. ${accesible}. Completada.`}
-              >
-                <FrenciaText role="data" style={styles.indice} color={colors.accentText}>
-                  {serie.setIndex}
-                </FrenciaText>
-                <View style={styles.datosSerie}>
-                  <FrenciaText role="data" style={styles.pesoReps}>
-                    {datos.map((d, i) => (
-                      <React.Fragment key={i}>
-                        {i > 0 ? (
-                          <FrenciaText role="data" color={colors.textSecondary}>{separador}</FrenciaText>
-                        ) : null}
-                        {d.valor}
-                        {d.unidad ? (
-                          <FrenciaText role="dataLabel" style={styles.unidad}> {d.unidad}</FrenciaText>
-                        ) : null}
-                      </React.Fragment>
-                    ))}
-                  </FrenciaText>
-                  {esfuerzo ? (
-                    <FrenciaText role="dataLabel" style={styles.esfuerzo}>{esfuerzo}</FrenciaText>
-                  ) : null}
-                </View>
+              </View>
+            )}
+            renderItem={({ item: serie, section }) => {
+              const datos = datosSerie(serie, section.tracks, unidad, unidadDistancia);
+              const esfuerzo = esfuerzoSerie(serie);
+              // Peso por reps se lee como un producto; los demas datos van uno
+              // al lado del otro.
+              const separador = section.tracks.weight && section.tracks.reps ? ' × ' : ' · ';
+              const accesible = [datos.map((d) => d.accesible).join(', '), esfuerzo]
+                .filter(Boolean)
+                .join('. ');
+              return (
                 <View
-                  style={styles.completada}
-                  accessibilityElementsHidden
-                  importantForAccessibility="no-hide-descendants"
+                  style={styles.serie}
+                  accessible
+                  accessibilityLabel={`Serie ${serie.setIndex}. ${accesible}. Completada.`}
                 >
-                  <Icon name="check" size={20} color={colors.accentText} />
+                  <FrenciaText role="data" style={styles.indice} color={colors.accentText}>
+                    {serie.setIndex}
+                  </FrenciaText>
+                  <View style={styles.datosSerie}>
+                    <FrenciaText role="data" style={styles.pesoReps}>
+                      {datos.map((d, i) => (
+                        <React.Fragment key={i}>
+                          {i > 0 ? (
+                            <FrenciaText role="data" color={colors.textSecondary}>{separador}</FrenciaText>
+                          ) : null}
+                          {d.valor}
+                          {d.unidad ? (
+                            <FrenciaText role="dataLabel" style={styles.unidad}> {d.unidad}</FrenciaText>
+                          ) : null}
+                        </React.Fragment>
+                      ))}
+                    </FrenciaText>
+                    {esfuerzo ? (
+                      <FrenciaText role="dataLabel" style={styles.esfuerzo}>{esfuerzo}</FrenciaText>
+                    ) : null}
+                  </View>
+                  <View
+                    style={styles.completada}
+                    accessibilityElementsHidden
+                    importantForAccessibility="no-hide-descendants"
+                  >
+                    <Icon name="check" size={20} color={colors.accentText} />
+                  </View>
                 </View>
+              );
+            }}
+            renderSectionFooter={() => <View style={styles.finEjercicio} />}
+            ListFooterComponent={
+              totalSeries > 0 ? (
+                <View style={styles.acciones}>
+                  <Button
+                    variant="secondary"
+                    size="lg"
+                    icon="ticket"
+                    style={styles.accion}
+                    onPress={verTicket}
+                  >
+                    Ver ticket
+                  </Button>
+                  <Button
+                    variant="primary"
+                    size="lg"
+                    icon="share"
+                    style={styles.accion}
+                    onPress={compartir}
+                    loading={compartiendo}
+                  >
+                    Compartir
+                  </Button>
+                </View>
+              ) : null
+            }
+            ListEmptyComponent={
+              <View style={styles.vacio}>
+                <View accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
+                  <Icon name="list" size={24} color={colors.textSecondary} />
+                </View>
+                <FrenciaText role="subtitle" style={styles.centerText}>Sin series registradas</FrenciaText>
+                <FrenciaText role="bodySm" color={colors.textSecondary} style={styles.centerText}>
+                  Este entrenamiento se completó sin guardar ninguna serie.
+                </FrenciaText>
               </View>
-            );
-          }}
-          renderSectionFooter={() => <View style={styles.finEjercicio} />}
-          ListEmptyComponent={
-            <View style={styles.vacio}>
-              <View accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
-                <Icon name="list" size={24} color={colors.textSecondary} />
-              </View>
-              <FrenciaText role="subtitle" style={styles.centerText}>Sin series registradas</FrenciaText>
-              <FrenciaText role="bodySm" color={colors.textSecondary} style={styles.centerText}>
-                Este entrenamiento se completó sin guardar ninguna serie.
-              </FrenciaText>
-            </View>
-          }
-        />
-      )}
-    </SafeAreaView>
+            }
+          />
+        )}
+      </SafeAreaView>
+    </View>
   );
 }
 
 const makeStyles = (colors: Palette) =>
   StyleSheet.create({
+    raiz: { flex: 1, backgroundColor: colors.bgApp },
+    // Fondo opaco: tapa al ticket oculto que queda detras.
     safe: { flex: 1, backgroundColor: colors.bgApp },
+    // Bajado para que la sombra de la silueta, que sobresale unos 60 por
+    // arriba del ticket, tampoco quede por encima del borde de la pantalla.
+    ticketOculto: { position: 'absolute', top: space[12], left: 0, right: 0, pointerEvents: 'none' },
     header: {
       flexDirection: 'row',
       alignItems: 'center',
@@ -382,6 +418,8 @@ const makeStyles = (colors: Palette) =>
     },
     completada: { alignItems: 'center', justifyContent: 'center' },
     finEjercicio: { height: space[5] },
+    acciones: { flexDirection: 'row', gap: 10, paddingTop: space[5] },
+    accion: { flex: 1 },
     vacio: {
       alignItems: 'center',
       gap: space[4],

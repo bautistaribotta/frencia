@@ -147,6 +147,14 @@ function RootNavigator() {
             fullScreenGestureEnabled: true,
           }}
         />
+        <Stack.Screen
+          name="session-ticket"
+          options={{
+            animation: 'slide_from_right',
+            gestureEnabled: true,
+            fullScreenGestureEnabled: true,
+          }}
+        />
         {/* Editar una rutina y editar un dia. Con gesto de volver: si hay
             cambios sin guardar, useDescartarAlSalir frena la salida y pregunta
             antes de descartarlos, igual que el boton Atras. */}

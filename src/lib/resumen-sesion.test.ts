@@ -7,6 +7,8 @@ import {
   agruparPorEjercicio,
   barrasTicket,
   codigoTicket,
+  duracionEnSegundos,
+  ejerciciosDelHistorial,
   fechaTicket,
   mejorMarca,
   miles,
@@ -109,4 +111,35 @@ test('el codigo y las barras salen del id y son estables', () => {
     assert.ok(b.barra >= 1 && b.barra <= 3);
     assert.ok(b.espacio >= 1 && b.espacio <= 4);
   }
+});
+
+test('el detalle del historial pasa al ticket con el ejercicio en cada serie', () => {
+  const realizada = {
+    id: 's1',
+    setIndex: 1,
+    weightKg: 80,
+    reps: 8,
+    durationSeconds: null,
+    distanceM: null,
+    intensityKind: 'rir' as const,
+    intensityValue: 2,
+    completedAt: 1000,
+  };
+  const ticket = ejerciciosDelHistorial([
+    { exerciseId: 'banca', name: 'Press banca', kind: 'fuerza', tracks: FUERZA, series: [realizada] },
+    { exerciseId: 'vacio', name: 'Sin series', kind: 'fuerza', tracks: FUERZA, series: [] },
+  ]);
+  assert.equal(ticket.length, 1);
+  assert.deepEqual(ticket[0].series[0], serie('banca', 1, {
+    weightKg: 80,
+    reps: 8,
+    intensityKind: 'rir',
+    intensityValue: 2,
+  }));
+  assert.equal(volumenKg(ticket[0].series), 640);
+});
+
+test('la duracion del ticket se redondea a segundos y nunca es negativa', () => {
+  assert.equal(duracionEnSegundos(0, 90_400), 90);
+  assert.equal(duracionEnSegundos(5000, 1000), 0);
 });
