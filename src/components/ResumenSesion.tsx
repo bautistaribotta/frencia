@@ -102,9 +102,13 @@ export function ResumenSesion({
                 <FrenciaText style={styles.marcaTexto}>FRENCIA</FrenciaText>
                 <View style={styles.punto} />
               </View>
-              <FrenciaText style={styles.completa} accessibilityRole="header">
-                {'Sesión\ncompleta'}
-              </FrenciaText>
+              {/* Dos textos y no un salto de linea: con el interlineado apretado
+                 del design system, iOS recorta el acento y el tope de Anton.
+                 Cada linea lleva su aire y la segunda se sube sobre la primera. */}
+              <View accessible accessibilityRole="header" accessibilityLabel="Sesión completa">
+                <FrenciaText style={styles.completa}>Sesión</FrenciaText>
+                <FrenciaText style={[styles.completa, styles.completaSegunda]}>completa</FrenciaText>
+              </View>
               <FrenciaText style={styles.meta} numberOfLines={2}>
                 {nombreDia} · {fecha} · {hora}
               </FrenciaText>
@@ -296,12 +300,12 @@ const makeStyles = (colors: Palette) =>
     completa: {
       fontFamily: display,
       fontSize: 38,
-      lineHeight: 38,
-      paddingTop: 4,
+      lineHeight: 48,
       textAlign: 'center',
       textTransform: 'uppercase',
       color: colors.accent,
     },
+    completaSegunda: { marginTop: -12 },
     meta: {
       fontFamily: mono.regular,
       fontSize: 11,
@@ -325,7 +329,7 @@ const makeStyles = (colors: Palette) =>
     grandeValor: {
       fontFamily: display,
       fontSize: 40,
-      lineHeight: 44,
+      lineHeight: 50,
       color: colors.textPrimary,
     },
     separadorVertical: { width: 1, backgroundColor: colors.divider },
