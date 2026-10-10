@@ -350,18 +350,47 @@ export async function borrarPendientes(sessionId: string): Promise<void> {
 /** Una serie ya cargada en esta sesion. */
 export type SerieCargada = Omit<SerieFantasma, 'hechaEl'>;
 
-/** Series ya cargadas en esta sesion, para retomarla donde quedo. */
-export async function cargarSeriesDeSesion(sessionId: string): Promise<Map<string, SerieCargada>> {
-  const { data } = await supabase
+/** Una serie guardada en esta sesion, con su ejercicio y numero de serie. */
+export interface SerieRegistrada extends SerieCargada {
+  exerciseId: string;
+  setIndex: number;
+}
+
+/** Series guardadas en la sesion. null si la lectura fallo: no es lo mismo que
+ *  una sesion sin series, y confundirlas terminaria descartando una sesion. */
+export async function cargarSeriesRegistradas(sessionId: string): Promise<SerieRegistrada[] | null> {
+  const { data, error } = await supabase
     .from('session_sets')
     .select('exercise_id, set_index, weight_kg, reps, duration_seconds, distance_m, intensity_kind, intensity_value')
     .eq('session_id', sessionId);
+  if (error || !data) return null;
+  return data.map((fila) => ({
+    exerciseId: fila.exercise_id,
+    setIndex: fila.set_index,
+    ...datosDeSerie(fila),
+  }));
+}
 
+/** Series ya cargadas en esta sesion, para retomarla donde quedo. */
+export async function cargarSeriesDeSesion(sessionId: string): Promise<Map<string, SerieCargada>> {
   const mapa = new Map<string, SerieCargada>();
-  for (const fila of data ?? []) {
-    mapa.set(claveSerie(fila.exercise_id, fila.set_index), datosDeSerie(fila));
+  for (const { exerciseId, setIndex, ...serie } of (await cargarSeriesRegistradas(sessionId)) ?? []) {
+    mapa.set(claveSerie(exerciseId, setIndex), serie);
   }
   return mapa;
+}
+
+/** Lo que necesita el resumen de una sesion en curso: cuando arranco y que se
+ *  guardo. null si alguna de las dos lecturas fallo. */
+export async function cargarParaResumen(
+  sessionId: string,
+): Promise<{ startedAt: number; series: SerieRegistrada[] } | null> {
+  const [{ data, error }, series] = await Promise.all([
+    supabase.from('workout_sessions').select('started_at').eq('id', sessionId).maybeSingle(),
+    cargarSeriesRegistradas(sessionId),
+  ]);
+  if (error || !data || series === null) return null;
+  return { startedAt: Date.parse(data.started_at), series };
 }
 
 export async function terminarSesion(sessionId: string): Promise<boolean> {

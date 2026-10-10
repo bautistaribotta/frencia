@@ -19,6 +19,7 @@ import {
   Modal,
   Platform,
   ScrollView,
+  Share,
   StyleSheet,
   Text,
   View,
@@ -36,9 +37,16 @@ import {
   type UnidadDistancia,
 } from '@/lib/distancia';
 import { mostrarPeso, pesoACanonico, type UnidadPeso } from '@/lib/peso';
+import { alerta } from '@/lib/alerta';
+import {
+  agruparPorEjercicio,
+  textoParaCompartir,
+  type EjercicioResumen,
+} from '@/lib/resumen-sesion';
 import {
   cargarFantasmas,
   cargarNombreDia,
+  cargarParaResumen,
   cargarPlan,
   cargarSeriesDeSesion,
   claveSerie,
@@ -58,6 +66,7 @@ import {
 import { useProfile } from '@/contexts/profile';
 import { useToast } from '@/contexts/toast';
 import { MarqueeText } from '@/components/MarqueeText';
+import { ResumenSesion } from '@/components/ResumenSesion';
 import { RestRing } from '@/components/RestRing';
 import { SerieComparativa, type ColumnaSerie } from '@/components/SerieComparativa';
 
@@ -217,7 +226,9 @@ export default function SessionScreen() {
   const unidad: UnidadPeso = profile?.unidadPeso ?? 'kg';
   const unidadDistancia: UnidadDistancia = profile?.unidadDistancia ?? 'km';
 
-  const [fase, setFase] = useState<'cargando' | 'conflicto' | 'sinEjercicios' | 'listo'>('cargando');
+  const [fase, setFase] = useState<
+    'cargando' | 'conflicto' | 'sinEjercicios' | 'listo' | 'resumen'
+  >('cargando');
   // Sesion en curso que no es de este dia. Bloquea empezar (solo puede haber
   // una) y hay que resolverla a mano: retomarla o descartarla.
   const [conflicto, setConflicto] = useState<{
@@ -235,6 +246,14 @@ export default function SessionScreen() {
   const [indiceGuardado, setIndex] = useState(0);
   const [guardando, setGuardando] = useState(false);
   const [menuAbierto, setMenuAbierto] = useState(false);
+  // Ultimo paso del wizard: lo que quedo guardado, antes de cerrar la sesion.
+  // La duracion se congela al llegar aca para que el ticket no cambie mientras
+  // se lo mira.
+  const [resumen, setResumen] = useState<{
+    inicio: number;
+    duracionSegundos: number;
+    ejercicios: EjercicioResumen[];
+  } | null>(null);
   // El cronometro del isometrico esta midiendo: la serie ya no esta vacia
   // aunque todavia no tenga tiempo.
   const [midiendo, setMidiendo] = useState(false);
@@ -549,8 +568,10 @@ export default function SessionScreen() {
     return terminar(true);
   }
 
-  /** Cierra la sesion. Con `guardarActual` en false la serie del paso actual
-   *  no se escribe: es lo que pasa al saltearla en el ultimo paso. */
+  /** Lleva al resumen, el ultimo paso del wizard. Con `guardarActual` en
+   *  false la serie del paso actual no se escribe: es lo que pasa al
+   *  saltearla en el ultimo paso. La sesion todavia no se cierra: eso pasa
+   *  recien con Hecho, en el resumen. */
   async function terminar(guardarActual: boolean) {
     if (!sessionId) return;
     setGuardando(true);
@@ -570,15 +591,87 @@ export default function SessionScreen() {
       return;
     }
 
-    const ok = await terminarSesion(sessionId);
+    // El resumen sale de la base y no de los campos: una serie salteada puede
+    // tener datos escritos que nunca se guardaron.
+    const registro = await cargarParaResumen(sessionId);
     setGuardando(false);
     setMenuAbierto(false);
-    if (!ok) {
-      showToast({ message: 'No pudimos terminar la sesión. Proba de nuevo.', type: 'error' });
+    if (!registro) {
+      showToast({ message: 'No pudimos armar el resumen. Probá de nuevo.', type: 'error' });
       return;
     }
-    showToast({ message: 'Sesión terminada', type: 'success' });
+
+    // Una sesion sin series no se guarda vacia: ensuciaria el historial y
+    // contaria para la racha sin que se haya entrenado.
+    if (registro.series.length === 0) {
+      alerta(
+        'No registraste ninguna serie',
+        'Una sesión vacía no se guarda en el historial. ¿La descartamos?',
+        [
+          { text: 'Seguir entrenando', style: 'cancel' },
+          { text: 'Descartar', style: 'destructive', onPress: () => { void descartarVacia(); } },
+        ],
+      );
+      return;
+    }
+
+    setResumen({
+      inicio: registro.startedAt,
+      duracionSegundos: Math.max(0, Math.round((Date.now() - registro.startedAt) / 1000)),
+      ejercicios: agruparPorEjercicio(plan, registro.series),
+    });
+    setFase('resumen');
+  }
+
+  async function descartarVacia() {
+    if (!sessionId) return;
+    if (!(await descartarSesion(sessionId))) {
+      showToast({ message: 'No pudimos descartar la sesión. Probá de nuevo.', type: 'error' });
+      return;
+    }
+    showToast({ message: 'Sesión descartada', type: 'info' });
     router.replace('/home');
+  }
+
+  /** Hecho en el resumen: recien aca se setea finished_at. */
+  async function confirmarTerminar() {
+    if (!sessionId || guardando) return;
+    setGuardando(true);
+    const ok = await terminarSesion(sessionId);
+    setGuardando(false);
+    if (!ok) {
+      showToast({ message: 'No pudimos guardar el entrenamiento. Probá de nuevo.', type: 'error' });
+      return;
+    }
+    if (Platform.OS !== 'web') {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
+    }
+    showToast({ message: 'Entrenamiento guardado', type: 'success' });
+    router.replace('/home');
+  }
+
+  /** Vuelve del resumen al wizard, al mismo paso, para corregir algo. */
+  function volverASesion() {
+    setResumen(null);
+    setFase('listo');
+  }
+
+  async function compartirResumen() {
+    if (!resumen) return;
+    try {
+      await Share.share({
+        message: textoParaCompartir({
+          nombreDia,
+          inicio: resumen.inicio,
+          duracionSegundos: resumen.duracionSegundos,
+          ejercicios: resumen.ejercicios,
+          unidad,
+          unidadDistancia,
+        }),
+      });
+    } catch {
+      showToast({ message: 'No pudimos compartir el resumen.', type: 'error' });
+    }
   }
 
   // --- Resolucion del conflicto de sesiones ----------------------------------
@@ -700,6 +793,26 @@ export default function SessionScreen() {
             Volver
           </Button>
         </View>
+      </SafeAreaView>
+    );
+  }
+
+  if (fase === 'resumen' && resumen && sessionId) {
+    return (
+      <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
+        <ResumenSesion
+          sessionId={sessionId}
+          nombreDia={nombreDia}
+          inicio={resumen.inicio}
+          duracionSegundos={resumen.duracionSegundos}
+          ejercicios={resumen.ejercicios}
+          unidad={unidad}
+          unidadDistancia={unidadDistancia}
+          guardando={guardando}
+          onVolver={volverASesion}
+          onCompartir={compartirResumen}
+          onHecho={confirmarTerminar}
+        />
       </SafeAreaView>
     );
   }

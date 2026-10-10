@@ -395,6 +395,23 @@ objetivo de la serie: reps e intensidad planificadas.
 Setea `finished_at`. Resumen de la sesion: duracion, series totales, volumen
 (suma de peso por reps) y ejercicios tocados.
 
+- El resumen es el **ultimo paso del wizard**, no una pantalla posterior.
+  Terminar (en el ultimo paso o desde el menu) sincroniza lo pendiente y abre
+  el resumen; `finished_at` se setea recien con **Hecho**, que vuelve al home.
+  **Volver a la sesion** deja todo como estaba: un toque sin querer en
+  Terminar no cierra nada.
+- El resumen se arma con lo que quedo en la base, no con los campos: una serie
+  salteada puede tener datos escritos que nunca se guardaron, y el resumen
+  tiene que coincidir con el historial.
+- El **tonelaje** (rotulado asi en el ticket) suma peso por reps solo de las series que tienen las dos cosas
+  (fuerza). Isometricos y cardio no suman. Sin ninguna serie de fuerza se
+  muestra un guion en lugar de 0.
+- Una sesion **sin ninguna serie** no se guarda vacia: se pregunta si
+  descartarla (o seguir entrenando). Ensuciaria el historial y contaria para
+  la racha.
+- La forma es el ticket del design system (`SessionStub`), sin PR ni RIR medio.
+  Compartir manda el resumen como texto.
+
 ## 7. Fuera de alcance
 
 - Progresion en el tiempo, PRs y 1RM estimado. Son lecturas sobre `session_sets`
