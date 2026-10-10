@@ -410,7 +410,9 @@ Setea `finished_at`. Resumen de la sesion: duracion, series totales, volumen
   descartarla (o seguir entrenando). Ensuciaria el historial y contaria para
   la racha.
 - La forma es el ticket del design system (`SessionStub`), sin PR ni RIR medio.
-  Compartir manda el resumen como texto.
+  Compartir manda el ticket como **imagen PNG**, tal como se ve en pantalla
+  (con el tema activo), entero aunque no entre sin scroll y con un margen del
+  fondo de la app para que se lean las muescas y los festones.
 
 ## 7. Fuera de alcance
 

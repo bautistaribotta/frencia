@@ -136,35 +136,3 @@ export function barrasTicket(sessionId: string): { barra: number; espacio: numbe
   });
 }
 
-/** Texto para compartir el entrenamiento por cualquier app de mensajes. */
-export function textoParaCompartir(params: {
-  nombreDia: string;
-  inicio: number;
-  duracionSegundos: number;
-  ejercicios: EjercicioResumen[];
-  unidad: UnidadPeso;
-  unidadDistancia: UnidadDistancia;
-}): string {
-  const { nombreDia, inicio, duracionSegundos, ejercicios, unidad, unidadDistancia } = params;
-  const series = ejercicios.flatMap((e) => e.series);
-  const { fecha } = fechaTicket(inicio);
-
-  const cifras = [fecha.toLowerCase(), reloj(duracionSegundos)];
-  if (tieneVolumen(series)) {
-    cifras.push(`${miles(mostrarPeso(volumenKg(series), unidad))} ${unidad}`);
-  }
-
-  const lineas = [
-    `Sesión completa · ${nombreDia}`,
-    cifras.join(' · '),
-    `${ejercicios.length} ${ejercicios.length === 1 ? 'ejercicio' : 'ejercicios'} · ${series.length} ${series.length === 1 ? 'serie' : 'series'}`,
-    '',
-    ...ejercicios.map((e) => {
-      const marca = mejorMarca(e, unidad, unidadDistancia);
-      return `${e.series.length}× ${e.name}${marca ? ` · ${marca}` : ''}`;
-    }),
-    '',
-    'Registrado con Frencia',
-  ];
-  return lineas.join('\n');
-}

@@ -19,13 +19,14 @@ import {
   Modal,
   Platform,
   ScrollView,
-  Share,
   StyleSheet,
   Text,
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
+import * as Sharing from 'expo-sharing';
+import { captureRef } from 'react-native-view-shot';
 
 import { supabase } from '@/lib/supabase';
 import { esSerieUnica } from '@/lib/dia';
@@ -40,7 +41,6 @@ import { mostrarPeso, pesoACanonico, type UnidadPeso } from '@/lib/peso';
 import { alerta } from '@/lib/alerta';
 import {
   agruparPorEjercicio,
-  textoParaCompartir,
   type EjercicioResumen,
 } from '@/lib/resumen-sesion';
 import {
@@ -254,6 +254,9 @@ export default function SessionScreen() {
     duracionSegundos: number;
     ejercicios: EjercicioResumen[];
   } | null>(null);
+  // El ticket que se captura como imagen al compartir.
+  const capturaRef = useRef<View>(null);
+  const [compartiendo, setCompartiendo] = useState(false);
   // El cronometro del isometrico esta midiendo: la serie ya no esta vacia
   // aunque todavia no tenga tiempo.
   const [midiendo, setMidiendo] = useState(false);
@@ -656,21 +659,25 @@ export default function SessionScreen() {
     setFase('listo');
   }
 
+  /** Comparte el ticket como imagen PNG, tal como se ve en pantalla. */
   async function compartirResumen() {
-    if (!resumen) return;
+    if (!resumen || compartiendo) return;
+    setCompartiendo(true);
     try {
-      await Share.share({
-        message: textoParaCompartir({
-          nombreDia,
-          inicio: resumen.inicio,
-          duracionSegundos: resumen.duracionSegundos,
-          ejercicios: resumen.ejercicios,
-          unidad,
-          unidadDistancia,
-        }),
+      if (!(await Sharing.isAvailableAsync())) {
+        showToast({ message: 'Este dispositivo no permite compartir imágenes.', type: 'error' });
+        return;
+      }
+      const uri = await captureRef(capturaRef, { format: 'png', quality: 1, result: 'tmpfile' });
+      await Sharing.shareAsync(uri, {
+        mimeType: 'image/png',
+        UTI: 'public.png',
+        dialogTitle: 'Compartir sesión',
       });
     } catch {
       showToast({ message: 'No pudimos compartir el resumen.', type: 'error' });
+    } finally {
+      setCompartiendo(false);
     }
   }
 
@@ -809,6 +816,8 @@ export default function SessionScreen() {
           unidad={unidad}
           unidadDistancia={unidadDistancia}
           guardando={guardando}
+          capturaRef={capturaRef}
+          compartiendo={compartiendo}
           onVolver={volverASesion}
           onCompartir={compartirResumen}
           onHecho={confirmarTerminar}
