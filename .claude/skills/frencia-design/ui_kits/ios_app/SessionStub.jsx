@@ -1,11 +1,34 @@
-// app-bg colored circle that "cuts" a notch into the ticket
-function Notch({ style }) {
-  return <div style={{ position: 'absolute', width: 22, height: 22, borderRadius: '50%', background: 'var(--bg-app)', ...style }} />;
+// Los recortes del ticket (muescas y festones) son agujeros de verdad, hechos
+// con mascaras: no circulos del color del fondo pintados encima. Asi la sombra
+// (--drop-shadow-lg, un filtro) sigue el contorno; un box-shadow seguiria la
+// caja y en el tema claro dibujaria un rectangulo debajo de los festones.
+// Mismo criterio que la app: src/lib/silueta-ticket.ts.
+const CUT = 11; // radio de muescas y festones
+
+// Cada capa es opaca salvo un circulo; intersectadas dejan todos los agujeros.
+function holes(centers) {
+  const layers = centers.map(([x, y]) =>
+    `radial-gradient(circle ${CUT}px at ${x} ${y}, transparent ${CUT - 0.5}px, #000 ${CUT}px)`
+  ).join(', ');
+  return {
+    WebkitMaskImage: layers, maskImage: layers,
+    WebkitMaskComposite: 'source-in', maskComposite: 'intersect',
+  };
 }
+
+// Muescas: centradas en la fila de la perforacion, mordiendo cada costado.
+const notches = holes([['0', '12px'], ['100%', '12px']]);
+
+// Festones: 11 repartidos como un space-between, con 4px de margen, centrados
+// en el borde de abajo de la fila.
+const SCALLOPS = 11;
+const scallops = holes(Array.from({ length: SCALLOPS }, (_, i) => [
+  `calc(${4 + CUT}px + (100% - ${2 * (4 + CUT)}px) * ${i / (SCALLOPS - 1)})`, '100%',
+]));
 
 function StubStat({ label, value, unit, tone }) {
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
       <span className="frencia-label" style={{ fontSize: 9 }}>{label}</span>
       <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 700, fontSize: 18, color: tone || 'var(--text-primary)' }}>
         {value}{unit ? <span style={{ fontSize: 10, color: 'var(--text-tertiary)', marginLeft: 2 }}>{unit}</span> : null}
@@ -21,11 +44,11 @@ function SessionStub({ onDone }) {
     <div style={{ padding: '52px 20px 120px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 20 }}>
 
       {/* ===== Ticket ===== */}
-      <div style={{ position: 'relative', width: '100%', maxWidth: 330 }}>
+      <div style={{ position: 'relative', width: '100%', maxWidth: 330, filter: 'var(--drop-shadow-lg)' }}>
+        {/* El fondo va por tramos: las filas con recortes llevan su propia mascara. */}
         <div style={{
-          position: 'relative', background: 'var(--surface-card-elevated)',
+          background: 'var(--surface-card-elevated)',
           borderTopLeftRadius: 'var(--radius-2xl)', borderTopRightRadius: 'var(--radius-2xl)',
-          boxShadow: 'var(--shadow-lg)', overflow: 'hidden',
         }}>
           {/* header */}
           <div style={{ padding: '26px 24px 20px', textAlign: 'center' }}>
@@ -51,14 +74,14 @@ function SessionStub({ onDone }) {
               <span className="frencia-label" style={{ fontSize: 9 }}>Volumen · {s.volumeUnit}</span>
             </div>
           </div>
+        </div>
 
-          {/* perforation */}
-          <div style={{ position: 'relative', height: 24 }}>
-            <Notch style={{ left: -11, top: 1 }} />
-            <Notch style={{ right: -11, top: 1 }} />
-            <div style={{ position: 'absolute', left: 18, right: 18, top: 12, borderTop: '2px dashed var(--border-default)' }} />
-          </div>
+        {/* perforation */}
+        <div style={{ position: 'relative', height: 24, background: 'var(--surface-card-elevated)', ...notches }}>
+          <div style={{ position: 'absolute', left: 18, right: 18, top: 12, borderTop: '2px dashed var(--border-default)' }} />
+        </div>
 
+        <div style={{ background: 'var(--surface-card-elevated)' }}>
           {/* stats grid */}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 16, padding: '18px 24px 8px' }}>
             <StubStat label="Ejercicios" value={s.exercises} />
@@ -89,16 +112,10 @@ function SessionStub({ onDone }) {
             }} />
             <span style={{ font: '11px var(--font-mono)', letterSpacing: 'var(--ls-widest)', color: 'var(--text-tertiary)' }}>{s.id}</span>
           </div>
-
-          {/* scalloped bottom */}
-          <div style={{ position: 'relative', height: 14 }}>
-            <div style={{ position: 'absolute', left: 0, right: 0, bottom: -11, display: 'flex', justifyContent: 'space-between', padding: '0 4px' }}>
-              {Array.from({ length: 11 }).map((_, i) => (
-                <div key={i} style={{ width: 22, height: 22, borderRadius: '50%', background: 'var(--bg-app)' }} />
-              ))}
-            </div>
-          </div>
         </div>
+
+        {/* scalloped bottom */}
+        <div style={{ height: 14, background: 'var(--surface-card-elevated)', ...scallops }} />
       </div>
 
       {/* actions */}
