@@ -19,6 +19,7 @@
 import React, { useCallback, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
+  FlatList,
   KeyboardAvoidingView,
   Modal,
   Platform,
@@ -31,7 +32,7 @@ import {
 } from 'react-native';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
-import Animated, { FadeIn, LinearTransition } from 'react-native-reanimated';
+import Animated, { FadeIn } from 'react-native-reanimated';
 
 import { MarqueeText } from '@/components/MarqueeText';
 import { MeasurePicker } from '@/components/MeasurePicker';
@@ -765,14 +766,15 @@ function PickerContenido({
             </View>
           ) : (
             <View style={styles.listWrap}>
-              {/* La transicion de layout acomoda las filas vecinas
-                 cuando una se despliega o se pliega. */}
-              <Animated.FlatList
+              {/* Sin transicion de layout en las celdas: la de Reanimated
+                 (itemLayoutAnimation) choca con la virtualizacion y, al
+                 filtrar o al desplegar y plegar una fila, deja celdas en
+                 posiciones viejas, encimadas sobre sus vecinas. */}
+              <FlatList
                 data={results}
                 keyExtractor={keyExtractor}
                 renderItem={renderResult}
                 extraData={abierta}
-                itemLayoutAnimation={LinearTransition.duration(motion.durBase)}
                 contentContainerStyle={styles.resultsList}
                 keyboardShouldPersistTaps="handled"
                 keyboardDismissMode="interactive"
