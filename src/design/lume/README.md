@@ -16,7 +16,7 @@ pantallas se migran de a partes. Una pantalla migrada importa de
 `@/design/lume` y monta su propio `<Fondo>`; las demas siguen igual.
 
 Migradas: login, registro, recuperar contraseña, aceptacion de textos legales,
-Terminos / Privacidad, el setup del perfil e Inicio (`(main)/home`). El
+Terminos / Privacidad, el setup del perfil, Inicio (`(main)/home`) y la barra de pestañas. El
 indicador de carga (`Cargando`) ya reemplaza a `ActivityIndicator` en toda la
 app, tambien en las pantallas que siguen en el sistema anterior.
 
@@ -32,6 +32,7 @@ app, tambien en las pantallas que siguen en el sistema anterior.
 | `LumeText`, `LumeButton`, `Campo`, `Casilla`, `Segmentado`, `Opciones` | Componentes base. |
 | `Cargando` | El anillo de carga: pista en data-track, un cuarto en tinta, una vuelta cada 1,2 s (3,6 s con Reducir movimiento). `sm` 16 en botones, `md` 20 en pantallas y listas, `lg` 28 para arrastrar y actualizar. Reemplaza a `ActivityIndicator` en toda la app. |
 | `LumeIconButton`, `LumeBadge`, `LumeAvatar` | Boton de icono (primary, surface, ghost), insignia (neutral, signal, intensity, danger) y avatar (foto o beam con la cara en bg-app sobre el accent). |
+| `LumeTabBar` | La barra de pestañas: vidrio denso, la activa con el icono en signal y una marca de 2 px arriba; el boton central cuadrado en accent. Va debajo de la pantalla, sin blur. |
 | `Semana` | La tira de lunes a domingo: dato en tinta en la home, eleccion en accent con `editor`. |
 | `PasoWizard`, `Escala`, `BotonTexto` | El marco comun de los wizards. |
 | `Rueda` + `EscenarioRueda` | La edad del setup. |

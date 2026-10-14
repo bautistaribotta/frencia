@@ -11,7 +11,7 @@ import React, { useCallback } from 'react';
 import { Tabs, useRouter } from 'expo-router';
 import type { BottomTabBarProps } from 'expo-router/tabs';
 
-import { TabBar } from '@/design';
+import { LumeTabBar } from '@/design/lume';
 
 // El value de cada item es el nombre del archivo de la pantalla, que es como
 // las identifica el navegador. Con cuatro tabs quedan dos de cada lado del
@@ -45,7 +45,7 @@ function FrenciaTabBar({ state, navigation }: BottomTabBarProps) {
   );
 
   return (
-    <TabBar
+    <LumeTabBar
       items={TABS}
       value={activa}
       onChange={cambiar}
