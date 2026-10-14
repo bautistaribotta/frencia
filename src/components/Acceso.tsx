@@ -1,27 +1,39 @@
 /* Frencia · Piezas de las pantallas de acceso (login, registro y recuperar
-   contraseña) en Lume. Mismo esqueleto en las tres: el icono de la app como
-   marca, el formulario alineado a la izquierda y Apple / Google como
-   secundarios en vidrio. Ver "Pantallas - 1 Acceso" en el design system. */
+   contraseña) en Lume. Login y registro llevan arriba el nombre FRENCIA.
+   como marca; las tres comparten el formulario alineado a la izquierda y
+   Apple / Google como secundarios en vidrio. Ver "Pantallas - 1 Acceso" en
+   el design system. */
 
 import React from 'react';
-import { ActivityIndicator, Pressable, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, Image, Pressable, StyleSheet, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 
-import { Fondo, IconoApp, LumeButton, LumeText, lumeFuente, lumeSpace, useLume } from '@/design/lume';
+import { Fondo, LumeButton, LumeText, lumeFuente, lumeSpace, useLume } from '@/design/lume';
 import type { OAuthProvider } from '@/lib/oauth';
 
 import AppleLogo from '@/assets/icons/apple.svg';
 import GoogleLogo from '@/assets/icons/google.svg';
 
-/* La marca es el icono de la app tal cual, con el lema debajo. */
+// Mascaras del nombre FRENCIA. con las letras del icono de la app: letras y
+// punto por separado, del mismo tamaño (1004 x 268), y se tiñen con tintColor.
+const LETRAS = require('../../assets/images/lume/marca-letras.png');
+const PUNTO = require('../../assets/images/lume/marca-punto.png');
+const ANCHO_MARCA = 168;
+const ALTO_MARCA = (ANCHO_MARCA * 268) / 1004;
+
+/* La marca del acceso: solo el nombre FRENCIA., sin icono ni lema, centrado
+   arriba de todo con un margen fijo bajo la barra de estado y cerca del
+   titulo del formulario. */
 export function Marca() {
   const { t } = useLume();
+  const insets = useSafeAreaInsets();
   return (
-    <View style={styles.marca}>
-      <IconoApp size={64} />
-      <LumeText rol="label" color={t.textTertiary}>
-        Cada serie cuenta
-      </LumeText>
+    <View style={[styles.marca, { paddingTop: insets.top + lumeSpace[8] + 50 }]}>
+      <View style={styles.nombre} accessibilityRole="image" accessibilityLabel="Frencia">
+        <Image source={LETRAS} style={[styles.capa, { tintColor: t.marca }]} />
+        <Image source={PUNTO} style={[styles.capa, { tintColor: t.marca }]} />
+      </View>
     </View>
   );
 }
@@ -159,7 +171,11 @@ export function Entrando() {
 }
 
 const styles = StyleSheet.create({
-  marca: { alignItems: 'flex-start', gap: lumeSpace[5] },
+  // El nombre va 50 px mas abajo del margen base y 40 px arriba del titulo:
+  // el bloque mide lo mismo, asi que el formulario no se mueve.
+  marca: { alignSelf: 'stretch', alignItems: 'center', paddingBottom: lumeSpace[9] },
+  nombre: { width: ANCHO_MARCA, height: ALTO_MARCA },
+  capa: { position: 'absolute', top: 0, left: 0, width: ANCHO_MARCA, height: ALTO_MARCA },
   divisor: { flexDirection: 'row', alignItems: 'center', gap: lumeSpace[4] },
   linea: { flex: 1, height: 1 },
   social: { flexDirection: 'row', gap: lumeSpace[3] },

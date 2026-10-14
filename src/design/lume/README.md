@@ -32,7 +32,7 @@ Terminos / Privacidad y el setup del perfil.
 | `Rueda` + `EscenarioRueda` | La edad del setup. |
 | `Regla` | Regla recta, mas ancha que la pantalla: la altura del setup. |
 | `ReglaCurva` | Arco de vidrio mas ancho que la pantalla que gira bajo una aguja fija: el peso del setup. Se arrastra con un PanGesture. |
-| `IconoApp` | El icono de la app como marca de las pantallas de acceso. |
+| `IconoApp` | El icono de la app (FREN / CIA con el punto). Ya no va en el acceso: login y registro llevan solo el nombre `FRENCIA.` (`Marca` en `src/components/Acceso.tsx`), blanco en oscuro y negro en claro. |
 
 ## Que fondo lleva cada pantalla
 

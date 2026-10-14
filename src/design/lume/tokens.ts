@@ -85,6 +85,8 @@ const oscuro = {
   textOnAccent: '#0b0c0a',
   textOnSignal: '#0b0c0a',
   textOnIntensity: p.graphite900,
+  // El nombre FRENCIA. del acceso: blanco puro en oscuro, negro puro en claro.
+  marca: '#ffffff',
 
   // Bordes
   borderSubtle: 'rgba(255, 255, 255, 0.10)',
@@ -145,6 +147,7 @@ const claro: LumePalette = {
   textOnAccent: p.ivory50,
   textOnSignal: p.ivory50,
   textOnIntensity: p.ivory50,
+  marca: '#000000',
 
   borderSubtle: 'rgba(20, 21, 17, 0.08)',
   borderDefault: 'rgba(20, 21, 17, 0.16)',

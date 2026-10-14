@@ -98,7 +98,7 @@ export default function LoginScreen() {
         <ScrollView
           contentContainerStyle={[
             styles.scroll,
-            { paddingTop: insets.top + lumeSpace[7], paddingBottom: insets.bottom + lumeSpace[7] },
+            { paddingBottom: insets.bottom + lumeSpace[7] },
           ]}
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
@@ -175,7 +175,9 @@ export default function LoginScreen() {
             <AvisoTerminos />
           </View>
 
-          <PieEnlace pregunta="¿No tenés cuenta?" enlace="Creá una" onPress={() => router.push('/register')} />
+          <View style={styles.pie}>
+            <PieEnlace pregunta="¿No tenés cuenta?" enlace="Creá una" onPress={() => router.push('/register')} />
+          </View>
         </ScrollView>
       </KeyboardAvoidingView>
 
@@ -187,13 +189,14 @@ export default function LoginScreen() {
 const styles = StyleSheet.create({
   pantalla: { flex: 1 },
   flex: { flex: 1 },
+  // La marca y el formulario van arriba; el pie baja al borde inferior y el
+  // espacio que sobra queda entre los botones y el pie.
   scroll: {
     flexGrow: 1,
-    justifyContent: 'center',
-    gap: lumeSpace[10],
     paddingHorizontal: lumeLayout.padScreen,
   },
   form: { gap: lumeSpace[5] },
+  pie: { marginTop: 'auto', paddingTop: lumeSpace[7] },
   titulo: { marginBottom: -lumeSpace[3] },
   campos: { gap: lumeSpace[3], marginTop: lumeSpace[3] },
   olvido: { alignSelf: 'flex-end', marginTop: -lumeSpace[2] },
