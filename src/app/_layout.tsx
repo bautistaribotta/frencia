@@ -16,6 +16,7 @@ import { SessionProvider, useSession } from '@/contexts/session';
 import { ProfileProvider, useProfile } from '@/contexts/profile';
 import { ToastProvider } from '@/contexts/toast';
 import { AlertaProvider } from '@/contexts/alerta';
+import { ONBOARDING_SIEMPRE } from '@/lib/onboarding';
 
 export default function RootLayout() {
   const [fontsLoaded, fontError] = useFrenciaFonts();
@@ -253,7 +254,7 @@ function useAuthRedirect() {
     // salir de la pantalla de error cuando el reintento anduvo, o al terminar
     // de aceptar los textos legales.
     if (inAuthGroup || atRoot || pathname === '/profile-error' || pathname === '/legal-consent') {
-      router.replace(needsOnboarding ? '/setup' : '/home');
+      router.replace(needsOnboarding || ONBOARDING_SIEMPRE ? '/setup' : '/home');
     }
   }, [session, initializing, loading, loadError, needsOnboarding, needsLegalAcceptance, eliminacionPendiente, segments, pathname, router]);
 }
