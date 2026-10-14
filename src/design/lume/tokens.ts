@@ -76,6 +76,8 @@ const oscuro = {
   glassHighlight: 'rgba(255, 255, 255, 0.12)',
   surfaceSignalSoft: 'rgba(201, 226, 95, 0.10)',
   surfaceSignalLine: 'rgba(201, 226, 95, 0.60)',
+  surfaceIntensitySoft: 'rgba(241, 240, 235, 0.06)',
+  surfaceIntensityLine: 'rgba(241, 240, 235, 0.32)',
 
   // Texto
   textPrimary: p.graphite100,
@@ -139,6 +141,8 @@ const claro: LumePalette = {
   glassHighlight: 'rgba(255, 255, 255, 0.95)',
   surfaceSignalSoft: 'rgba(79, 106, 10, 0.08)',
   surfaceSignalLine: 'rgba(79, 106, 10, 0.55)',
+  surfaceIntensitySoft: 'rgba(20, 21, 17, 0.05)',
+  surfaceIntensityLine: 'rgba(20, 21, 17, 0.32)',
 
   textPrimary: p.ivory900,
   textSecondary: p.ivory700,

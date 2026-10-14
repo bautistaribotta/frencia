@@ -16,7 +16,9 @@ pantallas se migran de a partes. Una pantalla migrada importa de
 `@/design/lume` y monta su propio `<Fondo>`; las demas siguen igual.
 
 Migradas: login, registro, recuperar contraseña, aceptacion de textos legales,
-Terminos / Privacidad y el setup del perfil.
+Terminos / Privacidad, el setup del perfil e Inicio (`(main)/home`). El
+indicador de carga (`Cargando`) ya reemplaza a `ActivityIndicator` en toda la
+app, tambien en las pantallas que siguen en el sistema anterior.
 
 ## Piezas
 
@@ -28,6 +30,9 @@ Terminos / Privacidad y el setup del perfil.
 | `Fondo` | Las luces. `posicion` por pantalla (`cumbre`, `centro`, `flanco`, `base`, `velada`); `animado` solo en el onboarding. |
 | `Vidrio` | Panel translucido: `normal`, `fuerte`, `denso` (con blur, solo en el cromo). |
 | `LumeText`, `LumeButton`, `Campo`, `Casilla`, `Segmentado`, `Opciones` | Componentes base. |
+| `Cargando` | El anillo de carga: pista en data-track, un cuarto en tinta, una vuelta cada 1,2 s (3,6 s con Reducir movimiento). `sm` 16 en botones, `md` 20 en pantallas y listas, `lg` 28 para arrastrar y actualizar. Reemplaza a `ActivityIndicator` en toda la app. |
+| `LumeIconButton`, `LumeBadge`, `LumeAvatar` | Boton de icono (primary, surface, ghost), insignia (neutral, signal, intensity, danger) y avatar (foto o beam con la cara en bg-app sobre el accent). |
+| `Semana` | La tira de lunes a domingo: dato en tinta en la home, eleccion en accent con `editor`. |
 | `PasoWizard`, `Escala`, `BotonTexto` | El marco comun de los wizards. |
 | `Rueda` + `EscenarioRueda` | La edad del setup. |
 | `Regla` | Regla recta, mas ancha que la pantalla: la altura del setup. |
