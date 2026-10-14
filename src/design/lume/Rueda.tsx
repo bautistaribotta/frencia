@@ -1,0 +1,161 @@
+/* ============================================================
+   Frencia · Lume · Rueda
+   Columna vertical con snap por item. El numero centrado queda nitido en
+   el ancho condensado y los vecinos se achican y se desvanecen. La banda
+   de seleccion es una pastilla de vidrio fuerte de 52 px que dibuja
+   EscenarioRueda, detras de las ruedas.
+   ============================================================ */
+
+import React, { useEffect, useRef } from 'react';
+import {
+  Platform,
+  StyleSheet,
+  View,
+  type NativeScrollEvent,
+  type NativeSyntheticEvent,
+  type ScrollView,
+} from 'react-native';
+import Animated, {
+  Extrapolation,
+  interpolate,
+  runOnJS,
+  useAnimatedScrollHandler,
+  useAnimatedStyle,
+  useSharedValue,
+  type SharedValue,
+} from 'react-native-reanimated';
+import * as Haptics from 'expo-haptics';
+
+import { useLume } from './useLume';
+import { LumeText } from './LumeText';
+import { Vidrio } from './Vidrio';
+import { lumeFuente } from './tipografia';
+import { lumeRadius, lumeSpace } from './tokens';
+
+export const RUEDA_ITEM = 44;
+const VISIBLES = 7;
+const ALTO = RUEDA_ITEM * VISIBLES;
+
+// Tic suave cada vez que un numero pasa por el centro.
+function tic() {
+  if (Platform.OS === 'web') return;
+  Haptics.selectionAsync().catch(() => {});
+}
+
+type Alinear = 'centro' | 'izq' | 'der';
+
+export interface RuedaProps {
+  valores: (string | number)[];
+  indice: number;
+  onIndice: (i: number) => void;
+  ancho?: number;
+  alinear?: Alinear;
+}
+
+export function Rueda({ valores, indice, onIndice, ancho = 96, alinear = 'centro' }: RuedaProps) {
+  const { t } = useLume();
+  const ref = useRef<ScrollView>(null);
+  const y = useSharedValue(indice * RUEDA_ITEM);
+  const centrado = useSharedValue(indice);
+  const listo = useRef(false);
+  const pad = (ALTO - RUEDA_ITEM) / 2;
+
+  const onScroll = useAnimatedScrollHandler({
+    onScroll: (e) => {
+      y.value = e.contentOffset.y;
+      const i = Math.round(e.contentOffset.y / RUEDA_ITEM);
+      if (i !== centrado.value) {
+        centrado.value = i;
+        runOnJS(tic)();
+      }
+    },
+  });
+
+  function asentar(e: NativeSyntheticEvent<NativeScrollEvent>) {
+    const i = Math.max(0, Math.min(valores.length - 1, Math.round(e.nativeEvent.contentOffset.y / RUEDA_ITEM)));
+    if (i !== indice) onIndice(i);
+  }
+
+  // Si el indice cambia desde afuera, la rueda lo sigue.
+  useEffect(() => {
+    if (!listo.current) return;
+    ref.current?.scrollTo({ y: indice * RUEDA_ITEM, animated: true });
+  }, [indice]);
+
+  return (
+    <Animated.ScrollView
+      ref={ref}
+      style={{ height: ALTO, width: ancho, flexGrow: 0 }}
+      showsVerticalScrollIndicator={false}
+      snapToInterval={RUEDA_ITEM}
+      decelerationRate="fast"
+      scrollEventThrottle={16}
+      onScroll={onScroll}
+      onMomentumScrollEnd={asentar}
+      onScrollEndDrag={asentar}
+      onContentSizeChange={() => {
+        if (listo.current) return;
+        listo.current = true;
+        ref.current?.scrollTo({ y: indice * RUEDA_ITEM, animated: false });
+      }}
+      contentContainerStyle={{ paddingVertical: pad }}
+    >
+      {valores.map((v, i) => (
+        <Item key={`${v}-${i}`} texto={String(v)} i={i} y={y} alinear={alinear} color={t.textPrimary} />
+      ))}
+    </Animated.ScrollView>
+  );
+}
+
+function Item({ texto, i, y, alinear, color }: { texto: string; i: number; y: SharedValue<number>; alinear: Alinear; color: string }) {
+  // Tamaños del kit: 34 el elegido, 25 / 21 / 18 los vecinos.
+  const estilo = useAnimatedStyle(() => {
+    const d = Math.abs(y.value / RUEDA_ITEM - i);
+    return {
+      opacity: interpolate(d, [0, 1, 2, 3], [1, 0.48, 0.26, 0.14], Extrapolation.CLAMP),
+      transform: [{ scale: interpolate(d, [0, 1, 2, 3], [1, 25 / 34, 21 / 34, 18 / 34], Extrapolation.CLAMP) }],
+    };
+  });
+  const origen = alinear === 'der' ? 'right' : alinear === 'izq' ? 'left' : 'center';
+  return (
+    <Animated.View style={[styles.item, { transformOrigin: origen }, estilo]}>
+      <LumeText rol="hero" color={color} style={[styles.numero, { textAlign: origen }]}>
+        {texto}
+      </LumeText>
+    </Animated.View>
+  );
+}
+
+/* Escenario: la banda de seleccion en vidrio fuerte, las ruedas encima y la
+   unidad al costado. */
+export interface EscenarioRuedaProps {
+  unidad?: string;
+  children: React.ReactNode;
+}
+
+export function EscenarioRueda({ unidad, children }: EscenarioRuedaProps) {
+  const { t } = useLume();
+  return (
+    <View style={styles.escenario}>
+      <Vidrio nivel="fuerte" radio={lumeRadius.lg} style={styles.banda} />
+      <View style={styles.ruedas}>{children}</View>
+      {unidad ? (
+        <View style={styles.unidadLado}>
+          <LumeText rol="body" color={t.textTertiary} style={styles.unidad}>
+            {unidad}
+          </LumeText>
+        </View>
+      ) : null}
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  item: { height: RUEDA_ITEM, justifyContent: 'center' },
+  numero: { fontSize: 34, lineHeight: 40, letterSpacing: -0.7 },
+  escenario: { height: ALTO, alignSelf: 'stretch' },
+  banda: { position: 'absolute', left: 0, right: 0, top: (ALTO - 52) / 2, height: 52 },
+  ruedas: { position: 'absolute', top: 0, right: 0, bottom: 0, left: 0, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: lumeSpace[2] },
+  unidadLado: { pointerEvents: 'none', position: 'absolute', right: lumeSpace[5], top: 0, bottom: 0, justifyContent: 'center' },
+  unidad: { fontFamily: lumeFuente.medium, lineHeight: 22 },
+});

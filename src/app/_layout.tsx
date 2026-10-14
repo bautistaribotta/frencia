@@ -11,6 +11,7 @@ import { StatusBar } from 'expo-status-bar';
 
 import { AnimatedSplashOverlay } from '@/components/animated-icon';
 import { FrenciaThemeProvider, useColors, useFrenciaFonts, useTheme } from '@/design';
+import { useLumeFonts } from '@/design/lume';
 import { SessionProvider, useSession } from '@/contexts/session';
 import { ProfileProvider, useProfile } from '@/contexts/profile';
 import { ToastProvider } from '@/contexts/toast';
@@ -18,9 +19,13 @@ import { AlertaProvider } from '@/contexts/alerta';
 
 export default function RootLayout() {
   const [fontsLoaded, fontError] = useFrenciaFonts();
+  // Fuentes de Lume (Frencia 2.0): conviven con las del sistema anterior
+  // mientras las pantallas se migran de a partes.
+  const [lumeLoaded, lumeError] = useLumeFonts();
 
   // No bloquear para siempre si una fuente falla en cargar (web): renderizar igual.
   if (!fontsLoaded && !fontError) return null;
+  if (!lumeLoaded && !lumeError) return null;
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
