@@ -1,10 +1,11 @@
-/* Frencia · Aceptacion de los textos legales.
+/* Frencia · Aceptacion de los textos legales (Lume).
    Primera pantalla de la app para quien no acepto las versiones vigentes de
    los Terminos y Condiciones y la Politica de Privacidad: cuentas nuevas antes
    del setup, y cualquier cuenta cuando cambia una version. La manda el gate
-   del layout raiz y no se puede saltear.
+   del layout raiz y no se puede saltear. Es parte del onboarding: fondo
+   cumbre con las luces derivando.
 
-   Cada documento tiene su checkbox, pero no se marca tocandolo: se marca al
+   Cada documento tiene su casilla, pero no se marca tocandola: se marca al
    volver de abrir ese documento, para asegurar que al menos se abrio. Con los
    dos marcados se habilita Aceptar, que registra la aceptacion con las
    versiones vigentes y la fecha del servidor (public.aceptaciones_legales).
@@ -15,7 +16,7 @@
 
 import React, { useCallback, useRef, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusEffect, useRouter } from 'expo-router';
 
 import { useProfile } from '@/contexts/profile';
@@ -25,19 +26,8 @@ import { usePedirEliminarCuenta } from '@/lib/pedir-eliminar-cuenta';
 import { TERMINOS_VIGENCIA } from '@/lib/terminos';
 import { PRIVACIDAD_VIGENCIA } from '@/lib/privacidad';
 
-import {
-  Button,
-  Checkbox,
-  FrenciaText,
-  Icon,
-  radius,
-  sans,
-  space,
-  spacing,
-  useColors,
-  useThemedStyles,
-  type Palette,
-} from '@/design';
+import { Icon } from '@/design';
+import { Casilla, Fondo, LumeButton, LumeText, Vidrio, lumeFuente, lumeLayout, lumeSpace, useLume } from '@/design/lume';
 
 type Documento = 'terminos' | 'privacidad';
 
@@ -47,8 +37,8 @@ const DOCUMENTOS: { id: Documento; titulo: string; vigencia: string; ruta: '/ter
 ];
 
 export default function LegalConsentScreen() {
-  const colors = useColors();
-  const styles = useThemedStyles(makeStyles);
+  const { t } = useLume();
+  const insets = useSafeAreaInsets();
   const router = useRouter();
   const { aceptarLegales } = useProfile();
   const { showToast } = useToast();
@@ -98,23 +88,29 @@ export default function LegalConsentScreen() {
   }
 
   return (
-    <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
-      <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
+    <View style={styles.pantalla}>
+      <Fondo posicion="cumbre" animado />
+
+      <ScrollView
+        contentContainerStyle={[styles.scroll, { paddingTop: insets.top + lumeSpace[8] }]}
+        showsVerticalScrollIndicator={false}
+      >
         <View style={styles.encabezado}>
-          <FrenciaText role="dataLabel" color={colors.textTertiary}>
+          <LumeText rol="label" color={t.textTertiary}>
             Antes de empezar
-          </FrenciaText>
-          <FrenciaText role="title">Términos y privacidad</FrenciaText>
-          <FrenciaText role="bodySm" color={colors.textSecondary}>
-            Para usar Frencia necesitás aceptar los Términos y Condiciones y la Política de
-            Privacidad.
-          </FrenciaText>
+          </LumeText>
+          <LumeText rol="title" accessibilityRole="header">
+            Términos y privacidad
+          </LumeText>
+          <LumeText rol="bodySm" color={t.textSecondary}>
+            Para usar Frencia necesitás aceptar los Términos y Condiciones y la Política de Privacidad.
+          </LumeText>
         </View>
 
-        <View style={styles.lista}>
+        <Vidrio style={styles.lista}>
           {DOCUMENTOS.map((doc, i) => (
             <React.Fragment key={doc.id}>
-              {i > 0 && <View style={styles.divisor} />}
+              {i > 0 ? <View style={[styles.divisor, { backgroundColor: t.divider }]} /> : null}
               <Pressable
                 onPress={() => abrir(doc)}
                 disabled={ocupada}
@@ -122,32 +118,31 @@ export default function LegalConsentScreen() {
                 accessibilityLabel={`Leer ${doc.titulo}`}
                 accessibilityHint="Al volver queda marcado como leído"
                 accessibilityState={{ checked: leidos[doc.id], disabled: ocupada }}
+                style={({ pressed }) => [styles.fila, pressed && { backgroundColor: t.surfaceChip }]}
               >
-                <View style={styles.fila}>
-                  <Checkbox checked={leidos[doc.id]} />
-                  <View style={styles.filaTexto}>
-                    <FrenciaText role="bodySm" style={styles.filaTitulo}>
-                      {doc.titulo}
-                    </FrenciaText>
-                    <FrenciaText role="dataLabel" color={leidos[doc.id] ? colors.accentText : colors.textTertiary}>
-                      {leidos[doc.id] ? 'Leído' : `Vigente desde el ${doc.vigencia}`}
-                    </FrenciaText>
-                  </View>
-                  <Icon name="chevron-right" size={20} color={colors.textTertiary} />
+                <Casilla checked={leidos[doc.id]} />
+                <View style={styles.filaTexto}>
+                  <LumeText rol="bodySm" style={styles.semi}>
+                    {doc.titulo}
+                  </LumeText>
+                  <LumeText rol="label" color={leidos[doc.id] ? t.signalText : t.textTertiary}>
+                    {leidos[doc.id] ? 'Leído' : `Vigente desde el ${doc.vigencia}`}
+                  </LumeText>
                 </View>
+                <Icon name="chevron-right" size={20} color={t.textTertiary} strokeWidth={1.75} />
               </Pressable>
             </React.Fragment>
           ))}
-        </View>
+        </Vidrio>
       </ScrollView>
 
-      <View style={styles.acciones}>
-        {!ambos && (
-          <FrenciaText role="bodySm" color={colors.textTertiary} style={styles.aviso}>
+      <View style={[styles.acciones, { paddingBottom: insets.bottom + lumeSpace[4] }]}>
+        {!ambos ? (
+          <LumeText rol="bodySm" color={t.textTertiary} style={styles.aviso}>
             Abrí los dos documentos para poder continuar.
-          </FrenciaText>
-        )}
-        <Button
+          </LumeText>
+        ) : null}
+        <LumeButton
           variant="primary"
           size="lg"
           fullWidth
@@ -157,8 +152,8 @@ export default function LegalConsentScreen() {
           onPress={aceptar}
         >
           Aceptar y continuar
-        </Button>
-        <Button
+        </LumeButton>
+        <LumeButton
           variant="ghost"
           size="md"
           fullWidth
@@ -167,10 +162,10 @@ export default function LegalConsentScreen() {
           onPress={cerrarSesion}
         >
           Cerrar sesión
-        </Button>
+        </LumeButton>
         {/* Sin aceptar no se llega a Configuracion: la eliminacion tiene que
             estar a mano aca. La confirmacion la dan los dos modales. */}
-        <Button
+        <LumeButton
           variant="ghost"
           size="md"
           fullWidth
@@ -179,41 +174,33 @@ export default function LegalConsentScreen() {
           onPress={pedirEliminarCuenta}
         >
           Eliminar mi cuenta
-        </Button>
+        </LumeButton>
       </View>
-    </SafeAreaView>
+    </View>
   );
 }
 
-const makeStyles = (colors: Palette) =>
-  StyleSheet.create({
-    safe: { flex: 1, backgroundColor: colors.bgApp },
-    scroll: {
-      flexGrow: 1,
-      justifyContent: 'center',
-      paddingHorizontal: spacing.padScreen,
-      paddingVertical: space[8],
-      gap: space[8],
-    },
-    encabezado: { gap: space[3] },
-
-    lista: {
-      backgroundColor: colors.surfaceCard,
-      borderRadius: radius.lg,
-      borderWidth: 1,
-      borderColor: colors.borderSubtle,
-      overflow: 'hidden',
-    },
-    fila: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: space[4],
-      padding: space[5],
-    },
-    filaTexto: { flex: 1, gap: space[1] },
-    filaTitulo: { fontFamily: sans.semibold },
-    divisor: { height: 1, marginLeft: space[5], backgroundColor: colors.divider },
-
-    acciones: { paddingHorizontal: spacing.padScreen, paddingBottom: space[4], gap: space[2] },
-    aviso: { textAlign: 'center', marginBottom: space[2] },
-  });
+const styles = StyleSheet.create({
+  pantalla: { flex: 1 },
+  scroll: {
+    flexGrow: 1,
+    justifyContent: 'center',
+    paddingHorizontal: lumeLayout.padScreen,
+    paddingBottom: lumeSpace[8],
+    gap: lumeSpace[8],
+  },
+  encabezado: { gap: lumeSpace[4] },
+  lista: { overflow: 'hidden' },
+  fila: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: lumeSpace[4],
+    padding: lumeSpace[5],
+    minHeight: 60,
+  },
+  filaTexto: { flex: 1, gap: lumeSpace[1] },
+  semi: { fontFamily: lumeFuente.semibold },
+  divisor: { height: 1, marginLeft: lumeSpace[5] },
+  acciones: { gap: lumeSpace[2], paddingHorizontal: lumeLayout.padScreen },
+  aviso: { textAlign: 'center', marginBottom: lumeSpace[2] },
+});

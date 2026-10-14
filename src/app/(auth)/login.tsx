@@ -1,46 +1,24 @@
-/* Frencia · Login — pantalla de acceso.
-   Campo negro, verde esmeralda, Anton en el hero. "Cada serie cuenta." */
+/* Frencia · Login — pantalla de acceso (Lume).
+   Fondo flanco animado: la luz entra por el borde derecho y deja libre el
+   formulario, alineado a la izquierda. El campo en foco toma el borde de
+   lume; Ingresar queda deshabilitado hasta tener correo y una contraseña de
+   6 o mas. "Cada serie cuenta." */
 
 import React, { useState } from 'react';
-import {
-  ActivityIndicator,
-  KeyboardAvoidingView,
-  Platform,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  TextInput,
-  View,
-  type TextInputProps,
-} from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 
 import { supabase } from '@/lib/supabase';
 import { signInWithProvider, type OAuthProvider } from '@/lib/oauth';
-import { TermsNotice } from '@/components/TermsNotice';
+import { AvisoTerminos, BotonesSociales, Divisor, Enlace, Entrando, Marca, PieEnlace } from '@/components/Acceso';
 
-import AppleLogo from '@/assets/icons/apple.svg';
-import GoogleLogo from '@/assets/icons/google.svg';
-
-import {
-  Button,
-  FrenciaText,
-  Icon,
-  useColors,
-  useThemedStyles,
-  radius,
-  sans,
-  sizing,
-  space,
-  spacing,
-  tracking,
-  type Palette,
-} from '@/design';
+import { Icon } from '@/design';
+import { Campo, Fondo, LumeButton, LumeText, lumeLayout, lumeSpace, useLume } from '@/design/lume';
 
 export default function LoginScreen() {
-  const colors = useColors();
-  const styles = useThemedStyles(makeStyles);
+  const { t } = useLume();
+  const insets = useSafeAreaInsets();
   const router = useRouter();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -109,55 +87,35 @@ export default function LoginScreen() {
 
     if (error) {
       setEntering(false);
-      setErrorMsg('No pudimos ingresar con ese proveedor. Proba de nuevo.');
-      return;
+      setErrorMsg('No pudimos ingresar con ese proveedor. Probá de nuevo.');
     }
   }
 
   return (
-    <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
-      <KeyboardAvoidingView
-        style={styles.flex}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      >
+    <View style={styles.pantalla}>
+      <Fondo posicion="flanco" animado />
+      <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <ScrollView
-          contentContainerStyle={styles.scroll}
+          contentContainerStyle={[
+            styles.scroll,
+            { paddingTop: insets.top + lumeSpace[7], paddingBottom: insets.bottom + lumeSpace[7] },
+          ]}
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
-          {/* Hero */}
-          <View style={styles.hero}>
-            <View style={styles.brandRow}>
-              <View style={styles.mark}>
-                <Icon name="dumbbell" size={34} color={colors.textOnAccent} />
-              </View>
-              <View style={styles.brandText}>
-                <FrenciaText role="display" style={styles.wordmark}>
-                  FRENCIA
-                </FrenciaText>
-                <FrenciaText
-                  role="dataLabel"
-                  color={colors.accentText}
-                  style={styles.tagline}
-                >
-                  Cada serie cuenta
-                </FrenciaText>
-              </View>
-            </View>
-          </View>
+          <Marca />
 
-          {/* Form */}
           <View style={styles.form}>
-            <FrenciaText role="title" style={styles.heading}>
+            <LumeText rol="title" accessibilityRole="header" style={styles.titulo}>
               Entrá a tu cuenta
-            </FrenciaText>
-            <FrenciaText role="bodySm" color={colors.textSecondary}>
+            </LumeText>
+            <LumeText rol="bodySm" color={t.textSecondary}>
               Seguí registrando cada serie donde la dejaste.
-            </FrenciaText>
+            </LumeText>
 
-            <View style={styles.fields}>
-              <Field
-                icon="mail"
+            <View style={styles.campos}>
+              <Campo
+                icono="mail"
                 placeholder="Correo electrónico"
                 value={email}
                 onChangeText={setEmail}
@@ -166,44 +124,35 @@ export default function LoginScreen() {
                 autoComplete="email"
                 inputMode="email"
               />
-              <Field
-                icon="lock"
+              <Campo
+                icono="lock"
                 placeholder="Contraseña"
                 value={password}
                 onChangeText={setPassword}
                 secureTextEntry={!showPass}
                 autoCapitalize="none"
                 autoComplete="password"
-                trailing={
+                onSubmitEditing={handleLogin}
+                final={
                   <Pressable
                     hitSlop={10}
                     onPress={() => setShowPass((s) => !s)}
                     accessibilityRole="button"
                     accessibilityLabel={showPass ? 'Ocultar contraseña' : 'Mostrar contraseña'}
                   >
-                    <Icon
-                      name={showPass ? 'eye-off' : 'eye'}
-                      size={20}
-                      color={colors.textTertiary}
-                    />
+                    <Icon name={showPass ? 'eye-off' : 'eye'} size={20} color={t.textTertiary} strokeWidth={1.75} />
                   </Pressable>
                 }
               />
             </View>
 
-            <Pressable
-              style={styles.forgot}
-              hitSlop={8}
-              onPress={() =>
-                router.push({ pathname: '/forgot-password', params: { email: email.trim() } })
-              }
-            >
-              <FrenciaText role="bodySm" color={colors.accentText}>
+            <View style={styles.olvido}>
+              <Enlace onPress={() => router.push({ pathname: '/forgot-password', params: { email: email.trim() } })}>
                 ¿Olvidaste tu contraseña?
-              </FrenciaText>
-            </Pressable>
+              </Enlace>
+            </View>
 
-            <Button
+            <LumeButton
               variant="primary"
               size="lg"
               fullWidth
@@ -213,183 +162,39 @@ export default function LoginScreen() {
               onPress={handleLogin}
             >
               Ingresar
-            </Button>
+            </LumeButton>
 
             {errorMsg ? (
-              <FrenciaText role="bodySm" color={colors.dangerText}>
+              <LumeText rol="bodySm" color={t.dangerText} accessibilityLiveRegion="polite">
                 {errorMsg}
-              </FrenciaText>
+              </LumeText>
             ) : null}
 
-            {/* Divisor */}
-            <View style={styles.divider}>
-              <View style={styles.line} />
-              <FrenciaText role="dataLabel" color={colors.textTertiary}>
-                o continuá con
-              </FrenciaText>
-              <View style={styles.line} />
-            </View>
-
-            <View style={styles.social}>
-              <Button
-                variant="secondary"
-                size="lg"
-                leading={<AppleLogo width={20} height={20} color={colors.textPrimary} />}
-                style={styles.socialBtn}
-                loading={oauthLoading === 'apple'}
-                disabled={oauthLoading !== null}
-                onPress={() => handleOAuth('apple')}
-              >
-                Apple
-              </Button>
-              <Button
-                variant="secondary"
-                size="lg"
-                leading={<GoogleLogo width={20} height={20} />}
-                style={styles.socialBtn}
-                loading={oauthLoading === 'google'}
-                disabled={oauthLoading !== null}
-                onPress={() => handleOAuth('google')}
-              >
-                Google
-              </Button>
-            </View>
-
-            <TermsNotice />
+            <Divisor texto="o continuá con" />
+            <BotonesSociales cargando={oauthLoading} onPress={handleOAuth} />
+            <AvisoTerminos />
           </View>
 
-          {/* Footer */}
-          <View style={styles.footer}>
-            <FrenciaText role="bodySm" color={colors.textSecondary}>
-              ¿No tenés cuenta?{' '}
-            </FrenciaText>
-            <Pressable hitSlop={8} onPress={() => router.push('/register')}>
-              <FrenciaText role="bodySm" color={colors.accentText} style={styles.footerLink}>
-                Creá una
-              </FrenciaText>
-            </Pressable>
-          </View>
+          <PieEnlace pregunta="¿No tenés cuenta?" enlace="Creá una" onPress={() => router.push('/register')} />
         </ScrollView>
       </KeyboardAvoidingView>
 
-      {entering ? (
-        <View style={styles.entering}>
-          <ActivityIndicator size="large" color={colors.accent} />
-        </View>
-      ) : null}
-    </SafeAreaView>
-  );
-}
-
-/* ── Campo de texto con icono, focus verde ───────────────────── */
-interface FieldProps extends TextInputProps {
-  icon: string;
-  trailing?: React.ReactNode;
-}
-
-function Field({ icon, trailing, ...rest }: FieldProps) {
-  const colors = useColors();
-  const styles = useThemedStyles(makeStyles);
-  const [focused, setFocused] = useState(false);
-  return (
-    <View
-      style={[
-        styles.field,
-        focused && styles.fieldFocused,
-      ]}
-    >
-      <Icon name={icon} size={20} color={focused ? colors.accent : colors.textTertiary} />
-      <TextInput
-        style={styles.input}
-        placeholderTextColor={colors.textTertiary}
-        onFocus={() => setFocused(true)}
-        onBlur={() => setFocused(false)}
-        {...rest}
-      />
-      {trailing}
+      {entering ? <Entrando /> : null}
     </View>
   );
 }
 
-const makeStyles = (colors: Palette) =>
-  StyleSheet.create({
-  safe: { flex: 1, backgroundColor: colors.bgApp },
+const styles = StyleSheet.create({
+  pantalla: { flex: 1 },
   flex: { flex: 1 },
-  entering: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: colors.bgApp,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
   scroll: {
     flexGrow: 1,
-    paddingHorizontal: spacing.padScreen,
-    paddingBottom: space[8],
     justifyContent: 'center',
-    gap: space[10],
+    gap: lumeSpace[10],
+    paddingHorizontal: lumeLayout.padScreen,
   },
-
-  // Hero
-  hero: { alignItems: 'center', gap: space[4] },
-  brandRow: { flexDirection: 'row', alignItems: 'center', gap: space[3] },
-  mark: {
-    width: 72,
-    height: 72,
-    borderRadius: radius.lg,
-    backgroundColor: colors.accent,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  brandText: { height: 72, justifyContent: 'center' },
-  wordmark: {
-    color: colors.textPrimary,
-    fontSize: 56,
-    lineHeight: 72,
-    includeFontPadding: false,
-  },
-  tagline: { marginTop: -space[2] },
-
-  // Form
-  form: { gap: space[5] },
-  heading: { marginBottom: -space[3] },
-  fields: { gap: space[4], marginTop: space[2] },
-  field: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: space[4],
-    height: sizing.controlHLg,
-    paddingHorizontal: spacing.padControl,
-    borderRadius: radius.md,
-    backgroundColor: colors.surfaceCard,
-    borderWidth: 1,
-    borderColor: colors.borderSubtle,
-  },
-  fieldFocused: {
-    borderColor: colors.surfaceGreenLine,
-    backgroundColor: colors.surfaceCardElevated,
-  },
-  input: {
-    flex: 1,
-    color: colors.textPrimary,
-    fontFamily: sans.regular,
-    fontSize: 16,
-    padding: 0,
-  },
-  forgot: { alignSelf: 'flex-end', marginTop: -space[2] },
-
-  // Divisor
-  divider: { flexDirection: 'row', alignItems: 'center', gap: space[4] },
-  line: { flex: 1, height: 1, backgroundColor: colors.divider },
-
-  // Social
-  social: { flexDirection: 'row', gap: space[4] },
-  socialBtn: { flex: 1 },
-
-  // Footer
-  footer: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center' },
-  footerLink: { fontFamily: sans.semibold, letterSpacing: tracking.normal },
+  form: { gap: lumeSpace[5] },
+  titulo: { marginBottom: -lumeSpace[3] },
+  campos: { gap: lumeSpace[3], marginTop: lumeSpace[3] },
+  olvido: { alignSelf: 'flex-end', marginTop: -lumeSpace[2] },
 });

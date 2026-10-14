@@ -1,38 +1,20 @@
-/* Frencia · Recuperar contraseña — pedir el email y enviar el correo.
-   Espeja el login. Primera etapa del flujo: la pantalla para escribir la
-   contraseña nueva (tras el deep link) queda para mas adelante. */
+/* Frencia · Recuperar contraseña — pedir el email y enviar el correo (Lume).
+   Espeja el login, con un sello de vidrio en lugar del icono de la app. Al
+   enviar, el formulario se reemplaza por el aviso y el sello pasa a correo
+   enviado. Primera etapa del flujo: la pantalla para escribir la contraseña
+   nueva (tras el deep link) queda para mas adelante. */
 
 import React, { useState } from 'react';
-import {
-  KeyboardAvoidingView,
-  Platform,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  TextInput,
-  View,
-  type TextInputProps,
-} from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { makeRedirectUri } from 'expo-auth-session';
 
 import { supabase } from '@/lib/supabase';
+import { PieEnlace } from '@/components/Acceso';
 
-import {
-  Button,
-  FrenciaText,
-  Icon,
-  useColors,
-  useThemedStyles,
-  radius,
-  sans,
-  sizing,
-  space,
-  spacing,
-  tracking,
-  type Palette,
-} from '@/design';
+import { Icon } from '@/design';
+import { Campo, Fondo, LumeButton, LumeText, Vidrio, lumeFuente, lumeLayout, lumeSpace, useLume } from '@/design/lume';
 
 // URL a la que vuelve el link del correo. Expo Go -> exp://... ;
 // build nativo -> frencia://reset-password. Hay que darla de alta en
@@ -40,8 +22,8 @@ import {
 const redirectTo = makeRedirectUri({ path: 'reset-password' });
 
 export default function ForgotPasswordScreen() {
-  const colors = useColors();
-  const styles = useThemedStyles(makeStyles);
+  const { t } = useLume();
+  const insets = useSafeAreaInsets();
   const router = useRouter();
   // Login y registro pasan el email que el usuario ya tipeo.
   const params = useLocalSearchParams<{ email?: string }>();
@@ -83,77 +65,57 @@ export default function ForgotPasswordScreen() {
   }
 
   return (
-    <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
-      <KeyboardAvoidingView
-        style={styles.flex}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      >
+    <View style={styles.pantalla}>
+      <Fondo posicion="flanco" animado />
+
+      <View style={[styles.atras, { top: insets.top + lumeSpace[3] }]}>
+        <LumeButton variant="ghost" size="sm" icon="chevron-left" onPress={goToLogin}>
+          Atrás
+        </LumeButton>
+      </View>
+
+      <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <ScrollView
-          contentContainerStyle={styles.scroll}
+          contentContainerStyle={[
+            styles.scroll,
+            { paddingTop: insets.top + lumeSpace[11], paddingBottom: insets.bottom + lumeSpace[7] },
+          ]}
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
-          {/* Atrás */}
-          <View style={styles.back}>
-            <Button variant="ghost" size="sm" icon="chevron-left" onPress={goToLogin}>
-              Atrás
-            </Button>
-          </View>
-
-          {/* Hero */}
-          <View style={styles.hero}>
-            <View style={styles.mark}>
-              <Icon name={sent ? 'check' : 'lock'} size={34} color={colors.textOnAccent} />
-            </View>
-          </View>
+          <Vidrio radio={15} style={styles.sello}>
+            <Icon name={sent ? 'mail-check' : 'key-round'} size={26} color={t.textPrimary} strokeWidth={1.75} />
+          </Vidrio>
 
           {sent ? (
-            /* Estado de exito: el form se reemplaza por el aviso. */
             <View style={styles.form}>
-              <FrenciaText role="title" style={styles.heading}>
+              <LumeText rol="title" accessibilityRole="header" style={styles.titulo}>
                 Revisá tu correo
-              </FrenciaText>
-              <FrenciaText role="bodySm" color={colors.textSecondary}>
+              </LumeText>
+              <LumeText rol="bodySm" color={t.textSecondary}>
                 Te enviamos un enlace a{' '}
-                <FrenciaText role="bodySm" color={colors.textPrimary} style={styles.strong}>
+                <LumeText rol="bodySm" style={styles.semi}>
                   {email.trim()}
-                </FrenciaText>{' '}
+                </LumeText>{' '}
                 para que elijas una contraseña nueva. Si no lo ves, mirá en spam.
-              </FrenciaText>
-
-              <Button
-                variant="primary"
-                size="lg"
-                fullWidth
-                iconRight="arrow-right"
-                onPress={goToLogin}
-              >
+              </LumeText>
+              <LumeButton variant="primary" size="lg" fullWidth iconRight="arrow-right" onPress={goToLogin}>
                 Volver al inicio de sesión
-              </Button>
-
-              <View style={styles.footer}>
-                <FrenciaText role="bodySm" color={colors.textSecondary}>
-                  ¿No te llegó?{' '}
-                </FrenciaText>
-                <Pressable hitSlop={8} onPress={() => setSent(false)}>
-                  <FrenciaText role="bodySm" color={colors.accentText} style={styles.footerLink}>
-                    Reenviar
-                  </FrenciaText>
-                </Pressable>
-              </View>
+              </LumeButton>
+              <PieEnlace pregunta="¿No te llegó?" enlace="Reenviar" onPress={() => setSent(false)} />
             </View>
           ) : (
             <View style={styles.form}>
-              <FrenciaText role="title" style={styles.heading}>
+              <LumeText rol="title" accessibilityRole="header" style={styles.titulo}>
                 Recuperá tu contraseña
-              </FrenciaText>
-              <FrenciaText role="bodySm" color={colors.textSecondary}>
+              </LumeText>
+              <LumeText rol="bodySm" color={t.textSecondary}>
                 Escribí tu correo y te enviamos un enlace para elegir una nueva.
-              </FrenciaText>
+              </LumeText>
 
-              <View style={styles.fields}>
-                <Field
-                  icon="mail"
+              <View style={styles.campos}>
+                <Campo
+                  icono="mail"
                   placeholder="Correo electrónico"
                   value={email}
                   onChangeText={setEmail}
@@ -168,12 +130,12 @@ export default function ForgotPasswordScreen() {
               </View>
 
               {errorMsg ? (
-                <FrenciaText role="bodySm" color={colors.dangerText}>
+                <LumeText rol="bodySm" color={t.dangerText} accessibilityLiveRegion="polite">
                   {errorMsg}
-                </FrenciaText>
+                </LumeText>
               ) : null}
 
-              <Button
+              <LumeButton
                 variant="primary"
                 size="lg"
                 fullWidth
@@ -183,96 +145,28 @@ export default function ForgotPasswordScreen() {
                 onPress={handleSend}
               >
                 Enviar enlace
-              </Button>
+              </LumeButton>
             </View>
           )}
         </ScrollView>
       </KeyboardAvoidingView>
-    </SafeAreaView>
-  );
-}
-
-/* ── Campo de texto con icono, focus de acento ───────────────── */
-interface FieldProps extends TextInputProps {
-  icon: string;
-}
-
-function Field({ icon, ...rest }: FieldProps) {
-  const colors = useColors();
-  const styles = useThemedStyles(makeStyles);
-  const [focused, setFocused] = useState(false);
-  return (
-    <View style={[styles.field, focused && styles.fieldFocused]}>
-      <Icon name={icon} size={20} color={focused ? colors.accent : colors.textTertiary} />
-      <TextInput
-        style={styles.input}
-        placeholderTextColor={colors.textTertiary}
-        onFocus={() => setFocused(true)}
-        onBlur={() => setFocused(false)}
-        {...rest}
-      />
     </View>
   );
 }
 
-const makeStyles = (colors: Palette) =>
-  StyleSheet.create({
-  safe: { flex: 1, backgroundColor: colors.bgApp },
+const styles = StyleSheet.create({
+  pantalla: { flex: 1 },
   flex: { flex: 1 },
+  atras: { position: 'absolute', left: lumeLayout.padScreen - 10, zIndex: 1 },
   scroll: {
     flexGrow: 1,
-    paddingHorizontal: spacing.padScreen,
-    paddingBottom: space[8],
     justifyContent: 'center',
-    gap: space[10],
+    gap: lumeSpace[10],
+    paddingHorizontal: lumeLayout.padScreen,
   },
-
-  back: {
-    position: 'absolute',
-    top: space[4],
-    left: spacing.padScreen,
-  },
-
-  // Hero
-  hero: { alignItems: 'center' },
-  mark: {
-    width: 72,
-    height: 72,
-    borderRadius: radius.lg,
-    backgroundColor: colors.accent,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-
-  // Form
-  form: { gap: space[5] },
-  heading: { marginBottom: -space[3] },
-  strong: { fontFamily: sans.semibold },
-  fields: { gap: space[4], marginTop: space[2] },
-  field: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: space[4],
-    height: sizing.controlHLg,
-    paddingHorizontal: spacing.padControl,
-    borderRadius: radius.md,
-    backgroundColor: colors.surfaceCard,
-    borderWidth: 1,
-    borderColor: colors.borderSubtle,
-  },
-  fieldFocused: {
-    borderColor: colors.surfaceGreenLine,
-    backgroundColor: colors.surfaceCardElevated,
-  },
-  input: {
-    flex: 1,
-    color: colors.textPrimary,
-    fontFamily: sans.regular,
-    fontSize: 16,
-    padding: 0,
-  },
-
-  // Footer
-  footer: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center' },
-  footerLink: { fontFamily: sans.semibold, letterSpacing: tracking.normal },
+  sello: { width: 64, height: 64, alignItems: 'center', justifyContent: 'center' },
+  form: { gap: lumeSpace[5] },
+  titulo: { marginBottom: -lumeSpace[3] },
+  campos: { gap: lumeSpace[3], marginTop: lumeSpace[3] },
+  semi: { fontFamily: lumeFuente.semibold },
 });
