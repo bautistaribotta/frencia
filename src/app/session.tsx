@@ -13,7 +13,6 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
-  ActivityIndicator,
   Keyboard,
   KeyboardAvoidingView,
   Modal,
@@ -88,6 +87,7 @@ import {
   useThemedStyles,
   type Palette,
 } from '@/design';
+import { Cargando } from '@/design/lume';
 
 // --- Modelo de pasos ---------------------------------------------------------
 
@@ -756,7 +756,7 @@ export default function SessionScreen() {
     return (
       <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
         <View style={styles.centro}>
-          <ActivityIndicator color={colors.accent} />
+          <Cargando />
         </View>
       </SafeAreaView>
     );

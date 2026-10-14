@@ -13,7 +13,6 @@
 import { useLocalSearchParams } from 'expo-router';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
-  ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
@@ -43,6 +42,7 @@ import {
   useThemedStyles,
   type Palette,
 } from '@/design';
+import { Cargando } from '@/design/lume';
 
 // El mismo tope que el wizard: mas dias que la semana no tienen donde caer.
 const MAX_DIAS = 7;
@@ -224,7 +224,7 @@ export default function EditRoutineScreen() {
 
         {cargando ? (
           <View style={styles.centro}>
-            <ActivityIndicator color={colors.accent} />
+            <Cargando />
           </View>
         ) : !cargada ? (
           <View style={styles.centro}>

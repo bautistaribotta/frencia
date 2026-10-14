@@ -5,11 +5,11 @@
    el design system. */
 
 import React from 'react';
-import { ActivityIndicator, Image, Pressable, StyleSheet, View } from 'react-native';
+import { Image, Pressable, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 
-import { Fondo, LumeButton, LumeText, lumeFuente, lumeSpace, useLume } from '@/design/lume';
+import { Cargando, Fondo, LumeButton, LumeText, lumeFuente, lumeSpace, useLume } from '@/design/lume';
 import type { OAuthProvider } from '@/lib/oauth';
 
 import AppleLogo from '@/assets/icons/apple.svg';
@@ -161,11 +161,10 @@ export function PieEnlace({ pregunta, enlace, onPress }: { pregunta: string; enl
 /* Tapa la pantalla con el fondo y un spinner mientras el gate del layout
    raiz decide a donde ir despues de ingresar. */
 export function Entrando() {
-  const { t } = useLume();
   return (
     <View style={[StyleSheet.absoluteFill, styles.entrando]}>
       <Fondo posicion="flanco" />
-      <ActivityIndicator size="large" color={t.signal} />
+      <Cargando />
     </View>
   );
 }

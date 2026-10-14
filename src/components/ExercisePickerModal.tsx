@@ -18,7 +18,6 @@
 
 import React, { useCallback, useMemo, useState } from 'react';
 import {
-  ActivityIndicator,
   FlatList,
   KeyboardAvoidingView,
   Modal,
@@ -88,6 +87,7 @@ import {
   withAlpha,
   type Palette,
 } from '@/design';
+import { Cargando } from '@/design/lume';
 
 
 /** Ejercicio ya elegido, venga del catalogo o de un dia armado. */
@@ -762,7 +762,7 @@ function PickerContenido({
              virtualizada: montar 198 filas de una vez es caro. */}
           {catalogLoading ? (
             <View style={styles.resultsHint}>
-              <ActivityIndicator color={colors.accent} />
+              <Cargando />
             </View>
           ) : (
             <View style={styles.listWrap}>

@@ -10,13 +10,14 @@
    ============================================================ */
 
 import React from 'react';
-import { ActivityIndicator, Pressable, StyleSheet, type StyleProp, type ViewStyle } from 'react-native';
+import { Pressable, StyleSheet, type StyleProp, type ViewStyle } from 'react-native';
 
 import { Icon } from '../Icon';
 import { useLume } from './useLume';
 import { LumeText } from './LumeText';
 import { lumeFuente } from './tipografia';
 import { lumeMotion, lumeRadius } from './tokens';
+import { Cargando } from './Cargando';
 
 export type VarianteBoton = 'primary' | 'secondary' | 'ghost' | 'soft' | 'danger';
 export type TamanioBoton = 'sm' | 'md' | 'lg';
@@ -115,7 +116,7 @@ export function LumeButton({
       ]}
     >
       {loading ? (
-        <ActivityIndicator size="small" color={tinta} />
+        <Cargando tam="sm" color={tinta} />
       ) : (
         <>
           {leading ?? (icon ? <Icon name={icon} size={tam.icono} color={tinta} strokeWidth={1.75} /> : null)}

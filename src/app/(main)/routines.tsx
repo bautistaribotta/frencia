@@ -13,7 +13,7 @@
    abajo desde el inicio recarga la lista. */
 
 import React, { useCallback, useMemo, useRef, useState, useSyncExternalStore } from 'react';
-import { ActivityIndicator, FlatList, RefreshControl, StyleSheet, View } from 'react-native';
+import { FlatList, RefreshControl, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect, useRouter } from 'expo-router';
 
@@ -42,6 +42,7 @@ import {
   useThemedStyles,
   type Palette,
 } from '@/design';
+import { Cargando } from '@/design/lume';
 
 function contarDias(n: number): string {
   return `${n} ${n === 1 ? 'día' : 'días'}`;
@@ -285,7 +286,7 @@ export default function RoutinesScreen() {
           <View style={styles.footer}>
             {cargando === 'mas' ? (
               <View style={styles.feedback} accessibilityLiveRegion="polite">
-                <ActivityIndicator color={colors.accent} />
+                <Cargando />
                 <FrenciaText role="bodySm" color={colors.textSecondary}>
                   Cargando más rutinas…
                 </FrenciaText>

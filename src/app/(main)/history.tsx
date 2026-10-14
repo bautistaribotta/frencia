@@ -6,7 +6,7 @@
    Arrastrar una sesion hacia la derecha la elimina, previa confirmacion. */
 
 import React, { useCallback, useMemo, useRef, useState, useSyncExternalStore } from 'react';
-import { ActivityIndicator, RefreshControl, SectionList, StyleSheet, View } from 'react-native';
+import { RefreshControl, SectionList, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect, useRouter } from 'expo-router';
 
@@ -32,6 +32,7 @@ import {
   useThemedStyles,
   type Palette,
 } from '@/design';
+import { Cargando } from '@/design/lume';
 
 const MESES = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
 const MESES_LARGO = [
@@ -258,7 +259,7 @@ export default function HistoryScreen() {
           <View style={styles.footer}>
             {cargando === 'mas' ? (
               <View style={styles.feedback} accessibilityLiveRegion="polite">
-                <ActivityIndicator color={colors.accent} />
+                <Cargando />
                 <FrenciaText role="bodySm" color={colors.textSecondary}>
                   Cargando más entrenamientos…
                 </FrenciaText>

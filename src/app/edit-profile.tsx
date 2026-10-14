@@ -6,7 +6,6 @@
 
 import React, { useEffect, useState } from 'react';
 import {
-  ActivityIndicator,
   KeyboardAvoidingView,
   Modal,
   Platform,
@@ -41,6 +40,7 @@ import {
   spacing,
   type Palette,
 } from '@/design';
+import { Cargando } from '@/design/lume';
 
 // Opciones de sexo: el value coincide con los permitidos en la tabla profiles.
 const SEXO_OPTIONS = [
@@ -222,7 +222,7 @@ export default function EditProfileScreen() {
       </View>
       {cargandoPerfil ? (
         <View style={styles.spinnerWrap}>
-          <ActivityIndicator size="large" color={colors.accent} />
+          <Cargando />
         </View>
       ) : (
       <KeyboardAvoidingView

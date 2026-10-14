@@ -10,7 +10,6 @@
 import { useLocalSearchParams } from 'expo-router';
 import React, { useEffect, useMemo, useState } from 'react';
 import {
-  ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
@@ -46,6 +45,7 @@ import {
   withAlpha,
   type Palette,
 } from '@/design';
+import { Cargando } from '@/design/lume';
 
 
 // Firma del dia para saber si hay cambios sin guardar. Compara lo que se
@@ -208,7 +208,7 @@ export default function EditDayScreen() {
 
         {cargando ? (
           <View style={styles.centro}>
-            <ActivityIndicator color={colors.accent} />
+            <Cargando />
           </View>
         ) : !dia ? (
           <View style={styles.centro}>

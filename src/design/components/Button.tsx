@@ -3,7 +3,6 @@
 
 import React, { useMemo } from 'react';
 import {
-  ActivityIndicator,
   Pressable,
   type PressableProps,
   StyleSheet,
@@ -14,6 +13,7 @@ import {
 import { radius, sans, sizing, space, motion, type Palette } from '../theme';
 import { useColors } from '../theme-context';
 import { Icon } from '../Icon';
+import { Cargando } from '../lume/Cargando';
 
 type Variant = 'primary' | 'intensity' | 'secondary' | 'soft' | 'ghost' | 'danger';
 type Size = 'sm' | 'md' | 'lg';
@@ -98,7 +98,7 @@ export function Button({
       {...rest}
     >
       {loading ? (
-        <ActivityIndicator color={labelColor} size="small" />
+        <Cargando tam="sm" color={labelColor} />
       ) : (
         <View style={styles.row}>
           {leading ?? (icon ? <Icon name={icon} size={iconSize} color={labelColor} /> : null)}

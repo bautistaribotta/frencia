@@ -17,6 +17,7 @@ export { LumeButton, type LumeButtonProps, type VarianteBoton, type TamanioBoton
 export { Campo, type CampoProps } from './Campo';
 export { Opciones, type Opcion, type OpcionesProps } from './Opciones';
 export { Segmentado, type SegmentadoProps } from './Segmentado';
+export { Cargando, type CargandoProps, type TamanioCargando } from './Cargando';
 export { Casilla, type CasillaProps } from './Casilla';
 export { Escala, type EscalaProps } from './Escala';
 export { PasoWizard, BotonTexto, type PasoWizardProps, type BotonTextoProps } from './PasoWizard';
