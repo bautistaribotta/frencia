@@ -212,7 +212,7 @@ export default function SetupWizardScreen() {
               loading={ultimo && guardando}
               onPress={siguiente}
             >
-              {ultimo ? 'Finalizar' : 'Continuar'}
+              {ultimo ? 'Finalizar' : 'Siguiente'}
             </LumeButton>
           </>
         }
