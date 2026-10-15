@@ -811,24 +811,6 @@ function PickerContenido({
         )}
       </View>
 
-      {/* Hoja con las ruedas del descanso, igual que la de edad y peso del
-         perfil. Cerrarla tocando afuera descarta el cambio. */}
-      <Hoja visible={descansoAbierto} onCerrar={() => setDescansoAbierto(false)} rueda>
-        <View style={styles.hojaTitulo}>
-          <LumeText rol="title" style={styles.centerText}>
-            Descanso entre series
-          </LumeText>
-          <LumeText rol="bodySm" color={t.textTertiary} style={styles.centerText}>
-            En 0:00 queda sin descanso.
-          </LumeText>
-        </View>
-        {descansoAbierto ? (
-          <MeasurePicker kind="rest" initial={descansoBorrador} onChange={setDescansoBorrador} />
-        ) : null}
-        <LumeButton variant="primary" size="lg" fullWidth onPress={confirmarDescanso}>
-          Listo
-        </LumeButton>
-      </Hoja>
 
       {/* Guardar el ejercicio configurado y volver al armado del dia */}
       {selected && (
@@ -845,6 +827,26 @@ function PickerContenido({
           </LumeButton>
         </View>
       )}
+
+      {/* Hoja con las ruedas del descanso, igual que la de edad y peso del
+         perfil. Cerrarla tocando afuera descarta el cambio. Va superpuesta y
+         al final, encima de todo: el selector ya es un Modal. */}
+      <Hoja visible={descansoAbierto} onCerrar={() => setDescansoAbierto(false)} rueda superpuesta>
+        <View style={styles.hojaTitulo}>
+          <LumeText rol="title" style={styles.centerText}>
+            Descanso entre series
+          </LumeText>
+          <LumeText rol="bodySm" color={t.textTertiary} style={styles.centerText}>
+            En 0:00 queda sin descanso.
+          </LumeText>
+        </View>
+        {descansoAbierto ? (
+          <MeasurePicker kind="rest" initial={descansoBorrador} onChange={setDescansoBorrador} />
+        ) : null}
+        <LumeButton variant="primary" size="lg" fullWidth onPress={confirmarDescanso}>
+          Listo
+        </LumeButton>
+      </Hoja>
     </KeyboardAvoidingView>
   );
 }

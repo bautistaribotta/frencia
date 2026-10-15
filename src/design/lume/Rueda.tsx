@@ -4,6 +4,10 @@
    el ancho condensado y los vecinos se achican y se desvanecen. La banda
    de seleccion es una pastilla de vidrio fuerte de 52 px que dibuja
    EscenarioRueda, detras de las ruedas.
+   El area tactil es mas ancha que la columna (`alcance`): el scroll se
+   estira hacia los costados con margenes negativos y repone ese espacio
+   como padding, asi los numeros no se mueven y se puede arrastrar desde
+   cualquier parte del escenario, no solo encima del numero.
    ============================================================ */
 
 import React, { useEffect, useRef } from 'react';
@@ -44,15 +48,36 @@ function tic() {
 
 type Alinear = 'centro' | 'izq' | 'der';
 
+// Cuanto se estira el area tactil a cada lado. AMPLIO llega hasta el borde
+// del escenario; JUNTO es la mitad del hueco hasta la rueda vecina, para que
+// dos ruedas no se pisen.
+const AMPLIO = 200;
+const JUNTO = 20;
+const ALCANCE = {
+  solo: { izq: AMPLIO, der: AMPLIO },
+  primera: { izq: AMPLIO, der: JUNTO },
+  segunda: { izq: JUNTO, der: AMPLIO },
+} as const;
+
 export interface RuedaProps {
   valores: (string | number)[];
   indice: number;
   onIndice: (i: number) => void;
   ancho?: number;
   alinear?: Alinear;
+  // Rueda sola, o la primera / segunda de un par (ft · in, min · s, kg . dec).
+  alcance?: keyof typeof ALCANCE;
 }
 
-export function Rueda({ valores, indice, onIndice, ancho = 96, alinear = 'centro' }: RuedaProps) {
+export function Rueda({
+  valores,
+  indice,
+  onIndice,
+  ancho = 96,
+  alinear = 'centro',
+  alcance = 'solo',
+}: RuedaProps) {
+  const { izq, der } = ALCANCE[alcance];
   const { t } = useLume();
   const ref = useRef<ScrollView>(null);
   const y = useSharedValue(indice * RUEDA_ITEM);
@@ -85,7 +110,7 @@ export function Rueda({ valores, indice, onIndice, ancho = 96, alinear = 'centro
   return (
     <Animated.ScrollView
       ref={ref}
-      style={{ height: ALTO, width: ancho, flexGrow: 0 }}
+      style={{ height: ALTO, width: ancho + izq + der, marginLeft: -izq, marginRight: -der, flexGrow: 0 }}
       showsVerticalScrollIndicator={false}
       snapToInterval={RUEDA_ITEM}
       decelerationRate="fast"
@@ -98,7 +123,7 @@ export function Rueda({ valores, indice, onIndice, ancho = 96, alinear = 'centro
         listo.current = true;
         ref.current?.scrollTo({ y: indice * RUEDA_ITEM, animated: false });
       }}
-      contentContainerStyle={{ paddingVertical: pad }}
+      contentContainerStyle={{ paddingVertical: pad, paddingLeft: izq, paddingRight: der }}
     >
       {valores.map((v, i) => (
         <Item key={`${v}-${i}`} texto={String(v)} i={i} y={y} alinear={alinear} color={t.textPrimary} />

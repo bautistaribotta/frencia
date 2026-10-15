@@ -146,9 +146,9 @@ export function MeasurePicker({
   } else if (kind === 'height') {
     ruedas = (
       <>
-        <Rueda valores={FEET} indice={i1} onIndice={cambiarI1} ancho={64} alinear="der" />
+        <Rueda valores={FEET} indice={i1} onIndice={cambiarI1} ancho={64} alinear="der" alcance="primera" />
         {entre('ft')}
-        <Rueda valores={INCH} indice={i2} onIndice={cambiarI2} ancho={64} alinear="der" />
+        <Rueda valores={INCH} indice={i2} onIndice={cambiarI2} ancho={64} alinear="der" alcance="segunda" />
         {entre('in')}
       </>
     );
@@ -161,19 +161,20 @@ export function MeasurePicker({
           onIndice={cambiarI1}
           ancho={112}
           alinear="der"
+          alcance="primera"
         />
         <LumeText rol="body" style={styles.punto}>
           .
         </LumeText>
-        <Rueda valores={DEC} indice={i2} onIndice={cambiarI2} ancho={52} alinear="izq" />
+        <Rueda valores={DEC} indice={i2} onIndice={cambiarI2} ancho={52} alinear="izq" alcance="segunda" />
       </>
     );
   } else {
     ruedas = (
       <>
-        <Rueda valores={REST_MIN} indice={i1} onIndice={cambiarI1} ancho={64} alinear="der" />
+        <Rueda valores={REST_MIN} indice={i1} onIndice={cambiarI1} ancho={64} alinear="der" alcance="primera" />
         {entre('min')}
-        <Rueda valores={REST_SEC} indice={i2} onIndice={cambiarI2} ancho={64} alinear="der" />
+        <Rueda valores={REST_SEC} indice={i2} onIndice={cambiarI2} ancho={64} alinear="der" alcance="segunda" />
         {entre('s')}
       </>
     );
