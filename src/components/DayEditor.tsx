@@ -4,34 +4,32 @@
    editar un dia que ya existe.
 
    No guarda nada ni sabe de la base: recibe el dia y avisa cada cambio. Quien
-   lo monta decide si eso va a memoria (wizard) o a la base (edicion). */
+   lo monta decide si eso va a memoria (wizard) o a la base (edicion).
+
+   Va en Lume: el nombre en un Campo grande con el icono en lume, la semana
+   como eleccion (accent) y los ejercicios en filas de vidrio. */
 
 import React, { useCallback, useMemo, useRef } from 'react';
-import { Pressable, StyleSheet, TextInput, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 
 import { DraggableRowList } from '@/components/DraggableRowList';
 import { useProfile } from '@/contexts/profile';
 import {
-  SEMANA,
-  SEMANA_NOMBRES,
   partesResumen,
   type DayExercise,
   type TrainingDay,
 } from '@/lib/dia';
 
+import { ExerciseSummary, Icon } from '@/design';
 import {
-  Button,
-  ExerciseSummary,
-  FrenciaText,
-  Icon,
-  radius,
-  sans,
-  sizing,
-  space,
-  useColors,
-  useThemedStyles,
-  type Palette,
-} from '@/design';
+  Campo,
+  LumeButton,
+  LumeText,
+  Semana,
+  lumeRadius,
+  lumeSpace,
+  useLume,
+} from '@/design/lume';
 
 export interface DayEditorProps {
   dia: TrainingDay;
@@ -51,8 +49,7 @@ export function DayEditor({
   onAgregarEjercicio,
   onEditarEjercicio,
 }: DayEditorProps) {
-  const colors = useColors();
-  const styles = useThemedStyles(makeStyles);
+  const { t } = useLume();
   const { profile } = useProfile();
   const unidadDistancia = profile?.unidadDistancia ?? 'km';
   const unidadPeso = profile?.unidadPeso ?? 'kg';
@@ -105,64 +102,41 @@ export function DayEditor({
     [dia.exercises, unidadDistancia, unidadPeso],
   );
 
-  return (
-    <View style={styles.dayStep}>
-      <View style={styles.field}>
-        <Icon name="calendar" size={20} color={colors.accent} />
-        <TextInput
-          style={styles.input}
-          placeholder={placeholderNombre}
-          placeholderTextColor={colors.textTertiary}
-          value={dia.name}
-          onChangeText={(name) => onChange({ name })}
-          maxLength={40}
-          returnKeyType="done"
-        />
-      </View>
+  // La semana del dia como indices marcados (0 = lunes), que es lo que pinta Semana.
+  const marcados = dia.weekdays.flatMap((on, i) => (on ? [i] : []));
 
-      <View style={styles.pickerRow}>
-        {SEMANA.map((d, i) => {
-          const on = dia.weekdays[i];
-          return (
-            <Pressable
-              key={d}
-              onPress={() => alternarDiaSemana(i)}
-              accessibilityRole="button"
-              accessibilityState={{ selected: on }}
-              accessibilityLabel={SEMANA_NOMBRES[i]}
-              style={({ pressed }) => [
-                styles.pickerCell,
-                on ? styles.pickerCellOn : styles.pickerCellOff,
-                pressed && styles.pickerCellPressed,
-              ]}
-            >
-              <FrenciaText
-                style={styles.pickerLetter}
-                color={on ? colors.textOnAccent : colors.textSecondary}
-              >
-                {d}
-              </FrenciaText>
-            </Pressable>
-          );
-        })}
-      </View>
+  return (
+    <View style={styles.paso}>
+      <Campo
+        lg
+        iconoAcento
+        icono="calendar"
+        placeholder={placeholderNombre}
+        value={dia.name}
+        onChangeText={(name) => onChange({ name })}
+        maxLength={40}
+        returnKeyType="done"
+        accessibilityLabel="Nombre del día"
+      />
+
+      <Semana editor marcados={marcados} onToggle={alternarDiaSemana} />
 
       {dia.exercises.length === 0 ? (
-        <View style={styles.emptyExercises}>
-          <Icon name="dumbbell" size={26} color={colors.textTertiary} />
-          <FrenciaText role="bodySm" color={colors.textTertiary} style={styles.centerText}>
+        <View style={[styles.vacio, { backgroundColor: t.surfaceInset, borderColor: t.borderStrong }]}>
+          <Icon name="dumbbell" size={22} strokeWidth={1.75} color={t.textTertiary} />
+          <LumeText rol="bodySm" color={t.textTertiary} style={styles.centrado}>
             Todavía no agregaste ejercicios.
-          </FrenciaText>
+          </LumeText>
         </View>
       ) : (
-        <View style={styles.exerciseBlock}>
+        <View style={styles.ejercicios}>
           {/* Las dos acciones de la fila no tienen icono propio, asi que se
              enuncian. Reordenar solo aparece cuando hay algo que reordenar. */}
-          <FrenciaText role="dataLabel" color={colors.textTertiary}>
+          <LumeText rol="label" color={t.textTertiary}>
             {dia.exercises.length > 1
               ? 'Tocá un ejercicio para editarlo · mantenelo apretado para cambiarlo de orden'
               : 'Tocá el ejercicio para editarlo'}
-          </FrenciaText>
+          </LumeText>
           <DraggableRowList
             items={exerciseItems}
             onReorder={moverEjercicio}
@@ -172,57 +146,23 @@ export function DayEditor({
         </View>
       )}
 
-      <Button variant="secondary" size="lg" icon="plus" fullWidth onPress={onAgregarEjercicio}>
+      <LumeButton variant="secondary" size="lg" icon="plus" fullWidth onPress={onAgregarEjercicio}>
         {dia.exercises.length === 0 ? 'Agregar ejercicio' : 'Agregar otro ejercicio'}
-      </Button>
+      </LumeButton>
     </View>
   );
 }
 
-const makeStyles = (colors: Palette) =>
-  StyleSheet.create({
-    dayStep: { gap: space[5] },
-    centerText: { textAlign: 'center' },
-
-    field: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: space[4],
-      paddingHorizontal: space[5],
-      height: sizing.controlHLg,
-      borderRadius: radius.lg,
-      backgroundColor: colors.surfaceCard,
-      borderWidth: 1,
-      borderColor: colors.borderSubtle,
-    },
-    input: { flex: 1, fontFamily: sans.regular, fontSize: 16, color: colors.textPrimary },
-
-    // Grilla de dias de la semana
-    pickerRow: { flexDirection: 'row', gap: space[2] },
-    pickerCell: {
-      flex: 1,
-      aspectRatio: 1,
-      borderRadius: radius.md,
-      alignItems: 'center',
-      justifyContent: 'center',
-    },
-    pickerCellOn: { backgroundColor: colors.accent },
-    pickerCellOff: {
-      backgroundColor: colors.surfaceCard,
-      borderWidth: 1,
-      borderColor: colors.borderSubtle,
-    },
-    pickerCellPressed: { opacity: 0.75 },
-    pickerLetter: { fontFamily: sans.medium, fontSize: 15 },
-
-    emptyExercises: {
-      alignItems: 'center',
-      gap: space[3],
-      paddingVertical: space[8],
-      borderRadius: radius.lg,
-      borderWidth: 1,
-      borderStyle: 'dashed',
-      borderColor: colors.borderSubtle,
-    },
-    exerciseBlock: { gap: space[3] },
-  });
+const styles = StyleSheet.create({
+  paso: { gap: lumeSpace[5] },
+  centrado: { textAlign: 'center' },
+  vacio: {
+    alignItems: 'center',
+    gap: lumeSpace[3],
+    paddingVertical: lumeSpace[8],
+    borderRadius: lumeRadius.lg,
+    borderWidth: 1,
+    borderStyle: 'dashed',
+  },
+  ejercicios: { gap: lumeSpace[4] },
+});

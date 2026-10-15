@@ -3,7 +3,8 @@
    con un dia que ya existe. Se edita todo en memoria y se guarda de una:
    nombre, dias de la semana y ejercicios. Ver docs/specs/rutinas-y-dias.md
 
-   Abajo quedan Guardar y Cancelar. Eliminar el dia va al final del scroll:
+   Abajo quedan Guardar y Cancelar; el contenido se funde antes de llegar a
+   ellos con una mascara (Lume). Eliminar el dia va al final del scroll:
    es destructivo y poco frecuente, asi que se llega a proposito y no queda
    a un toque de Guardar. */
 
@@ -18,6 +19,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
+import MaskedView from '@react-native-masked-view/masked-view';
 
 import { useProfile } from '@/contexts/profile';
 import { useToast } from '@/contexts/toast';
@@ -35,17 +37,12 @@ import {
   type TrainingDay,
 } from '@/lib/dia';
 
-import {
-  Button,
-  FrenciaText,
-  space,
-  spacing,
-  useColors,
-  useThemedStyles,
-  withAlpha,
-  type Palette,
-} from '@/design';
-import { Cargando } from '@/design/lume';
+import { Cargando, Fondo, LumeButton, LumeText, lumeLayout, lumeSpace, useLume } from '@/design/lume';
+
+// La mascara del fundido solo mira el alfa: lleno se ve, vacio no. No son
+// colores de la interfaz.
+const MASCARA_LLENA = '#000000';
+const MASCARA_VACIA = 'transparent';
 
 
 // Firma del dia para saber si hay cambios sin guardar. Compara lo que se
@@ -69,8 +66,7 @@ function firma(dia: TrainingDay): string {
 }
 
 export default function EditDayScreen() {
-  const colors = useColors();
-  const styles = useThemedStyles(makeStyles);
+  const { t } = useLume();
   const { showToast } = useToast();
   const { profile } = useProfile();
   const medidor: Medidor = profile?.medidorEsfuerzo ?? 'rir';
@@ -189,115 +185,122 @@ export default function EditDayScreen() {
   }
 
   return (
-    <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
-      <KeyboardAvoidingView
-        style={styles.flex}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      >
-        <View style={styles.header}>
-          <Button
-            variant="ghost"
-            size="sm"
-            icon="chevron-left"
-            onPress={() => salir()}
-            disabled={guardando || borrando}
-          >
-            Atrás
-          </Button>
-        </View>
+    <View style={styles.pantalla}>
+      <Fondo posicion="cumbre" />
+      <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
+        <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+          <View style={styles.cuerpo}>
+            <View style={styles.volver}>
+              <LumeButton
+                variant="ghost"
+                size="sm"
+                icon="chevron-left"
+                onPress={() => salir()}
+                disabled={guardando || borrando}
+              >
+                Atrás
+              </LumeButton>
+            </View>
 
-        {cargando ? (
-          <View style={styles.centro}>
-            <Cargando />
-          </View>
-        ) : !dia ? (
-          <View style={styles.centro}>
-            <FrenciaText role="subtitle" style={styles.centerText}>
-              No encontramos este día
-            </FrenciaText>
-            <FrenciaText role="bodySm" color={colors.textSecondary} style={styles.centerText}>
-              Puede que lo hayas borrado desde otro dispositivo.
-            </FrenciaText>
-          </View>
-        ) : (
-          <View style={styles.scrollWrap}>
-            <ScrollView
-              style={styles.flex}
-              contentContainerStyle={styles.scroll}
-              keyboardShouldPersistTaps="handled"
-              keyboardDismissMode="interactive"
-              showsVerticalScrollIndicator={false}
-            >
-              <View style={styles.control}>
-                {/* El nombre de la rutina ubica el dia: el campo de abajo edita
-                   el nombre del dia, y sin este dato no se sabe de cual cuelga. */}
-                <FrenciaText role="dataLabel" color={colors.accentText}>
-                  Editar día{rutina ? ` · ${rutina}` : ''}
-                </FrenciaText>
-                <FrenciaText role="subtitle">{dia.name || 'Día sin nombre'}</FrenciaText>
-                <FrenciaText role="bodySm" color={colors.textSecondary} style={styles.hint}>
-                  Cambiá el nombre, cuándo lo entrenás y sus ejercicios.
-                </FrenciaText>
-
-                <DayEditor
-                  dia={dia}
-                  placeholderNombre="Nombre del día"
-                  onChange={actualizar}
-                  onAgregarEjercicio={() => abrirPicker(null)}
-                  onEditarEjercicio={abrirPicker}
-                />
+            {cargando ? (
+              <View style={styles.centro}>
+                <Cargando />
               </View>
-
-              <View style={styles.zonaEliminar}>
-                <Button
-                  variant="danger"
-                  size="lg"
-                  fullWidth
-                  icon="trash-2"
-                  disabled={guardando}
-                  loading={borrando}
-                  onPress={eliminar}
+            ) : !dia ? (
+              <View style={styles.centro}>
+                <LumeText rol="subtitle" style={styles.centrado}>
+                  No encontramos este día
+                </LumeText>
+                <LumeText rol="bodySm" color={t.textSecondary} style={styles.centrado}>
+                  Puede que lo hayas borrado desde otro dispositivo.
+                </LumeText>
+              </View>
+            ) : (
+              /* El contenido se funde contra el fondo antes de los botones. Es
+                 una mascara y no un degradado al color de fondo: debajo hay
+                 luces, no un color plano. */
+              <MaskedView
+                style={styles.flex}
+                maskElement={
+                  <View style={styles.flex}>
+                    <View style={[styles.flex, { backgroundColor: MASCARA_LLENA }]} />
+                    <LinearGradient colors={[MASCARA_LLENA, MASCARA_VACIA]} style={styles.fundido} />
+                  </View>
+                }
+              >
+                <ScrollView
+                  style={styles.flex}
+                  contentContainerStyle={styles.scroll}
+                  keyboardShouldPersistTaps="handled"
+                  keyboardDismissMode="interactive"
+                  showsVerticalScrollIndicator={false}
                 >
-                  Eliminar día
-                </Button>
-              </View>
-            </ScrollView>
+                  <View style={styles.control}>
+                    {/* El nombre de la rutina ubica el dia: el campo de abajo
+                       edita el nombre del dia, y sin este dato no se sabe de
+                       cual cuelga. */}
+                    <LumeText rol="label" color={t.signalText}>
+                      Editar día{rutina ? ` · ${rutina}` : ''}
+                    </LumeText>
+                    <LumeText rol="subtitle">{dia.name || 'Día sin nombre'}</LumeText>
+                    <LumeText rol="bodySm" color={t.textSecondary} style={styles.ayuda}>
+                      Cambiá el nombre, cuándo lo entrenás y sus ejercicios.
+                    </LumeText>
 
-            {/* Funde el contenido contra el fondo antes de que toque el boton
-               de guardar, en lugar del corte seco. No intercepta toques. */}
-            <LinearGradient
-              colors={[withAlpha(colors.bgApp, 0), colors.bgApp]}
-              style={styles.fadeBottom}
-            />
-          </View>
-        )}
+                    <DayEditor
+                      dia={dia}
+                      placeholderNombre="Nombre del día"
+                      onChange={actualizar}
+                      onAgregarEjercicio={() => abrirPicker(null)}
+                      onEditarEjercicio={abrirPicker}
+                    />
+                  </View>
 
-        {dia && (
-          <View style={styles.nav}>
-            <Button
-              variant="primary"
-              size="lg"
-              fullWidth
-              icon="check"
-              disabled={!sucio || !nombreValido || borrando}
-              loading={guardando}
-              onPress={guardar}
-            >
-              Guardar cambios
-            </Button>
-            <Button
-              variant="secondary"
-              size="lg"
-              fullWidth
-              icon="x"
-              disabled={guardando || borrando}
-              onPress={() => salir()}
-            >
-              Cancelar
-            </Button>
+                  <View style={styles.zonaEliminar}>
+                    <LumeButton
+                      variant="danger"
+                      size="lg"
+                      fullWidth
+                      icon="trash-2"
+                      disabled={guardando}
+                      loading={borrando}
+                      onPress={eliminar}
+                    >
+                      Eliminar día
+                    </LumeButton>
+                  </View>
+                </ScrollView>
+              </MaskedView>
+            )}
           </View>
-        )}
-      </KeyboardAvoidingView>
+
+          {dia && (
+            <View style={styles.nav}>
+              <LumeButton
+                variant="primary"
+                size="lg"
+                fullWidth
+                icon="check"
+                disabled={!sucio || !nombreValido || borrando}
+                loading={guardando}
+                onPress={guardar}
+              >
+                Guardar cambios
+              </LumeButton>
+              <LumeButton
+                variant="secondary"
+                size="lg"
+                fullWidth
+                icon="x"
+                disabled={guardando || borrando}
+                onPress={() => salir()}
+              >
+                Cancelar
+              </LumeButton>
+            </View>
+          )}
+        </KeyboardAvoidingView>
+      </SafeAreaView>
 
       <ExercisePickerModal
         visible={pickerOpen}
@@ -306,39 +309,37 @@ export default function EditDayScreen() {
         onClose={() => setPickerOpen(false)}
         onSubmit={guardarEjercicio}
       />
-    </SafeAreaView>
+    </View>
   );
 }
 
-const makeStyles = (colors: Palette) =>
-  StyleSheet.create({
-    safe: { flex: 1, backgroundColor: colors.bgApp },
-    flex: { flex: 1, paddingHorizontal: spacing.padScreen, paddingVertical: space[5] },
+const styles = StyleSheet.create({
+  pantalla: { flex: 1 },
+  safe: { flex: 1 },
+  flex: { flex: 1 },
+  // El marco de los wizards: el contenido va con el margen de pantalla.
+  cuerpo: { flex: 1, paddingHorizontal: lumeLayout.padScreen, paddingTop: lumeSpace[3] },
+  // El boton ghost trae su propio padding: el margen lo corre 10 px a la
+  // izquierda para que el chevron quede alineado con el borde del contenido.
+  volver: { flexDirection: 'row', marginLeft: -10 },
+  centro: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: lumeSpace[3] },
+  centrado: { textAlign: 'center' },
 
-    header: { flexDirection: 'row', alignItems: 'center', minHeight: 40 },
+  // A diferencia del wizard, aca el contenido arranca arriba: el dia ya
+  // tiene ejercicios, asi que la pantalla nace larga y centrarla la haria
+  // saltar segun cuantos haya. El padding de abajo deja salir el boton de
+  // eliminar del fundido.
+  scroll: { paddingTop: lumeSpace[6], paddingBottom: lumeSpace[11] },
+  control: { gap: lumeSpace[3] },
+  ayuda: { marginBottom: lumeSpace[2], maxWidth: 320 },
+  // Separado de los ejercicios para que no se lea como parte del editor.
+  zonaEliminar: { marginTop: lumeSpace[10] },
+  fundido: { height: lumeSpace[11] },
 
-    centro: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: space[3] },
-    centerText: { textAlign: 'center' },
-
-    // A diferencia del wizard, aca el contenido arranca arriba: el dia ya
-    // tiene ejercicios, asi que la pantalla nace larga y centrarla la haria
-    // saltar segun cuantos haya.
-    scroll: { paddingTop: space[6], paddingBottom: space[6] },
-    control: { gap: space[3] },
-    hint: { marginBottom: space[2], maxWidth: 320 },
-    // Separado de los ejercicios para que no se lea como parte del editor.
-    zonaEliminar: { marginTop: space[10] },
-
-    // Envuelve el scroll para colgarle el degradado encima sin sacarlo de flujo.
-    scrollWrap: { flex: 1 },
-    fadeBottom: {
-      position: 'absolute',
-      left: 0,
-      right: 0,
-      bottom: 0,
-      height: space[11],
-      pointerEvents: 'none',
-    },
-
-    nav: { paddingHorizontal: spacing.padScreen, paddingBottom: space[5], gap: space[2] },
-  });
+  nav: {
+    paddingHorizontal: lumeLayout.padScreen,
+    paddingTop: lumeSpace[4],
+    paddingBottom: lumeSpace[5],
+    gap: lumeSpace[2],
+  },
+});

@@ -13,6 +13,9 @@
    ejercicio cargados: el ejercicio ya esta elegido, lo que se cambia son los
    numeros.
 
+   Va en Lume: fondo velado, el elegido en vidrio fuerte, los campos de la
+   familia Stepper y las filas del catalogo que se despliegan en vidrio.
+
    Cada apertura monta el contenido de cero, con su estado inicial sacado de
    las props: el modal no arrastra lo que se configuro la vez anterior. */
 
@@ -25,6 +28,7 @@ import {
   Pressable,
   ScrollView,
   StyleSheet,
+  Text,
   TextInput,
   View,
   type ListRenderItemInfo,
@@ -32,8 +36,10 @@ import {
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import Animated, { FadeIn } from 'react-native-reanimated';
+import MaskedView from '@react-native-masked-view/masked-view';
 
 import { MarqueeText } from '@/components/MarqueeText';
+import { Hoja } from '@/components/Hoja';
 import { MeasurePicker } from '@/components/MeasurePicker';
 import { useProfile } from '@/contexts/profile';
 import { useToast } from '@/contexts/toast';
@@ -65,29 +71,33 @@ import {
 } from '@/lib/dia';
 
 import {
-  Button,
   DistanceField,
   DurationField,
   ExerciseTypeTag,
-  FrenciaText,
   Icon,
   NumberField,
-  SegmentedControl,
   Stepper,
   Tag,
-  mono,
-  motion,
-  radius,
-  sans,
-  sizing,
-  space,
-  spacing,
-  useColors,
-  useThemedStyles,
-  withAlpha,
-  type Palette,
 } from '@/design';
-import { Cargando } from '@/design/lume';
+import {
+  Cargando,
+  Fondo,
+  LumeButton,
+  LumeText,
+  Segmentado,
+  Vidrio,
+  lumeFuente,
+  lumeLayout,
+  lumeMotion,
+  lumeRadius,
+  lumeSpace,
+  useLume,
+} from '@/design/lume';
+
+// La mascara del fundido solo mira el alfa: lleno se ve, vacio no. No son
+// colores de la interfaz.
+const MASCARA_LLENA = '#000000';
+const MASCARA_VACIA = 'transparent';
 
 
 /** Ejercicio ya elegido, venga del catalogo o de un dia armado. */
@@ -134,7 +144,6 @@ export function ExercisePickerModal({
   onClose,
   onSubmit,
 }: ExercisePickerModalProps) {
-  const styles = useThemedStyles(makeStyles);
 
   // Catalogo completo en memoria: la busqueda filtra sobre esto, sin red. Vive
   // aca y no en el contenido para no volver a pedirlo en cada apertura.
@@ -158,17 +167,21 @@ export function ExercisePickerModal({
        cero y el header se mete abajo del notch. */
     <Modal visible={visible} animationType="slide" onRequestClose={onClose} statusBarTranslucent>
       <SafeAreaProvider>
-        <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
-          <PickerContenido
-            key={apertura}
-            medidor={medidor}
-            editando={editando}
-            catalog={catalog}
-            catalogLoading={catalogLoading}
-            onClose={onClose}
-            onSubmit={onSubmit}
-          />
-        </SafeAreaView>
+        {/* Fondo velado: el catalogo y el configurador llevan mucho texto chico. */}
+        <View style={styles.pantalla}>
+          <Fondo posicion="velada" />
+          <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
+            <PickerContenido
+              key={apertura}
+              medidor={medidor}
+              editando={editando}
+              catalog={catalog}
+              catalogLoading={catalogLoading}
+              onClose={onClose}
+              onSubmit={onSubmit}
+            />
+          </SafeAreaView>
+        </View>
       </SafeAreaProvider>
     </Modal>
   );
@@ -188,8 +201,7 @@ function PickerContenido({
   onClose,
   onSubmit,
 }: PickerContenidoProps) {
-  const colors = useColors();
-  const styles = useThemedStyles(makeStyles);
+  const { t, sombras } = useLume();
   const { showToast } = useToast();
   const { profile } = useProfile();
   const unidadDistancia = profile?.unidadDistancia ?? 'km';
@@ -423,18 +435,17 @@ function PickerContenido({
   const bloqueRpeOpcional = (
     <View style={styles.campoBloque}>
       <View style={styles.captionFila}>
-        <FrenciaText role="dataLabel" color={colors.textTertiary}>
+        <LumeText rol="label" color={t.textTertiary}>
           Intensidad
-        </FrenciaText>
-        <FrenciaText role="dataLabel" color={colors.textDisabled}>
+        </LumeText>
+        <LumeText rol="label" color={t.textDisabled}>
           opcional
-        </FrenciaText>
+        </LumeText>
       </View>
-      <SegmentedControl
-        fullWidth
+      <Segmentado
         value={conRpe ? 'rpe' : 'none'}
         onChange={(v) => setConRpe(v === 'rpe')}
-        options={[
+        opciones={[
           { value: 'none', label: 'Sin RPE' },
           { value: 'rpe', label: 'RPE' },
         ]}
@@ -458,387 +469,371 @@ function PickerContenido({
   // edad o el peso en el perfil.
   const bloqueDescanso = (
     <View style={styles.campoBloque}>
-      <FrenciaText role="dataLabel" color={colors.textTertiary}>
+      <LumeText rol="label" color={t.textTertiary}>
         Descanso entre series
-      </FrenciaText>
+      </LumeText>
       <Pressable
         onPress={abrirDescanso}
         accessibilityRole="button"
         accessibilityLabel={`Descanso entre series: ${restLabel(restSeconds)}`}
         accessibilityHint="Abre las ruedas para elegir minutos y segundos"
-        style={({ pressed }) => [styles.campo, pressed && styles.campoPresionado]}
+        style={({ pressed }) => [
+          styles.campoToque,
+          {
+            backgroundColor: pressed ? t.surfaceCardElevated : t.surfaceCard,
+            borderColor: t.glassLine,
+            borderTopColor: t.glassHighlight,
+            boxShadow: sombras.glass,
+          },
+        ]}
       >
-        <Icon name="timer" size={20} color={colors.textTertiary} />
+        <Icon name="timer" size={20} strokeWidth={1.75} color={t.textTertiary} />
         {restSeconds === null ? (
-          <FrenciaText role="body" color={colors.textSecondary} style={styles.campoTexto}>
+          <LumeText rol="body" color={t.textSecondary} style={styles.campoTexto}>
             Sin descanso
-          </FrenciaText>
+          </LumeText>
         ) : (
-          <FrenciaText style={[styles.campoValor, styles.campoTexto]}>
+          <LumeText rol="hero" style={[styles.campoValor, styles.campoTexto]}>
             {restLabel(restSeconds)}
-          </FrenciaText>
+          </LumeText>
         )}
-        <Icon name="chevron-right" size={18} color={colors.textTertiary} />
+        <Icon name="chevron-right" size={18} strokeWidth={1.75} color={t.textTertiary} />
       </Pressable>
     </View>
   );
 
   return (
-    <KeyboardAvoidingView
-      style={styles.flex}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-    >
-      {/* Header del modal: solo la salida. El titulo va mas abajo,
-         junto al contenido, para que no compita con el boton. */}
-      {/* Editando no hay atras al buscador: el ejercicio ya esta elegido
-         y la unica salida es cerrar. */}
-      <View style={styles.modalHeader}>
-        <Button
-          variant="ghost"
-          size="sm"
-          icon={selected && !editMode ? 'chevron-left' : 'x'}
-          onPress={() => (selected && !editMode ? setSelected(null) : onClose())}
-        >
-          {selected && !editMode ? 'Atrás' : 'Cerrar'}
-        </Button>
-      </View>
+    <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+      <View style={styles.cuerpo}>
+        {/* Header del modal: solo la salida. El titulo va mas abajo, junto
+           al contenido, para que no compita con el boton. Editando no hay
+           atras al buscador: el ejercicio ya esta elegido y la unica salida
+           es cerrar. */}
+        <View style={styles.modalHeader}>
+          <LumeButton
+            variant="ghost"
+            size="sm"
+            icon={selected && !editMode ? 'chevron-left' : 'x'}
+            onPress={() => (selected && !editMode ? setSelected(null) : onClose())}
+          >
+            {selected && !editMode ? 'Atrás' : 'Cerrar'}
+          </LumeButton>
+        </View>
 
-      {selected ? (
-        /* Configurar: series, reps y medidor de esfuerzo */
-        <ScrollView
-          style={styles.flex}
-          contentContainerStyle={styles.modalBody}
-          keyboardShouldPersistTaps="handled"
-          showsVerticalScrollIndicator={false}
-        >
-          <FrenciaText role="title">
-            {editMode ? 'Editar ejercicio' : 'Configurar'}
-          </FrenciaText>
+        {selected ? (
+          /* Configurar: series, reps y medidor de esfuerzo */
+          <ScrollView
+            style={styles.flex}
+            contentContainerStyle={styles.modalBody}
+            keyboardShouldPersistTaps="handled"
+            showsVerticalScrollIndicator={false}
+          >
+            <LumeText rol="title">{editMode ? 'Editar ejercicio' : 'Configurar'}</LumeText>
 
-          <View style={styles.selectedCard}>
-            <Icon name={TIPOS[selected.kind].icon} size={20} color={colors.accent} />
-            <View style={styles.nombre}>
-              <MarqueeText text={selected.name} role="subtitle" />
-              {selected.kind !== 'fuerza' ? (
-                <ExerciseTypeTag
-                  label={TIPOS[selected.kind].label}
-                  icon={TIPOS[selected.kind].icon}
-                  metrics={datosAbreviados(selected.tracks)}
-                />
-              ) : null}
-            </View>
-          </View>
-
-          {esCardio ? (
-            <>
-              {/* Una sola serie continua: sin series ni descanso. El plan
-                 prescribe tiempo, distancia o las dos cosas. */}
-              <View style={styles.cardioCampos}>
-                {selected.tracks.duration ? (
-                  <DurationField
-                    label="Tiempo"
-                    value={tiempo}
-                    onChange={(v) => setTiempo(v > 0 ? v : null)}
-                    step={60}
-                    allowHours
-                    size="lg"
-                    fullWidth
+            <Vidrio nivel="fuerte" style={styles.elegido}>
+              <Icon name={TIPOS[selected.kind].icon} size={20} strokeWidth={1.75} color={t.textPrimary} />
+              <View style={styles.nombre}>
+                <MarqueeText text={selected.name} role="subtitle" color={t.textPrimary} />
+                {selected.kind !== 'fuerza' ? (
+                  <ExerciseTypeTag
+                    label={TIPOS[selected.kind].label}
+                    icon={TIPOS[selected.kind].icon}
+                    metrics={datosAbreviados(selected.tracks)}
                   />
-                ) : null}
-                {selected.tracks.distance ? (
-                  <DistanceField
-                    label="Distancia"
-                    value={distancia}
-                    onChange={(v) => setDistancia(v !== null && v > 0 ? v : null)}
-                    unit={unidadDistancia}
-                    size="lg"
-                    fullWidth
-                  />
-                ) : null}
-                {!tiempoValido ? (
-                  <FrenciaText role="bodySm" color={colors.textTertiary}>
-                    Cargá el tiempo para seguir.
-                  </FrenciaText>
                 ) : null}
               </View>
+            </Vidrio>
 
-              {bloqueRpeOpcional}
-            </>
-          ) : esIsometrico ? (
-            <>
-              {/* Series con descanso, como la fuerza, pero el volumen es el
-                 tiempo sostenido. Las series van solas y a todo el ancho,
-                 igual que el tiempo de abajo: el campo de tiempo no entra a
-                 media anchura. */}
-              <Stepper
-                label="Series"
-                value={sets}
-                onChange={setSets}
-                min={1}
-                max={20}
-                size="lg"
-                fullWidth
-              />
-              <View style={styles.cardioCampos}>
-                {selected.tracks.duration ? (
-                  <DurationField
-                    label={sets > 1 ? 'Tiempo por serie' : 'Tiempo'}
-                    value={tiempo}
-                    onChange={(v) => setTiempo(v > 0 ? v : null)}
-                    step={5}
-                    size="lg"
-                    fullWidth
-                  />
-                ) : null}
-                {!tiempoValido ? (
-                  <FrenciaText role="bodySm" color={colors.textTertiary}>
-                    Cargá el tiempo para seguir.
-                  </FrenciaText>
-                ) : null}
-              </View>
-
-              {/* El peso es opcional: la plancha suele ir sin carga. Si el plan
-                 lo prescribe, la sesion lo pide en cada serie. */}
-              {selected.tracks.weight ? (
-                <View style={styles.campoBloque}>
-                  <View style={styles.captionFila}>
-                    <FrenciaText role="dataLabel" color={colors.textTertiary}>
-                      {sets > 1 ? 'Peso por serie' : 'Peso'}
-                    </FrenciaText>
-                    <FrenciaText role="dataLabel" color={colors.textDisabled}>
-                      opcional
-                    </FrenciaText>
-                  </View>
-                  <NumberField
-                    value={pesoPlan}
-                    onChange={(v) => setPesoPlan(v !== null && v > 0 ? v : null)}
-                    min={0}
-                    step={unidadPeso === 'lb' ? 5 : 2.5}
-                    decimals={1}
-                    unit={unidadPeso}
-                    size="lg"
-                    fullWidth
-                  />
-                  <FrenciaText role="bodySm" color={colors.textTertiary}>
-                    {pesoPlan
-                      ? 'Con peso en el plan, la sesión lo pide en cada serie.'
-                      : 'Sin peso en el plan, en la sesión es opcional.'}
-                  </FrenciaText>
+            {esCardio ? (
+              <>
+                {/* Una sola serie continua: sin series ni descanso. El plan
+                   prescribe tiempo, distancia o las dos cosas. */}
+                <View style={styles.cardioCampos}>
+                  {selected.tracks.duration ? (
+                    <DurationField
+                      label="Tiempo"
+                      value={tiempo}
+                      onChange={(v) => setTiempo(v > 0 ? v : null)}
+                      step={60}
+                      allowHours
+                      size="lg"
+                      fullWidth
+                    />
+                  ) : null}
+                  {selected.tracks.distance ? (
+                    <DistanceField
+                      label="Distancia"
+                      value={distancia}
+                      onChange={(v) => setDistancia(v !== null && v > 0 ? v : null)}
+                      unit={unidadDistancia}
+                      size="lg"
+                      fullWidth
+                    />
+                  ) : null}
+                  {!tiempoValido ? (
+                    <LumeText rol="bodySm" color={t.textTertiary}>
+                      Cargá el tiempo para seguir.
+                    </LumeText>
+                  ) : null}
                 </View>
-              ) : null}
 
-              {bloqueRpeOpcional}
-              {bloqueDescanso}
-            </>
-          ) : (
-            <>
-              {/* Series y repeticiones van juntas, como en el design system: son
-                 el volumen y se leen de a par ("3 x 10"). */}
-              <View style={styles.par}>
+                {bloqueRpeOpcional}
+              </>
+            ) : esIsometrico ? (
+              <>
+                {/* Series con descanso, como la fuerza, pero el volumen es el
+                   tiempo sostenido. Las series van solas y a todo el ancho,
+                   igual que el tiempo de abajo: el campo de tiempo no entra a
+                   media anchura. */}
+                <Stepper label="Series" value={sets} onChange={setSets} min={1} max={20} size="lg" fullWidth />
+                <View style={styles.cardioCampos}>
+                  {selected.tracks.duration ? (
+                    <DurationField
+                      label={sets > 1 ? 'Tiempo por serie' : 'Tiempo'}
+                      value={tiempo}
+                      onChange={(v) => setTiempo(v > 0 ? v : null)}
+                      step={5}
+                      size="lg"
+                      fullWidth
+                    />
+                  ) : null}
+                  {!tiempoValido ? (
+                    <LumeText rol="bodySm" color={t.textTertiary}>
+                      Cargá el tiempo para seguir.
+                    </LumeText>
+                  ) : null}
+                </View>
+
+                {/* El peso es opcional: la plancha suele ir sin carga. Si el
+                   plan lo prescribe, la sesion lo pide en cada serie. */}
+                {selected.tracks.weight ? (
+                  <View style={styles.campoBloque}>
+                    <View style={styles.captionFila}>
+                      <LumeText rol="label" color={t.textTertiary}>
+                        {sets > 1 ? 'Peso por serie' : 'Peso'}
+                      </LumeText>
+                      <LumeText rol="label" color={t.textDisabled}>
+                        opcional
+                      </LumeText>
+                    </View>
+                    <NumberField
+                      value={pesoPlan}
+                      onChange={(v) => setPesoPlan(v !== null && v > 0 ? v : null)}
+                      min={0}
+                      step={unidadPeso === 'lb' ? 5 : 2.5}
+                      decimals={1}
+                      unit={unidadPeso}
+                      size="lg"
+                      fullWidth
+                    />
+                    <LumeText rol="bodySm" color={t.textTertiary}>
+                      {pesoPlan
+                        ? 'Con peso en el plan, la sesión lo pide en cada serie.'
+                        : 'Sin peso en el plan, en la sesión es opcional.'}
+                    </LumeText>
+                  </View>
+                ) : null}
+
+                {bloqueRpeOpcional}
+                {bloqueDescanso}
+              </>
+            ) : (
+              <>
+                {/* Series y repeticiones van juntas: son el volumen y se leen
+                   de a par ("3 x 10"). */}
+                <View style={styles.par}>
+                  <Stepper
+                    label="Series"
+                    value={sets}
+                    onChange={setSets}
+                    min={1}
+                    max={20}
+                    size="lg"
+                    fullWidth
+                    style={styles.parItem}
+                  />
+                  <Stepper
+                    label="Repeticiones"
+                    value={reps}
+                    onChange={setReps}
+                    min={1}
+                    max={50}
+                    size="lg"
+                    fullWidth
+                    style={styles.parItem}
+                  />
+                </View>
+
                 <Stepper
-                  label="Series"
-                  value={sets}
-                  onChange={setSets}
-                  min={1}
-                  max={20}
+                  label={`Esfuerzo · ${medidorActivo === 'rir' ? 'RIR' : 'RPE'}`}
+                  value={intensityValue}
+                  onChange={setIntensityValue}
+                  min={rango.min}
+                  max={rango.max}
+                  format={(v) => intensityValueLabel(medidorActivo, v)}
                   size="lg"
                   fullWidth
-                  style={styles.parItem}
                 />
-                <Stepper
-                  label="Repeticiones"
-                  value={reps}
-                  onChange={setReps}
-                  min={1}
-                  max={50}
-                  size="lg"
-                  fullWidth
-                  style={styles.parItem}
+
+                {bloqueDescanso}
+              </>
+            )}
+          </ScrollView>
+        ) : (
+          /* Buscar: titulo, input y catalogo. El bloque de arriba baja
+             respecto del boton Cerrar para que no queden pegados. */
+          <View style={styles.flex}>
+            <View style={styles.searchHeader}>
+              <LumeText rol="title">Agregar ejercicio</LumeText>
+
+              <View style={[styles.searchField, { backgroundColor: t.surfaceInset, borderColor: t.glassLine }]}>
+                <Icon name="search" size={18} strokeWidth={1.75} color={t.textTertiary} />
+                <TextInput
+                  style={[styles.input, { color: t.textPrimary }]}
+                  placeholder="Buscá por nombre o músculo"
+                  placeholderTextColor={t.textTertiary}
+                  selectionColor={t.signal}
+                  cursorColor={t.signal}
+                  value={query}
+                  onChangeText={setQuery}
+                  autoCorrect={false}
+                  returnKeyType="search"
                 />
+                {query !== '' && (
+                  <Pressable
+                    hitSlop={8}
+                    onPress={() => setQuery('')}
+                    accessibilityRole="button"
+                    accessibilityLabel="Borrar búsqueda"
+                  >
+                    <Icon name="x" size={18} strokeWidth={1.75} color={t.textTertiary} />
+                  </Pressable>
+                )}
               </View>
 
-              <Stepper
-                label={`Esfuerzo · ${medidorActivo === 'rir' ? 'RIR' : 'RPE'}`}
-                value={intensityValue}
-                onChange={setIntensityValue}
-                min={rango.min}
-                max={rango.max}
-                format={(v) => intensityValueLabel(medidorActivo, v)}
-                size="lg"
-                fullWidth
-              />
-
-              {bloqueDescanso}
-            </>
-          )}
-        </ScrollView>
-      ) : (
-        /* Buscar: titulo, input y catalogo. El bloque de arriba baja
-           respecto del boton Cerrar para que no queden pegados. */
-        <View style={styles.flex}>
-          <View style={styles.searchHeader}>
-            <FrenciaText role="title">Agregar ejercicio</FrenciaText>
-
-            <View style={styles.searchField}>
-              <Icon name="search" size={18} color={colors.textTertiary} />
-              <TextInput
-                style={styles.input}
-                placeholder="Buscá por nombre o músculo"
-                placeholderTextColor={colors.textTertiary}
-                selectionColor={colors.accent}
-                value={query}
-                onChangeText={setQuery}
-                autoCorrect={false}
-                returnKeyType="search"
-              />
-              {query !== '' && (
-                <Pressable
-                  hitSlop={8}
-                  onPress={() => setQuery('')}
-                  accessibilityRole="button"
-                  accessibilityLabel="Borrar búsqueda"
+              {/* Filtro por tipo o por grupo muscular: uno a la vez, como un
+                 radio. Tocar el activo lo suelta y vuelve a Todos. Los tipos
+                 llevan su icono, que al elegirlos pasa a ser una marca: asi la
+                 seleccion no depende solo del color. */}
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                keyboardShouldPersistTaps="handled"
+                style={styles.chipsScroll}
+                contentContainerStyle={styles.chipsFiltro}
+              >
+                <Tag
+                  selectable
+                  selected={grupo === null && tipo === null}
+                  onPress={() => filtrarGrupo(null)}
+                  accessibilityLabel={`Todos, ${catalog.length} ejercicios`}
+                  style={styles.chipFiltro}
                 >
-                  <Icon name="x" size={18} color={colors.textTertiary} />
-                </Pressable>
+                  Todos <Text style={styles.chipConteo}>{catalog.length}</Text>
+                </Tag>
+                {tipos.map(({ kind, count }) => (
+                  <Tag
+                    key={kind}
+                    selectable
+                    selected={tipo === kind}
+                    icon={tipo === kind ? 'check' : TIPOS[kind].icon}
+                    onPress={() => filtrarTipo(kind)}
+                    accessibilityLabel={`${TIPOS[kind].label}, ${count} ejercicios`}
+                    style={styles.chipFiltro}
+                  >
+                    {TIPOS[kind].label} <Text style={styles.chipConteo}>{count}</Text>
+                  </Tag>
+                ))}
+                {grupos.map(({ group, count }) => (
+                  <Tag
+                    key={group.slug}
+                    selectable
+                    selected={grupo === group.slug}
+                    onPress={() => filtrarGrupo(group.slug)}
+                    accessibilityLabel={`${group.name}, ${count} ejercicios`}
+                    style={styles.chipFiltro}
+                  >
+                    {group.name} <Text style={styles.chipConteo}>{count}</Text>
+                  </Tag>
+                ))}
+              </ScrollView>
+
+              {!catalogLoading && (
+                <LumeText rol="label" color={t.textTertiary}>
+                  {results.length} {results.length === 1 ? 'ejercicio' : 'ejercicios'}
+                  {filtroActivo ? ` · ${filtroActivo}` : ''}
+                </LumeText>
               )}
             </View>
 
-            {/* Filtro por tipo o por grupo muscular: uno a la vez, como un
-               radio. Tocar el activo lo suelta y vuelve a Todos. Los tipos
-               llevan su icono, que al elegirlos pasa a ser una marca: asi la
-               seleccion no depende solo del color. */}
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              keyboardShouldPersistTaps="handled"
-              style={styles.chipsScroll}
-              contentContainerStyle={styles.chipsFiltro}
-            >
-              <Tag
-                selectable
-                selected={grupo === null && tipo === null}
-                onPress={() => filtrarGrupo(null)}
-                accessibilityLabel={`Todos, ${catalog.length} ejercicios`}
-                style={styles.chipFiltro}
-              >
-                Todos <FrenciaText style={styles.chipConteo}>{catalog.length}</FrenciaText>
-              </Tag>
-              {tipos.map(({ kind, count }) => (
-                <Tag
-                  key={kind}
-                  selectable
-                  selected={tipo === kind}
-                  icon={tipo === kind ? 'check' : TIPOS[kind].icon}
-                  onPress={() => filtrarTipo(kind)}
-                  accessibilityLabel={`${TIPOS[kind].label}, ${count} ejercicios`}
-                  style={styles.chipFiltro}
-                >
-                  {TIPOS[kind].label} <FrenciaText style={styles.chipConteo}>{count}</FrenciaText>
-                </Tag>
-              ))}
-              {grupos.map(({ group, count }) => (
-                <Tag
-                  key={group.slug}
-                  selectable
-                  selected={grupo === group.slug}
-                  onPress={() => filtrarGrupo(group.slug)}
-                  accessibilityLabel={`${group.name}, ${count} ejercicios`}
-                  style={styles.chipFiltro}
-                >
-                  {group.name} <FrenciaText style={styles.chipConteo}>{count}</FrenciaText>
-                </Tag>
-              ))}
-            </ScrollView>
-
-            {!catalogLoading && (
-              <FrenciaText role="dataLabel" color={colors.textTertiary}>
-                {results.length} {results.length === 1 ? 'ejercicio' : 'ejercicios'}
-                {filtroActivo ? ` · ${filtroActivo}` : ''}
-              </FrenciaText>
-            )}
-          </View>
-
-          {/* Sin texto la lista trae el catalogo entero, asi que va
-             virtualizada: montar 198 filas de una vez es caro. */}
-          {catalogLoading ? (
-            <View style={styles.resultsHint}>
-              <Cargando />
-            </View>
-          ) : (
-            <View style={styles.listWrap}>
-              {/* Sin transicion de layout en las celdas: la de Reanimated
-                 (itemLayoutAnimation) choca con la virtualizacion y, al
-                 filtrar o al desplegar y plegar una fila, deja celdas en
-                 posiciones viejas, encimadas sobre sus vecinas. */}
-              <FlatList
-                data={results}
-                keyExtractor={keyExtractor}
-                renderItem={renderResult}
-                extraData={abierta}
-                contentContainerStyle={styles.resultsList}
-                keyboardShouldPersistTaps="handled"
-                keyboardDismissMode="interactive"
-                showsVerticalScrollIndicator={false}
-                ListEmptyComponent={
-                  <View style={styles.resultsHint}>
-                    <FrenciaText
-                      role="bodySm"
-                      color={colors.textTertiary}
-                      style={styles.centerText}
-                    >
-                      No hay ejercicios que coincidan. Probá con otro
-                      nombre o sacá el filtro.
-                    </FrenciaText>
+            {/* Sin texto la lista trae el catalogo entero, asi que va
+               virtualizada: montar 198 filas de una vez es caro. */}
+            {catalogLoading ? (
+              <View style={styles.resultsHint}>
+                <Cargando />
+              </View>
+            ) : (
+              /* Las filas se funden arriba con una mascara, no con un degradado
+                 al color de fondo: debajo hay luces, no un color plano. */
+              <MaskedView
+                style={styles.listWrap}
+                maskElement={
+                  <View style={styles.flex}>
+                    <LinearGradient colors={[MASCARA_VACIA, MASCARA_LLENA]} style={styles.fundido} />
+                    <View style={[styles.flex, { backgroundColor: MASCARA_LLENA }]} />
                   </View>
                 }
-              />
-
-              {/* Funde las filas contra el fondo antes de que lleguen
-                 al buscador. Va despues de la lista para quedar encima,
-                 y no intercepta toques. */}
-              <LinearGradient
-                colors={[colors.bgApp, withAlpha(colors.bgApp, 0)]}
-                style={styles.fadeTop}
-              />
-            </View>
-          )}
-        </View>
-      )}
-
-      <Modal
-        visible={descansoAbierto}
-        transparent
-        animationType="slide"
-        onRequestClose={() => setDescansoAbierto(false)}
-      >
-        <Pressable
-          style={styles.hojaFondo}
-          onPress={() => setDescansoAbierto(false)}
-          accessibilityRole="button"
-          accessibilityLabel="Cerrar sin cambiar el descanso"
-        />
-        <View style={styles.hoja}>
-          <View style={styles.hojaTitulo}>
-            <FrenciaText role="title" style={styles.centerText}>
-              Descanso entre series
-            </FrenciaText>
-            <FrenciaText role="bodySm" color={colors.textTertiary} style={styles.centerText}>
-              En 0:00 queda sin descanso.
-            </FrenciaText>
+              >
+                {/* Sin transicion de layout en las celdas: la de Reanimated
+                   (itemLayoutAnimation) choca con la virtualizacion y, al
+                   filtrar o al desplegar y plegar una fila, deja celdas en
+                   posiciones viejas, encimadas sobre sus vecinas. */}
+                <FlatList
+                  data={results}
+                  keyExtractor={keyExtractor}
+                  renderItem={renderResult}
+                  extraData={abierta}
+                  contentContainerStyle={styles.resultsList}
+                  keyboardShouldPersistTaps="handled"
+                  keyboardDismissMode="interactive"
+                  showsVerticalScrollIndicator={false}
+                  ListEmptyComponent={
+                    <View style={styles.resultsHint}>
+                      <LumeText rol="bodySm" color={t.textTertiary} style={styles.centerText}>
+                        No hay ejercicios que coincidan. Probá con otro nombre o sacá el filtro.
+                      </LumeText>
+                    </View>
+                  }
+                />
+              </MaskedView>
+            )}
           </View>
-          {descansoAbierto ? (
-            <MeasurePicker kind="rest" initial={descansoBorrador} onChange={setDescansoBorrador} />
-          ) : null}
-          <Button variant="primary" size="lg" fullWidth onPress={confirmarDescanso}>
-            Listo
-          </Button>
+        )}
+      </View>
+
+      {/* Hoja con las ruedas del descanso, igual que la de edad y peso del
+         perfil. Cerrarla tocando afuera descarta el cambio. */}
+      <Hoja visible={descansoAbierto} onCerrar={() => setDescansoAbierto(false)} rueda>
+        <View style={styles.hojaTitulo}>
+          <LumeText rol="title" style={styles.centerText}>
+            Descanso entre series
+          </LumeText>
+          <LumeText rol="bodySm" color={t.textTertiary} style={styles.centerText}>
+            En 0:00 queda sin descanso.
+          </LumeText>
         </View>
-      </Modal>
+        {descansoAbierto ? (
+          <MeasurePicker kind="rest" initial={descansoBorrador} onChange={setDescansoBorrador} />
+        ) : null}
+        <LumeButton variant="primary" size="lg" fullWidth onPress={confirmarDescanso}>
+          Listo
+        </LumeButton>
+      </Hoja>
 
       {/* Guardar el ejercicio configurado y volver al armado del dia */}
       {selected && (
         <View style={styles.nav}>
-          <Button
+          <LumeButton
             variant="primary"
             size="lg"
             fullWidth
@@ -847,7 +842,7 @@ function PickerContenido({
             onPress={saveExercise}
           >
             {editMode ? 'Guardar cambios' : 'Guardar ejercicio'}
-          </Button>
+          </LumeButton>
         </View>
       )}
     </KeyboardAvoidingView>
@@ -863,7 +858,7 @@ interface FilaCatalogoProps {
 
 /** Fila del catalogo. Plegada: nombre en una linea y musculo objetivo.
  *  Desplegada: nombre completo, musculos (el objetivo con punto) y
- *  equipamiento, y el boton que pasa a configurarlo.
+ *  equipamiento, y el boton que pasa a configurarlo; sube a vidrio fuerte.
  *  Lo tocable es la cabecera, no la fila entera: un boton adentro de otro es
  *  HTML invalido en web, y en iOS VoiceOver agrupa la fila en un solo
  *  elemento y el boton Anadir queda inalcanzable. */
@@ -873,22 +868,33 @@ const FilaCatalogo = React.memo(function FilaCatalogo({
   onToggle,
   onAdd,
 }: FilaCatalogoProps) {
-  const colors = useColors();
-  const styles = useThemedStyles(makeStyles);
+  const { t, sombras } = useLume();
   const equipo = equipmentLabel(exercise.equipment);
   // La fuerza es casi todo el catalogo: su tipo no se anuncia en cada fila.
   // Los demas si, porque cambian lo que se carga en la sesion.
   const tipo = exercise.kind === 'fuerza' ? null : TIPOS[exercise.kind];
 
   return (
-    <View style={[styles.fila, abierta && styles.filaAbierta]}>
+    <View
+      style={[
+        styles.fila,
+        { borderBottomColor: t.divider },
+        abierta && [
+          styles.filaAbierta,
+          {
+            backgroundColor: t.surfaceCardElevated,
+            borderColor: t.glassLine,
+            borderTopColor: t.glassHighlight,
+            boxShadow: sombras.glass,
+          },
+        ],
+      ]}
+    >
       <Pressable
         onPress={() => onToggle(exercise.id)}
         accessibilityRole="button"
         accessibilityState={{ expanded: abierta }}
-        accessibilityLabel={[exercise.name, exercise.primary?.name, tipo?.label]
-          .filter(Boolean)
-          .join(', ')}
+        accessibilityLabel={[exercise.name, exercise.primary?.name, tipo?.label].filter(Boolean).join(', ')}
         style={({ pressed }) => [
           styles.filaCabeza,
           abierta && styles.filaCabezaAbierta,
@@ -896,27 +902,28 @@ const FilaCatalogo = React.memo(function FilaCatalogo({
         ]}
       >
         <View style={styles.filaPrincipal}>
-          <FrenciaText style={styles.filaNombre} numberOfLines={abierta ? undefined : 1}>
+          <LumeText rol="body" style={styles.filaNombre} numberOfLines={abierta ? undefined : 1}>
             {exercise.name}
-          </FrenciaText>
+          </LumeText>
           {tipo && !abierta ? (
-            <ExerciseTypeTag
-              label={tipo.label}
-              icon={tipo.icon}
-              metrics={datosAbreviados(exercise.tracks)}
-            />
+            <ExerciseTypeTag label={tipo.label} icon={tipo.icon} metrics={datosAbreviados(exercise.tracks)} />
           ) : null}
         </View>
         {!abierta && exercise.primary && (
-          <FrenciaText style={styles.filaMusculo} numberOfLines={1}>
+          <LumeText rol="bodySm" color={t.textTertiary} style={styles.filaMusculo} numberOfLines={1}>
             {exercise.primary.name}
-          </FrenciaText>
+          </LumeText>
         )}
-        <Icon name={abierta ? 'chevron-up' : 'chevron-down'} size={18} color={colors.textTertiary} />
+        <Icon
+          name={abierta ? 'chevron-up' : 'chevron-down'}
+          size={18}
+          strokeWidth={1.75}
+          color={t.textTertiary}
+        />
       </Pressable>
 
       {abierta && (
-        <Animated.View entering={FadeIn.duration(motion.durBase)} style={styles.filaDetalle}>
+        <Animated.View entering={FadeIn.duration(lumeMotion.durBase)} style={styles.filaDetalle}>
           <View style={styles.filaMeta}>
             <View style={styles.filaMusculos}>
               {exercise.primary && <Tag dot>{exercise.primary.name}</Tag>}
@@ -925,165 +932,113 @@ const FilaCatalogo = React.memo(function FilaCatalogo({
               ))}
             </View>
             {equipo && (
-              <FrenciaText role="bodySm" color={colors.textTertiary}>
+              <LumeText rol="bodySm" color={t.textTertiary}>
                 {equipo}
-              </FrenciaText>
+              </LumeText>
             )}
           </View>
-          <Button variant="primary" size="md" icon="plus" fullWidth onPress={() => onAdd(exercise)}>
+          <LumeButton variant="primary" size="md" icon="plus" fullWidth onPress={() => onAdd(exercise)}>
             Añadir
-          </Button>
+          </LumeButton>
         </Animated.View>
       )}
     </View>
   );
 });
 
-const makeStyles = (colors: Palette) =>
-  StyleSheet.create({
-    safe: { flex: 1, backgroundColor: colors.bgApp },
-    flex: { flex: 1, paddingHorizontal: spacing.padScreen, paddingVertical: space[5] },
-    // Caja del nombre dentro de una fila: ocupa lo que dejan los iconos.
-    nombre: { flex: 1, minWidth: 0, gap: space[2] },
+const styles = StyleSheet.create({
+  pantalla: { flex: 1 },
+  safe: { flex: 1 },
+  flex: { flex: 1 },
+  // El marco del modal: margen de pantalla a los costados.
+  cuerpo: { flex: 1, paddingHorizontal: lumeLayout.padScreen, paddingTop: lumeSpace[3] },
+  // Caja del nombre dentro de una fila: ocupa lo que dejan los iconos.
+  nombre: { flex: 1, minWidth: 0, gap: lumeSpace[3] },
 
-    centerText: { textAlign: 'center' },
-    input: { flex: 1, fontFamily: sans.regular, fontSize: 16, color: colors.textPrimary },
-    nav: { paddingHorizontal: spacing.padScreen, paddingBottom: space[5] },
+  centerText: { textAlign: 'center' },
+  input: { flex: 1, fontFamily: lumeFuente.regular, fontSize: 16, padding: 0 },
+  nav: { paddingHorizontal: lumeLayout.padScreen, paddingTop: lumeSpace[4], paddingBottom: lumeSpace[5] },
 
-    modalHeader: { flexDirection: 'row', alignItems: 'center', minHeight: 40 },
-    // Titulo e input separados del boton Cerrar, que queda solo arriba.
-    searchHeader: { paddingTop: space[7], gap: space[5] },
-    modalBody: { paddingTop: space[7], paddingBottom: space[6], gap: space[8] },
+  // El boton ghost trae su propio padding: el margen lo corre 10 px a la
+  // izquierda para que el icono quede alineado con el borde del contenido.
+  modalHeader: { flexDirection: 'row', alignItems: 'center', minHeight: 40, marginLeft: -10 },
+  // Titulo e input separados del boton Cerrar, que queda solo arriba.
+  searchHeader: { paddingTop: lumeSpace[5], gap: lumeSpace[5] },
+  modalBody: { paddingTop: lumeSpace[6], paddingBottom: lumeSpace[6], gap: lumeSpace[8] },
 
-    selectedCard: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: space[4],
-      padding: spacing.padCard,
-      borderRadius: radius.lg,
-      backgroundColor: colors.surfaceCard,
-      borderWidth: 1,
-      borderColor: colors.borderSubtle,
-    },
+  elegido: { flexDirection: 'row', alignItems: 'center', gap: lumeSpace[4], padding: lumeSpace[5] },
 
-    par: { flexDirection: 'row', gap: space[4] },
-    parItem: { flex: 1, minWidth: 0 },
+  par: { flexDirection: 'row', gap: lumeSpace[3] },
+  parItem: { flex: 1, minWidth: 0 },
 
-    // Campo del descanso: misma caja que el Stepper para que la pantalla lea
-    // como una sola columna de controles.
-    campoBloque: { gap: 6 },
-    cardioCampos: { gap: space[5] },
-    captionFila: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline' },
-    campoSeparado: { marginTop: space[4] },
-    campo: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: space[4],
-      height: 56,
-      paddingHorizontal: space[5],
-      borderRadius: radius.md,
-      backgroundColor: colors.surfaceInset,
-      borderWidth: 1,
-      borderColor: colors.borderSubtle,
-    },
-    campoPresionado: { backgroundColor: colors.surfaceCardElevated },
-    campoTexto: { flex: 1 },
-    // Alto de linea propio: el del rol por defecto es menor que la fuente y en
-    // iOS recorta la parte de arriba de los digitos.
-    campoValor: { fontFamily: mono.bold, fontSize: 28, lineHeight: 34, color: colors.textPrimary },
+  campoBloque: { gap: lumeSpace[3] },
+  cardioCampos: { gap: lumeSpace[5] },
+  captionFila: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline' },
+  campoSeparado: { marginTop: lumeSpace[4] },
+  campoToque: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: lumeSpace[4],
+    height: 60,
+    paddingHorizontal: lumeSpace[5],
+    borderRadius: lumeRadius.lg,
+    borderWidth: 1,
+  },
+  campoTexto: { flex: 1 },
+  campoValor: { fontSize: 30, lineHeight: 34, letterSpacing: -0.6 },
 
-    // Hoja inferior con las ruedas, igual que la de edad y peso del perfil.
-    hojaFondo: { flex: 1, backgroundColor: colors.scrim },
-    hoja: {
-      backgroundColor: colors.surfaceRaised,
-      borderTopLeftRadius: radius['2xl'],
-      borderTopRightRadius: radius['2xl'],
-      paddingHorizontal: spacing.padScreen,
-      paddingTop: space[6],
-      paddingBottom: space[10],
-      gap: space[6],
-    },
-    hojaTitulo: { gap: space[2] },
+  hojaTitulo: { gap: lumeSpace[3] },
 
-    searchField: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: space[4],
-      paddingHorizontal: space[4],
-      height: sizing.controlHLg,
-      borderRadius: radius.md,
-      backgroundColor: colors.surfaceInset,
-      borderWidth: 1,
-      borderColor: colors.borderSubtle,
-    },
+  searchField: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: lumeSpace[4],
+    paddingHorizontal: lumeSpace[4],
+    height: lumeLayout.controlHMd,
+    borderRadius: lumeRadius.lg,
+    borderWidth: 1,
+  },
 
-    // Los chips corren de borde a borde de la pantalla: el scroll anula el
-    // padding del contenedor y lo repone adentro.
-    chipsScroll: { marginHorizontal: -spacing.padScreen, flexGrow: 0 },
-    chipsFiltro: { paddingHorizontal: spacing.padScreen, gap: space[3] },
-    chipFiltro: { minHeight: sizing.controlHSm, paddingVertical: 0 },
-    // Sin color propio: hereda el del chip (verde si esta activo).
-    chipConteo: { fontFamily: mono.medium, fontSize: 11, opacity: 0.75 },
-    // La lista va de borde a borde y repone el margen en su contenido: si no,
-    // el scroll recorta el fondo de la fila desplegada, que se sale del texto.
-    listWrap: { flex: 1, marginHorizontal: -spacing.padScreen },
-    fadeTop: {
-      position: 'absolute',
-      top: 0,
-      left: 0,
-      right: 0,
-      height: space[6],
-      pointerEvents: 'none',
-    },
-    // El padding de arriba iguala la altura del degradado: en reposo la primera
-    // fila se ve entera, y al scrollear las filas se funden ahi en vez de
-    // cortarse pegadas al buscador.
-    resultsList: {
-      paddingTop: space[6],
-      paddingBottom: space[6],
-      paddingHorizontal: spacing.padScreen,
-    },
-    resultsHint: { paddingVertical: space[8], alignItems: 'center' },
+  // Los chips corren de borde a borde de la pantalla: el scroll anula el
+  // padding del contenedor y lo repone adentro.
+  chipsScroll: { marginHorizontal: -lumeLayout.padScreen, flexGrow: 0 },
+  chipsFiltro: { paddingHorizontal: lumeLayout.padScreen, gap: lumeSpace[2] },
+  chipFiltro: { height: lumeLayout.controlHSm },
+  // Sin color propio: hereda el del chip (relleno si esta activo).
+  chipConteo: { fontFamily: lumeFuente.medium, fontSize: 11, opacity: 0.6, fontVariant: ['tabular-nums'] },
+  // La lista va de borde a borde y repone el margen en su contenido: si no,
+  // el scroll recorta el fondo de la fila desplegada, que se sale del texto.
+  listWrap: { flex: 1, marginHorizontal: -lumeLayout.padScreen },
+  fundido: { height: lumeSpace[7] },
+  // El padding de arriba iguala la altura del fundido: en reposo la primera
+  // fila se ve entera, y al scrollear las filas se funden ahi en vez de
+  // cortarse pegadas al buscador.
+  resultsList: {
+    paddingTop: lumeSpace[7],
+    paddingBottom: lumeSpace[6],
+    paddingHorizontal: lumeLayout.padScreen,
+  },
+  resultsHint: { paddingVertical: lumeSpace[8], alignItems: 'center' },
 
-    // Filas planas con divisor. Desplegada gana fondo de tarjeta; el margen
-    // negativo compensa su padding para que el texto no se corra. El alto lo
-    // da la cabecera, asi toda la fila plegada responde al toque.
-    fila: {
-      borderBottomWidth: StyleSheet.hairlineWidth,
-      borderBottomColor: colors.divider,
-    },
-    filaAbierta: {
-      marginHorizontal: -space[4],
-      marginVertical: space[2],
-      paddingHorizontal: space[4],
-      paddingBottom: space[5],
-      borderRadius: radius.lg,
-      borderBottomColor: 'transparent',
-      backgroundColor: colors.surfaceCard,
-    },
-    filaPresionada: { opacity: 0.6 },
-    filaCabeza: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: space[4],
-      paddingVertical: space[4] + 1,
-    },
-    filaCabezaAbierta: { paddingVertical: space[5] },
-    filaPrincipal: { flex: 1, minWidth: 0, gap: 5 },
-    filaNombre: {
-      fontFamily: sans.semibold,
-      fontSize: 16,
-      lineHeight: 22,
-      color: colors.textPrimary,
-    },
-    filaMusculo: {
-      maxWidth: 104,
-      fontFamily: sans.regular,
-      fontSize: 13,
-      color: colors.textTertiary,
-      textAlign: 'right',
-    },
-    filaDetalle: { gap: space[5] },
-    filaMeta: { flexDirection: 'row', alignItems: 'center', gap: space[4] },
-    filaMusculos: { flex: 1, flexDirection: 'row', flexWrap: 'wrap', gap: space[3] },
-  });
+  // Filas planas con divisor. Desplegada sube a vidrio fuerte; el margen
+  // negativo compensa su padding para que el texto no se corra. El alto lo da
+  // la cabecera, asi toda la fila plegada responde al toque.
+  fila: { borderBottomWidth: 1 },
+  filaAbierta: {
+    marginHorizontal: -lumeSpace[4],
+    marginVertical: lumeSpace[2],
+    paddingHorizontal: lumeSpace[4],
+    paddingBottom: lumeSpace[5],
+    borderRadius: lumeRadius.lg,
+    borderWidth: 1,
+  },
+  filaPresionada: { opacity: 0.6 },
+  filaCabeza: { flexDirection: 'row', alignItems: 'center', gap: lumeSpace[4], paddingVertical: 14 },
+  filaCabezaAbierta: { paddingVertical: lumeSpace[5] },
+  filaPrincipal: { flex: 1, minWidth: 0, gap: 5 },
+  filaNombre: { fontFamily: lumeFuente.medium, lineHeight: 22 },
+  filaMusculo: { maxWidth: 104, fontSize: 13, lineHeight: 18, textAlign: 'right' },
+  filaDetalle: { gap: lumeSpace[5] },
+  filaMeta: { flexDirection: 'row', alignItems: 'center', gap: lumeSpace[4] },
+  filaMusculos: { flex: 1, flexDirection: 'row', flexWrap: 'wrap', gap: lumeSpace[3] },
+});

@@ -12,14 +12,7 @@
 
 import { useLocalSearchParams } from 'expo-router';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import {
-  KeyboardAvoidingView,
-  Platform,
-  ScrollView,
-  StyleSheet,
-  TextInput,
-  View,
-} from 'react-native';
+import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { useToast } from '@/contexts/toast';
@@ -30,19 +23,15 @@ import { SEMANA_CORTA } from '@/lib/dia';
 import { cargarRutina, guardarRutina } from '@/lib/rutinas';
 
 import {
-  Button,
-  FrenciaText,
-  Icon,
-  radius,
-  sans,
-  sizing,
-  space,
-  spacing,
-  useColors,
-  useThemedStyles,
-  type Palette,
-} from '@/design';
-import { Cargando } from '@/design/lume';
+  Campo,
+  Cargando,
+  Fondo,
+  LumeButton,
+  LumeText,
+  lumeLayout,
+  lumeSpace,
+  useLume,
+} from '@/design/lume';
 
 // El mismo tope que el wizard: mas dias que la semana no tienen donde caer.
 const MAX_DIAS = 7;
@@ -71,8 +60,7 @@ function firma(nombre: string, dias: DiaFila[]): string {
 }
 
 export default function EditRoutineScreen() {
-  const colors = useColors();
-  const styles = useThemedStyles(makeStyles);
+  const { t } = useLume();
   const { showToast } = useToast();
 
   const { id: routineId } = useLocalSearchParams<{ id?: string }>();
@@ -211,148 +199,138 @@ export default function EditRoutineScreen() {
   const items = dias.map((d) => ({ key: d.key, title: d.name, detail: detalleDia(d) }));
 
   return (
-    <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
-      <KeyboardAvoidingView
-        style={styles.flex}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      >
-        <View style={styles.header}>
-          <Button variant="ghost" size="sm" icon="chevron-left" onPress={() => salir()} disabled={guardando}>
-            Atrás
-          </Button>
-        </View>
-
-        {cargando ? (
-          <View style={styles.centro}>
-            <Cargando />
-          </View>
-        ) : !cargada ? (
-          <View style={styles.centro}>
-            <FrenciaText role="subtitle" style={styles.centerText}>
-              No encontramos esta rutina
-            </FrenciaText>
-            <FrenciaText role="bodySm" color={colors.textSecondary} style={styles.centerText}>
-              Puede que la hayas borrado desde otro dispositivo.
-            </FrenciaText>
-          </View>
-        ) : (
-          <ScrollView
-            style={styles.flex}
-            contentContainerStyle={styles.scroll}
-            keyboardShouldPersistTaps="handled"
-            keyboardDismissMode="interactive"
-            showsVerticalScrollIndicator={false}
-          >
-            <View style={styles.bloque}>
-              <FrenciaText role="dataLabel" color={colors.accentText}>
-                Editar rutina
-              </FrenciaText>
-              <FrenciaText role="subtitle">{nombre.trim() || 'Rutina sin nombre'}</FrenciaText>
-              <FrenciaText role="bodySm" color={colors.textSecondary} style={styles.hint}>
-                Cambiá el nombre y qué días la componen. Los ejercicios de cada día se editan
-                entrando al día.
-              </FrenciaText>
-
-              {/* Mismo campo que el paso 1 del wizard */}
-              <View style={styles.field}>
-                <Icon name="list" size={20} color={colors.accent} />
-                <TextInput
-                  style={styles.input}
-                  placeholder="Push Pull Legs"
-                  placeholderTextColor={colors.textTertiary}
-                  value={nombre}
-                  onChangeText={setNombre}
-                  maxLength={40}
-                  returnKeyType="done"
-                />
-              </View>
+    <View style={styles.pantalla}>
+      <Fondo posicion="cumbre" />
+      <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
+        <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+          <View style={styles.cuerpo}>
+            <View style={styles.volver}>
+              <LumeButton variant="ghost" size="sm" icon="chevron-left" onPress={() => salir()} disabled={guardando}>
+                Atrás
+              </LumeButton>
             </View>
 
-            <View style={styles.bloque}>
-              <View style={styles.seccionHeader}>
-                <FrenciaText role="dataLabel" color={colors.textTertiary}>
-                  Días de entrenamiento
-                </FrenciaText>
-                <FrenciaText role="dataLabel" color={colors.textTertiary}>
-                  {dias.length} de {MAX_DIAS}
-                </FrenciaText>
+            {cargando ? (
+              <View style={styles.centro}>
+                <Cargando />
               </View>
-
-              <FrenciaText role="dataLabel" color={colors.textTertiary}>
-                {dias.length > 1
-                  ? 'Mantené un día apretado para cambiarlo de orden'
-                  : 'Agregá los días que tenga la rutina'}
-              </FrenciaText>
-
-              {/* Sin onPress a proposito: entrar al dia desde aca perderia lo
-                 que todavia no se guardo. Se entra desde el detalle. */}
-              <DraggableRowList items={items} onReorder={mover} onRemove={quitar} />
-
-              <Button
-                variant="secondary"
-                size="md"
-                icon="plus"
-                fullWidth
-                disabled={dias.length >= MAX_DIAS}
-                onPress={agregarDia}
+            ) : !cargada ? (
+              <View style={styles.centro}>
+                <LumeText rol="subtitle" style={styles.centrado}>
+                  No encontramos esta rutina
+                </LumeText>
+                <LumeText rol="bodySm" color={t.textSecondary} style={styles.centrado}>
+                  Puede que la hayas borrado desde otro dispositivo.
+                </LumeText>
+              </View>
+            ) : (
+              <ScrollView
+                style={styles.flex}
+                contentContainerStyle={styles.scroll}
+                keyboardShouldPersistTaps="handled"
+                keyboardDismissMode="interactive"
+                showsVerticalScrollIndicator={false}
               >
-                Agregar día
-              </Button>
-            </View>
-          </ScrollView>
-        )}
+                <View style={styles.bloque}>
+                  <LumeText rol="label" color={t.signalText}>
+                    Editar rutina
+                  </LumeText>
+                  <LumeText rol="subtitle">{nombre.trim() || 'Rutina sin nombre'}</LumeText>
+                  <LumeText rol="bodySm" color={t.textSecondary} style={styles.ayuda}>
+                    Cambiá el nombre y qué días la componen. Los ejercicios de cada día se editan entrando al día.
+                  </LumeText>
 
-        {cargada && (
-          <View style={styles.nav}>
-            <Button
-              variant="primary"
-              size="lg"
-              fullWidth
-              icon="check"
-              disabled={!sucio || !nombreValido}
-              loading={guardando}
-              onPress={guardar}
-            >
-              Guardar cambios
-            </Button>
+                  {/* Mismo campo que el paso 1 del wizard */}
+                  <Campo
+                    lg
+                    iconoAcento
+                    icono="list"
+                    placeholder="Push Pull Legs"
+                    value={nombre}
+                    onChangeText={setNombre}
+                    maxLength={40}
+                    returnKeyType="done"
+                    accessibilityLabel="Nombre de la rutina"
+                  />
+                </View>
+
+                <View style={styles.bloque}>
+                  <View style={styles.seccionHeader}>
+                    <LumeText rol="label" color={t.textTertiary}>
+                      Días de entrenamiento
+                    </LumeText>
+                    <LumeText rol="label" color={t.textTertiary}>
+                      {dias.length} de {MAX_DIAS}
+                    </LumeText>
+                  </View>
+
+                  <LumeText rol="label" color={t.textTertiary}>
+                    {dias.length > 1
+                      ? 'Mantené un día apretado para cambiarlo de orden'
+                      : 'Agregá los días que tenga la rutina'}
+                  </LumeText>
+
+                  {/* Sin onPress a proposito: entrar al dia desde aca perderia lo
+                     que todavia no se guardo. Se entra desde el detalle. */}
+                  <DraggableRowList items={items} onReorder={mover} onRemove={quitar} />
+
+                  <LumeButton
+                    variant="secondary"
+                    size="md"
+                    icon="plus"
+                    fullWidth
+                    disabled={dias.length >= MAX_DIAS}
+                    onPress={agregarDia}
+                  >
+                    Agregar día
+                  </LumeButton>
+                </View>
+              </ScrollView>
+            )}
           </View>
-        )}
-      </KeyboardAvoidingView>
-    </SafeAreaView>
+
+          {cargada && (
+            <View style={styles.nav}>
+              <LumeButton
+                variant="primary"
+                size="lg"
+                fullWidth
+                icon="check"
+                disabled={!sucio || !nombreValido}
+                loading={guardando}
+                onPress={guardar}
+              >
+                Guardar cambios
+              </LumeButton>
+            </View>
+          )}
+        </KeyboardAvoidingView>
+      </SafeAreaView>
+    </View>
   );
 }
 
-const makeStyles = (colors: Palette) =>
-  StyleSheet.create({
-    safe: { flex: 1, backgroundColor: colors.bgApp },
-    flex: { flex: 1, paddingHorizontal: spacing.padScreen, paddingVertical: space[5] },
-    centro: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: space[3] },
-    centerText: { textAlign: 'center' },
+const styles = StyleSheet.create({
+  pantalla: { flex: 1 },
+  safe: { flex: 1 },
+  flex: { flex: 1 },
+  // El marco de los wizards: el contenido va con el margen de pantalla.
+  cuerpo: { flex: 1, paddingHorizontal: lumeLayout.padScreen, paddingTop: lumeSpace[3] },
+  // El boton ghost trae su propio padding: el margen lo corre 10 px a la
+  // izquierda para que el chevron quede alineado con el borde del contenido.
+  volver: { flexDirection: 'row', marginLeft: -10 },
+  centro: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: lumeSpace[3] },
+  centrado: { textAlign: 'center' },
 
-    header: { flexDirection: 'row', alignItems: 'center' },
+  scroll: { flexGrow: 1, paddingVertical: lumeSpace[6], gap: lumeSpace[8] },
+  bloque: { gap: lumeSpace[3] },
+  ayuda: { marginBottom: lumeSpace[2], maxWidth: 320 },
+  seccionHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
 
-    scroll: { flexGrow: 1, paddingTop: space[6], paddingBottom: space[6], gap: space[8] },
-    bloque: { gap: space[3] },
-    hint: { marginBottom: space[2], maxWidth: 320 },
-
-    seccionHeader: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-    },
-
-    field: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: space[4],
-      paddingHorizontal: space[5],
-      height: sizing.controlHLg,
-      borderRadius: radius.lg,
-      backgroundColor: colors.surfaceCard,
-      borderWidth: 1,
-      borderColor: colors.borderSubtle,
-    },
-    input: { flex: 1, fontFamily: sans.regular, fontSize: 16, color: colors.textPrimary },
-
-    nav: { paddingHorizontal: spacing.padScreen, paddingBottom: space[5] },
-  });
+  nav: {
+    paddingHorizontal: lumeLayout.padScreen,
+    paddingTop: lumeSpace[4],
+    paddingBottom: lumeSpace[5],
+    gap: lumeSpace[2],
+  },
+});

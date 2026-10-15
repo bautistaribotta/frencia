@@ -32,21 +32,19 @@ import Animated, {
 import * as Haptics from 'expo-haptics';
 import { MarqueeText } from '@/components/MarqueeText';
 
+import { Icon } from '@/design';
 import {
-  FrenciaText,
-  Icon,
-  motion,
-  radius,
-  space,
-  spacing,
-  useColors,
-  useThemedStyles,
-  type Palette,
-} from '@/design';
+  LumeText,
+  lumeMotion,
+  lumeRadius,
+  lumeSpace,
+  useLume,
+  type LumePalette,
+} from '@/design/lume';
 
 // Separacion entre filas. Entra en el paso de arrastre: cada lugar de la lista
 // mide alto de fila + este hueco.
-const GAP = space[2];
+const GAP = lumeSpace[2];
 
 const LONG_PRESS_MS = 200;
 
@@ -80,8 +78,7 @@ export function DraggableRowList({
   onRemove,
   onPress,
 }: DraggableRowListProps) {
-  const styles = useThemedStyles(makeStyles);
-  const colors = useColors();
+  const { t: colors, sombras } = useLume();
 
   // Alto de fila real, medido una sola vez. Todas las filas tienen la misma
   // estructura, asi que alcanza con la primera. Hasta tenerlo, el arrastre
@@ -129,8 +126,8 @@ export function DraggableRowList({
           onRemove={onRemove}
           onPress={onPress}
           commit={commit}
-          styles={styles}
           colors={colors}
+          sombras={sombras}
         />
       ))}
     </View>
@@ -150,8 +147,8 @@ interface RowProps {
   onRemove: (index: number) => void;
   onPress?: (index: number) => void;
   commit: (from: number, to: number) => void;
-  styles: ReturnType<typeof makeStyles>;
-  colors: Palette;
+  colors: LumePalette;
+  sombras: ReturnType<typeof useLume>['sombras'];
 }
 
 function Row({
@@ -167,8 +164,8 @@ function Row({
   onRemove,
   onPress,
   commit,
-  styles,
   colors,
+  sombras,
 }: RowProps) {
   // 1 mientras el dedo esta sobre la fila. Solo alimenta la opacidad, asi que
   // vive en el hilo de UI y no dispara renders.
@@ -206,7 +203,7 @@ function Row({
           }
           // La fila cae en el hueco antes de avisar el orden nuevo, asi el
           // salto entre la posicion del dedo y la definitiva no se ve.
-          dragY.value = withTiming((t - f) * step, { duration: motion.durFast }, (done) => {
+          dragY.value = withTiming((t - f) * step, { duration: lumeMotion.durFast }, (done) => {
             if (done) runOnJS(commit)(f, t);
           });
         }),
@@ -241,11 +238,12 @@ function Row({
 
     if (f === index) {
       return {
-        transform: [{ translateY: dragY.value }, { scale: 1.03 }],
+        transform: [{ translateY: dragY.value }, { scale: 1.02 }],
         zIndex: 2,
-        borderColor: colors.accent,
-        // La fila levantada no se atenua: ya se distingue por la escala y el
-        // borde, y bajarle la opacidad la haria ver deshabilitada. El numero
+        backgroundColor: colors.surfaceCardElevated,
+        boxShadow: sombras.lg,
+        // La fila levantada no se atenua: ya se distingue por la escala, la
+        // sombra y el vidrio fuerte, y bajarle la opacidad la haria ver deshabilitada. El numero
         // pelado corta la animacion del toque, que es justo lo que se quiere al
         // pasar de apretar a arrastrar.
         opacity: 1,
@@ -253,14 +251,15 @@ function Row({
     }
 
     const opacity = withTiming(apretada.value === 1 ? 0.72 : 1, {
-      duration: motion.durFast,
+      duration: lumeMotion.durFast,
     });
 
     if (f < 0) {
       return {
         transform: [{ translateY: 0 }, { scale: 1 }],
         zIndex: 0,
-        borderColor: colors.borderSubtle,
+        backgroundColor: colors.surfaceCard,
+        boxShadow: sombras.glass,
         opacity,
       };
     }
@@ -273,7 +272,7 @@ function Row({
     else if (t <= index && index < f) shift = step;
 
     return {
-      transform: [{ translateY: withTiming(shift, { duration: motion.durFast }) }, { scale: 1 }],
+      transform: [{ translateY: withTiming(shift, { duration: lumeMotion.durFast }) }, { scale: 1 }],
       zIndex: 0,
       borderColor: colors.borderSubtle,
       opacity,
@@ -281,7 +280,10 @@ function Row({
   });
 
   return (
-    <Animated.View style={[styles.row, animStyle]} onLayout={onMeasure}>
+    <Animated.View
+      style={[styles.row, { borderColor: colors.glassLine, borderTopColor: colors.glassHighlight }, animStyle]}
+      onLayout={onMeasure}
+    >
       {/* Solo el asa y el texto reciben los gestos: el tacho queda afuera para
          que mantenerlo apretado no levante la fila ni la abra. */}
       <GestureDetector gesture={gesto}>
@@ -292,14 +294,14 @@ function Row({
           accessibilityLabel={onPress ? `Editar ${item.title}` : undefined}
         >
           {draggable && (
-            <Icon name="grip-vertical" size={18} color={colors.textTertiary} />
+            <Icon name="grip-vertical" size={18} strokeWidth={1.75} color={colors.textTertiary} />
           )}
           <View style={styles.info}>
-            <MarqueeText text={item.title} role="bodySm" style={styles.name} />
+            <MarqueeText text={item.title} role="bodySm" color={colors.textPrimary} />
             {typeof item.detail === 'string' ? (
-              <FrenciaText role="dataLabel" color={colors.textTertiary}>
+              <LumeText rol="label" color={colors.textTertiary}>
                 {item.detail}
-              </FrenciaText>
+              </LumeText>
             ) : (
               item.detail
             )}
@@ -313,29 +315,27 @@ function Row({
         accessibilityRole="button"
         accessibilityLabel={`Quitar ${item.title}`}
       >
-        <Icon name="trash-2" size={18} color={colors.textTertiary} />
+        <Icon name="trash-2" size={18} strokeWidth={1.75} color={colors.textTertiary} />
       </Pressable>
     </Animated.View>
   );
 }
 
-const makeStyles = (colors: Palette) =>
-  StyleSheet.create({
-    // Filas sueltas en vez de una tarjeta con divisores: al levantar una, el
-    // hueco que deja tiene que verse como un lugar vacio, no como una tarjeta
-    // partida al medio.
-    list: { gap: GAP },
-    row: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: space[4],
-      padding: spacing.padCard,
-      borderRadius: radius.lg,
-      backgroundColor: colors.surfaceCard,
-      borderWidth: 1,
-      borderColor: colors.borderSubtle,
-    },
-    dragZone: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: space[4] },
-    info: { flex: 1, gap: space[1] },
-    name: { color: colors.textPrimary },
-  });
+const styles = StyleSheet.create({
+  // Filas sueltas en vez de una tarjeta con divisores: al levantar una, el
+  // hueco que deja tiene que verse como un lugar vacio, no como una tarjeta
+  // partida al medio.
+  list: { gap: GAP },
+  row: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: lumeSpace[4],
+    paddingVertical: lumeSpace[4],
+    paddingRight: lumeSpace[4],
+    paddingLeft: lumeSpace[3],
+    borderRadius: lumeRadius.lg,
+    borderWidth: 1,
+  },
+  dragZone: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: lumeSpace[4] },
+  info: { flex: 1, gap: lumeSpace[1] },
+});
