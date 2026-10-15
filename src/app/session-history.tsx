@@ -80,7 +80,7 @@ function datosSerie(
 }
 
 export default function SessionHistoryScreen() {
-  const { t } = useLume();
+  const { t, sombras } = useLume();
   const router = useRouter();
   const { user } = useSession();
   const { profile } = useProfile();
@@ -252,43 +252,59 @@ export default function SessionHistoryScreen() {
             renderItem={({ item: serie, section }) => {
               const datos = datosSerie(serie, section.tracks, unidad, unidadDistancia);
               const esfuerzo = esfuerzoSerie(serie);
-              // Peso por reps se lee como un producto; los demas datos van uno
-              // al lado del otro.
-              const separador = section.tracks.weight && section.tracks.reps ? ' × ' : ' · ';
+              // Peso por reps se lee como un producto; los demas datos van
+              // separados por un punto.
+              const separador = section.tracks.weight && section.tracks.reps ? '×' : '·';
               const accesible = [datos.map((d) => d.accesible).join(', '), esfuerzo]
                 .filter(Boolean)
                 .join('. ');
+              // Cada serie en su fila de vidrio: el numero en un circulo, los
+              // valores al mismo tamaño en una sola linea con las unidades en
+              // chico, el esfuerzo en una pildora con la llama y el check en lume.
               return (
                 <View
-                  style={[styles.serie, { borderBottomColor: t.divider }]}
+                  style={[
+                    styles.serie,
+                    {
+                      backgroundColor: t.surfaceCard,
+                      borderColor: t.glassLine,
+                      borderTopColor: t.glassHighlight,
+                      boxShadow: sombras.glass,
+                    },
+                  ]}
                   accessible
                   accessibilityLabel={`Serie ${serie.setIndex}. ${accesible}. Completada.`}
                 >
-                  <LumeText rol="data" color={t.textTertiary} style={styles.indice}>
-                    {serie.setIndex}
-                  </LumeText>
-                  <View style={styles.datosSerie}>
-                    <LumeText rol="hero" style={styles.pesoReps}>
-                      {datos.map((d, i) => (
-                        <React.Fragment key={i}>
-                          {i > 0 ? <Text style={[styles.separador, { color: t.textTertiary }]}>{separador}</Text> : null}
-                          {d.valor}
-                          {d.unidad ? <Text style={[styles.unidad, { color: t.textTertiary }]}> {d.unidad}</Text> : null}
-                        </React.Fragment>
-                      ))}
-                    </LumeText>
-                    {esfuerzo ? (
-                      <LumeText rol="label" color={t.intensityText}>
-                        {esfuerzo}
-                      </LumeText>
-                    ) : null}
+                  <View style={[styles.indice, { backgroundColor: t.surfaceChip }]}>
+                    <Text style={[styles.indiceTexto, { color: t.textSecondary }]}>{serie.setIndex}</Text>
                   </View>
+                  <View style={styles.datosSerie}>
+                    {datos.map((d, i) => (
+                      <React.Fragment key={i}>
+                        {i > 0 ? <Text style={[styles.separador, { color: t.textTertiary }]}>{separador}</Text> : null}
+                        <Text style={[styles.valor, { color: t.textPrimary }]}>{d.valor}</Text>
+                        {d.unidad ? <Text style={[styles.unidad, { color: t.textTertiary }]}>{d.unidad}</Text> : null}
+                      </React.Fragment>
+                    ))}
+                  </View>
+                  {esfuerzo ? (
+                    <View
+                      style={[
+                        styles.esfuerzo,
+                        { backgroundColor: t.surfaceIntensitySoft, borderColor: t.surfaceIntensityLine },
+                      ]}
+                    >
+                      <Icon name="flame" size={13} strokeWidth={1.75} color={t.intensityText} />
+                      <Text style={[styles.esfuerzoTexto, { color: t.intensityText }]}>{esfuerzo}</Text>
+                    </View>
+                  ) : null}
                   <View accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
-                    <Icon name="check" size={18} strokeWidth={1.75} color={t.textTertiary} />
+                    <Icon name="check" size={18} strokeWidth={1.75} color={t.signal} />
                   </View>
                 </View>
               );
             }}
+            ItemSeparatorComponent={() => <View style={styles.entreSeries} />}
             renderSectionFooter={() => <View style={styles.finEjercicio} />}
             ListFooterComponent={
               totalSeries > 0 ? (
@@ -381,27 +397,39 @@ const styles = StyleSheet.create({
     paddingBottom: lumeSpace[2],
   },
   ejercicioNombre: { flexGrow: 1, flexShrink: 1, flexBasis: 200 },
-  // Cada serie en una fila con hairline, el numero a la izquierda.
   serie: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: lumeSpace[4],
-    paddingVertical: lumeSpace[4],
-    borderBottomWidth: 1,
+    minHeight: 52,
+    paddingLeft: lumeSpace[3],
+    paddingRight: lumeSpace[4],
+    borderRadius: lumeRadius.lg,
+    borderWidth: 1,
   },
-  indice: { fontFamily: lumeFuente.semibold, fontSize: 12, lineHeight: 20, minWidth: 22 },
-  datosSerie: {
-    flex: 1,
-    minWidth: 0,
+  entreSeries: { height: lumeSpace[2] },
+  indice: { width: 26, height: 26, borderRadius: 13, alignItems: 'center', justifyContent: 'center' },
+  indiceTexto: { fontFamily: lumeFuente.semibold, fontSize: 12, lineHeight: 14, fontVariant: ['tabular-nums'] },
+  datosSerie: { flex: 1, minWidth: 0, flexDirection: 'row', alignItems: 'baseline', gap: 4 },
+  valor: { fontFamily: lumeFuente.semibold, fontSize: 17, lineHeight: 20, letterSpacing: -0.2, fontVariant: ['tabular-nums'] },
+  unidad: { fontFamily: lumeFuente.medium, fontSize: 12, lineHeight: 14, marginRight: 2 },
+  separador: { fontFamily: lumeFuente.regular, fontSize: 14, lineHeight: 16, marginHorizontal: 4 },
+  esfuerzo: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
     alignItems: 'center',
-    columnGap: lumeSpace[4],
-    rowGap: lumeSpace[3],
+    gap: 4,
+    height: 24,
+    paddingHorizontal: 9,
+    borderRadius: 999,
+    borderWidth: 1,
   },
-  pesoReps: { fontSize: 22, lineHeight: 26, letterSpacing: -0.4, flexShrink: 1 },
-  separador: { fontFamily: lumeFuente.regular },
-  unidad: { fontFamily: lumeFuente.medium, fontSize: 12, letterSpacing: 0 },
+  esfuerzoTexto: {
+    fontFamily: lumeFuente.semiSemibold,
+    fontSize: 11,
+    lineHeight: 13,
+    letterSpacing: 0.44,
+    textTransform: 'uppercase',
+  },
   finEjercicio: { height: lumeSpace[6] },
   acciones: { flexDirection: 'row', gap: lumeSpace[3], paddingTop: lumeSpace[5] },
   accion: { flex: 1 },
