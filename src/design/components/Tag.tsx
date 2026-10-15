@@ -1,11 +1,15 @@
-/* Frencia · Tag — RN port of components/core/Tag.jsx
-   Pill tag for muscle groups, categories, filters. */
+/* Frencia · Tag — etiqueta para grupos musculares, categorias y filtros (Lume).
+   Pildora de vidrio de 34 px con el texto en secundario. Elegida, se rellena
+   en accent (lume en oscuro, tinta en claro) con el texto en text-on-accent;
+   quien la usa ademas cambia el icono por un check, asi la seleccion no
+   depende solo del color. */
 
 import React from 'react';
 import { Pressable, StyleSheet, Text, View, type ViewStyle } from 'react-native';
-import { radius, sans, type Palette } from '../theme';
-import { useColors, useThemedStyles } from '../theme-context';
+
 import { Icon } from '../Icon';
+import { useLume } from '../lume/useLume';
+import { lumeFuente } from '../lume/tipografia';
 
 export interface TagProps {
   selected?: boolean;
@@ -30,19 +34,20 @@ export function Tag({
   children,
   style,
 }: TagProps) {
-  const colors = useColors();
-  const styles = useThemedStyles(makeStyles);
-  const fg = selected ? colors.accentText : colors.textSecondary;
+  const { t } = useLume();
+  const fg = selected ? t.textOnAccent : t.textSecondary;
   const content = (
     <>
       {dot ? <View style={[styles.dot, { backgroundColor: fg }]} /> : null}
-      {icon ? <Icon name={icon} size={15} strokeWidth={2} color={fg} /> : null}
+      {icon ? <Icon name={icon} size={14} strokeWidth={1.75} color={fg} /> : null}
       <Text style={[styles.text, { color: fg }]}>{children}</Text>
     </>
   );
   const boxStyle = [
     styles.base,
-    selected && { backgroundColor: colors.surfaceGreenSoft, borderColor: colors.surfaceGreenLine },
+    selected
+      ? { backgroundColor: t.accent, borderColor: t.accent }
+      : { backgroundColor: t.surfaceCard, borderColor: t.glassLine },
     style,
   ];
 
@@ -50,7 +55,10 @@ export function Tag({
     return (
       <Pressable
         onPress={onPress}
-        style={boxStyle}
+        style={({ pressed }) => [
+          ...boxStyle,
+          pressed && !selected && { borderColor: t.borderStrong },
+        ]}
         accessibilityRole="button"
         accessibilityState={{ selected }}
         accessibilityLabel={accessibilityLabel}
@@ -62,20 +70,17 @@ export function Tag({
   return <View style={boxStyle}>{content}</View>;
 }
 
-const makeStyles = (colors: Palette) =>
-  StyleSheet.create({
-    base: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: 7,
-      paddingVertical: 7,
-      paddingHorizontal: 14,
-      borderRadius: radius.pill,
-      backgroundColor: colors.surfaceChip,
-      borderWidth: 1,
-      borderColor: 'transparent',
-      alignSelf: 'flex-start',
-    },
-    text: { fontFamily: sans.medium, fontSize: 13 },
-    dot: { width: 7, height: 7, borderRadius: 3.5, opacity: 0.9 },
-  });
+const styles = StyleSheet.create({
+  base: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    height: 34,
+    paddingHorizontal: 14,
+    borderRadius: 999,
+    borderWidth: 1,
+    alignSelf: 'flex-start',
+  },
+  text: { fontFamily: lumeFuente.medium, fontSize: 13, lineHeight: 17 },
+  dot: { width: 5, height: 5, borderRadius: 2.5 },
+});

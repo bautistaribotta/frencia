@@ -16,7 +16,7 @@ import { useProfile } from '@/contexts/profile';
 import { useToast } from '@/contexts/toast';
 import { useDescartarAlSalir } from '@/lib/descartar-al-salir';
 import { Hoja } from '@/components/Hoja';
-import { MedidaLume } from '@/components/MedidaLume';
+import { MeasurePicker } from '@/components/MeasurePicker';
 
 import { Icon } from '@/design';
 import {
@@ -324,7 +324,7 @@ export default function EditProfileScreen() {
           {picker === 'age' ? 'Tu edad' : picker === 'height' ? 'Tu altura' : 'Tu peso'}
         </LumeText>
         {picker !== null ? (
-          <MedidaLume
+          <MeasurePicker
             kind={picker}
             initial={draft}
             onChange={setDraft}

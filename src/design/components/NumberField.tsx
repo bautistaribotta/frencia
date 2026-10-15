@@ -1,4 +1,4 @@
-/* Frencia · NumberField
+/* Frencia · NumberField (Lume, sobre vidrio)
    Campo numerico con ajuste rapido: menos a la izquierda, mas a la derecha y
    el numero al medio, que se toca para escribirlo. Es la base de DistanceField
    y del RPE de la sesion de cardio.
@@ -8,10 +8,11 @@
    no al salir del campo: con el teclado abierto, tocar Siguiente o Guardar no
    pasa por el blur y lo ultimo escrito se perderia. */
 
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { Pressable, StyleSheet, Text, TextInput, View, type ViewStyle } from 'react-native';
-import { mono, radius, tracking, type Palette } from '../theme';
-import { useColors, useThemedStyles } from '../theme-context';
+import { useLume } from '../lume/useLume';
+import { lumeFuente } from '../lume/tipografia';
+import { lumeRadius, type LumePalette } from '../lume/tokens';
 import { Icon } from '../Icon';
 
 type Size = 'md' | 'lg';
@@ -50,13 +51,14 @@ export function NumberField({
   fullWidth = false,
   style,
 }: NumberFieldProps) {
-  const colors = useColors();
-  const styles = useThemedStyles(makeStyles);
+  const { t: colors } = useLume();
+  const styles = useMemo(() => makeStyles(colors), [colors]);
   const [foco, setFoco] = useState(false);
   const [buf, setBuf] = useState('');
 
   const lg = size === 'lg';
-  const alto = lg ? 56 : 48;
+  const alto = lg ? 60 : 50;
+  const anchoBtn = lg ? 60 : 52;
 
   const formatear = (v: number | null) => (v === null ? '' : v.toFixed(decimals));
   const acotar = (v: number) => Number(Math.max(min, Math.min(max, v)).toFixed(decimals));
@@ -82,7 +84,7 @@ export function NumberField({
           {unit || hint ? <Text style={styles.formato}>{unit ?? hint}</Text> : null}
         </View>
       ) : null}
-      <View style={[styles.fila, foco && { borderColor: colors.accent }]}>
+      <View style={[styles.fila, foco && { borderColor: colors.signal }]}>
         <Pressable
           accessibilityRole="button"
           accessibilityLabel={`menos ${pasoTexto}${unit ? ` ${unit}` : ''}`}
@@ -90,12 +92,12 @@ export function NumberField({
           onPress={() => value !== null && onChange(acotar(value - step))}
           style={({ pressed }) => [
             styles.btn,
-            { width: alto, height: alto },
+            { width: anchoBtn, height: alto },
             pressed && styles.btnPresionado,
             sinMenos && styles.btnApagado,
           ]}
         >
-          <Icon name="minus" size={16} strokeWidth={2.5} color={colors.textSecondary} />
+          <Icon name="minus" size={16} strokeWidth={1.75} color={colors.textPrimary} />
           <Text style={styles.btnTexto}>{pasoTexto}</Text>
         </Pressable>
 
@@ -103,7 +105,7 @@ export function NumberField({
           <TextInput
             style={[
               styles.input,
-              { fontSize: lg ? 28 : 22, textAlign: unit ? 'right' : 'center' },
+              { fontSize: lg ? 32 : 26, textAlign: unit ? 'right' : 'center' },
             ]}
             value={foco ? buf : formatear(value)}
             onChangeText={escribir}
@@ -115,7 +117,7 @@ export function NumberField({
             keyboardType={decimals === 0 ? 'number-pad' : 'decimal-pad'}
             placeholder={decimals === 0 ? '—' : (0).toFixed(decimals)}
             placeholderTextColor={colors.textDisabled}
-            selectionColor={colors.accent}
+            selectionColor={colors.signal}
             selectTextOnFocus
             accessibilityLabel={unit ? `${nombre} en ${unit}` : nombre}
           />
@@ -129,12 +131,12 @@ export function NumberField({
           onPress={() => onChange(value === null ? acotar(Math.max(min, step)) : acotar(value + step))}
           style={({ pressed }) => [
             styles.btn,
-            { width: alto, height: alto },
+            { width: anchoBtn, height: alto },
             pressed && styles.btnPresionado,
             sinMas && styles.btnApagado,
           ]}
         >
-          <Icon name="plus" size={16} strokeWidth={2.5} color={colors.textSecondary} />
+          <Icon name="plus" size={16} strokeWidth={1.75} color={colors.textPrimary} />
           <Text style={styles.btnTexto}>{pasoTexto}</Text>
         </Pressable>
       </View>
@@ -142,32 +144,33 @@ export function NumberField({
   );
 }
 
-const makeStyles = (colors: Palette) =>
+const makeStyles = (colors: LumePalette) =>
   StyleSheet.create({
     base: { gap: 6, alignSelf: 'flex-start', minWidth: 0 },
     baseFull: { alignSelf: 'stretch' },
     labelFila: { flexDirection: 'row', justifyContent: 'space-between', gap: 8 },
     label: {
-      fontFamily: mono.medium,
+      fontFamily: lumeFuente.semiSemibold,
       fontSize: 11,
-      letterSpacing: tracking.wider,
+      lineHeight: 15,
+      letterSpacing: 0.88,
       textTransform: 'uppercase',
       color: colors.textTertiary,
     },
-    formato: { fontFamily: mono.medium, fontSize: 11, color: colors.textDisabled },
+    formato: { fontFamily: lumeFuente.medium, fontSize: 11, lineHeight: 15, color: colors.textDisabled },
     fila: {
       flexDirection: 'row',
       alignItems: 'center',
-      backgroundColor: colors.surfaceInset,
+      backgroundColor: colors.surfaceCard,
       borderWidth: 1,
-      borderColor: colors.borderSubtle,
-      borderRadius: radius.md,
+      borderColor: colors.glassLine,
+      borderRadius: lumeRadius.lg,
       overflow: 'hidden',
     },
     btn: { alignItems: 'center', justifyContent: 'center', gap: 1 },
     btnPresionado: { backgroundColor: colors.surfaceCardElevated },
     btnApagado: { opacity: 0.35 },
-    btnTexto: { fontFamily: mono.semibold, fontSize: 10, color: colors.textSecondary },
+    btnTexto: { fontFamily: lumeFuente.semibold, fontSize: 10, lineHeight: 13, color: colors.textTertiary },
     pozo: {
       flex: 1,
       minWidth: 92,
@@ -179,9 +182,10 @@ const makeStyles = (colors: Palette) =>
     input: {
       minWidth: 48,
       padding: 0,
-      fontFamily: mono.bold,
+      fontFamily: lumeFuente.condMedium,
+      letterSpacing: -0.5,
       color: colors.textPrimary,
       fontVariant: ['tabular-nums'],
     },
-    unidad: { fontFamily: mono.medium, fontSize: 12, color: colors.textTertiary },
+    unidad: { fontFamily: lumeFuente.medium, fontSize: 12, color: colors.textTertiary },
   });

@@ -22,7 +22,7 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 
-import { FrenciaText, type FrenciaTextProps } from '@/design';
+import { LumeText, type LumeRolTexto } from '@/design/lume';
 
 // Pixeles por segundo. Bajo a proposito: tiene que poder leerse en movimiento.
 const VELOCIDAD = 28;
@@ -33,7 +33,8 @@ const SEPARACION = 40;
 
 export interface MarqueeTextProps {
   text: string;
-  role?: FrenciaTextProps['role'];
+  /** Rol de texto de Lume. */
+  role?: LumeRolTexto;
   color?: string;
   /** Estilo del texto. */
   style?: TextStyle;
@@ -97,30 +98,30 @@ export function MarqueeText({ text, role, color, style, boxStyle }: MarqueeTextP
       {/* Medidor invisible: el texto sin cortar, en una fila ancha, para saber
           cuanto ocupa entero. */}
       <View style={styles.medidor} pointerEvents="none" aria-hidden>
-        <FrenciaText role={role} color={color} style={[style, styles.sinEncoger]} onLayout={medirTexto}>
+        <LumeText rol={role} color={color} style={[style, styles.sinEncoger]} onLayout={medirTexto}>
           {text}
-        </FrenciaText>
+        </LumeText>
       </View>
 
       {animar ? (
         <Animated.View style={[styles.cinta, { width: anchoCopia * 2 + SEPARACION }, estiloCinta]}>
-          <FrenciaText role={role} color={color} style={[style, styles.sinEncoger, { width: anchoCopia }]}>
+          <LumeText rol={role} color={color} style={[style, styles.sinEncoger, { width: anchoCopia }]}>
             {text}
-          </FrenciaText>
+          </LumeText>
           <View style={styles.separacion} />
-          <FrenciaText
-            role={role}
+          <LumeText
+            rol={role}
             color={color}
             style={[style, styles.sinEncoger, { width: anchoCopia }]}
             aria-hidden
           >
             {text}
-          </FrenciaText>
+          </LumeText>
         </Animated.View>
       ) : (
-        <FrenciaText role={role} color={color} style={style} numberOfLines={1}>
+        <LumeText rol={role} color={color} style={style} numberOfLines={1}>
           {text}
-        </FrenciaText>
+        </LumeText>
       )}
     </View>
   );

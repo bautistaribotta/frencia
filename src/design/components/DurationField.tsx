@@ -1,4 +1,4 @@
-/* Frencia · DurationField — RN port of components/log/DurationField.jsx
+/* Frencia · DurationField (Lume) — RN port of components/log/DurationField.jsx
    Campo de duracion. Escritura directa estilo temporizador de iOS: los digitos
    entran por la derecha (4, 5 -> 0:45; 1, 3, 0 -> 1:30) y se ajusta rapido con
    los botones de los costados.
@@ -7,10 +7,11 @@
    campo: con el teclado abierto, tocar Guardar no pasa por el blur y el ultimo
    digito se perderia. */
 
-import React, { useRef, useState } from 'react';
+import React, { useMemo, useRef, useState } from 'react';
 import { Pressable, StyleSheet, Text, TextInput, View, type ViewStyle } from 'react-native';
-import { mono, radius, tracking, type Palette } from '../theme';
-import { useColors, useThemedStyles } from '../theme-context';
+import { useLume } from '../lume/useLume';
+import { lumeFuente } from '../lume/tipografia';
+import { lumeRadius, type LumePalette } from '../lume/tokens';
 import { Icon } from '../Icon';
 
 type Size = 'md' | 'lg';
@@ -51,8 +52,8 @@ export function DurationField({
   fullWidth = false,
   style,
 }: DurationFieldProps) {
-  const colors = useColors();
-  const styles = useThemedStyles(makeStyles);
+  const { t: colors } = useLume();
+  const styles = useMemo(() => makeStyles(colors), [colors]);
   const input = useRef<TextInput>(null);
   const [foco, setFoco] = useState(false);
   const [buf, setBuf] = useState('');
@@ -76,8 +77,9 @@ export function DurationField({
   }
 
   const v = value ?? 0;
-  const fontSize = lg ? 28 : 22;
-  const alto = lg ? 56 : 48;
+  const fontSize = lg ? 32 : 26;
+  const alto = lg ? 60 : 50;
+  const anchoBtn = lg ? 60 : 52;
 
   let mostrado: React.ReactNode;
   if (foco) {
@@ -102,7 +104,7 @@ export function DurationField({
     mostrado = (
       <View style={styles.enFoco}>
         <Text style={[styles.valor, { fontSize }]}>{partes}</Text>
-        <View style={[styles.cursor, { height: fontSize * 0.95, backgroundColor: colors.accent }]} />
+        <View style={[styles.cursor, { height: fontSize * 0.95, backgroundColor: colors.signal }]} />
       </View>
     );
   } else if (value === null) {
@@ -119,7 +121,7 @@ export function DurationField({
           <Text style={styles.formato}>{formato}</Text>
         </View>
       ) : null}
-      <View style={[styles.fila, foco && { borderColor: colors.accent }]}>
+      <View style={[styles.fila, foco && { borderColor: colors.signal }]}>
         <Pressable
           accessibilityRole="button"
           accessibilityLabel={`menos ${pasoLabel(step)}`}
@@ -127,12 +129,12 @@ export function DurationField({
           onPress={() => onChange(acotar(v - step))}
           style={({ pressed }) => [
             styles.btn,
-            { width: alto, height: alto },
+            { width: anchoBtn, height: alto },
             pressed && styles.btnPresionado,
             v <= 0 && styles.btnApagado,
           ]}
         >
-          <Icon name="minus" size={16} strokeWidth={2.5} color={colors.textSecondary} />
+          <Icon name="minus" size={16} strokeWidth={1.75} color={colors.textPrimary} />
           <Text style={styles.btnTexto}>{pasoLabel(step)}</Text>
         </Pressable>
 
@@ -172,12 +174,12 @@ export function DurationField({
           onPress={() => onChange(acotar(v + step))}
           style={({ pressed }) => [
             styles.btn,
-            { width: alto, height: alto },
+            { width: anchoBtn, height: alto },
             pressed && styles.btnPresionado,
             v >= max && styles.btnApagado,
           ]}
         >
-          <Icon name="plus" size={16} strokeWidth={2.5} color={colors.textSecondary} />
+          <Icon name="plus" size={16} strokeWidth={1.75} color={colors.textPrimary} />
           <Text style={styles.btnTexto}>{pasoLabel(step)}</Text>
         </Pressable>
       </View>
@@ -185,36 +187,38 @@ export function DurationField({
   );
 }
 
-const makeStyles = (colors: Palette) =>
+const makeStyles = (colors: LumePalette) =>
   StyleSheet.create({
     base: { gap: 6, alignSelf: 'flex-start', minWidth: 0 },
     baseFull: { alignSelf: 'stretch' },
     labelFila: { flexDirection: 'row', justifyContent: 'space-between', gap: 8 },
     label: {
-      fontFamily: mono.medium,
+      fontFamily: lumeFuente.semiSemibold,
       fontSize: 11,
-      letterSpacing: tracking.wider,
+      lineHeight: 15,
+      letterSpacing: 0.88,
       textTransform: 'uppercase',
       color: colors.textTertiary,
     },
-    formato: { fontFamily: mono.medium, fontSize: 11, color: colors.textDisabled },
+    formato: { fontFamily: lumeFuente.medium, fontSize: 11, lineHeight: 15, color: colors.textDisabled },
     fila: {
       flexDirection: 'row',
       alignItems: 'center',
       backgroundColor: colors.surfaceInset,
       borderWidth: 1,
       borderColor: colors.borderSubtle,
-      borderRadius: radius.md,
+      borderRadius: lumeRadius.md,
       overflow: 'hidden',
     },
     btn: { alignItems: 'center', justifyContent: 'center', gap: 1 },
     btnPresionado: { backgroundColor: colors.surfaceCardElevated },
     btnApagado: { opacity: 0.35 },
-    btnTexto: { fontFamily: mono.semibold, fontSize: 10, color: colors.textSecondary },
+    btnTexto: { fontFamily: lumeFuente.semibold, fontSize: 10, lineHeight: 13, color: colors.textTertiary },
     pozo: { flex: 1, minWidth: 92, alignItems: 'center', justifyContent: 'center' },
     enFoco: { flexDirection: 'row', alignItems: 'center' },
     valor: {
-      fontFamily: mono.bold,
+      fontFamily: lumeFuente.condMedium,
+      letterSpacing: -0.5,
       color: colors.textPrimary,
       fontVariant: ['tabular-nums'],
       includeFontPadding: false,

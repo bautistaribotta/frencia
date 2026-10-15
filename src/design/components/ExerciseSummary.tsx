@@ -1,14 +1,16 @@
-/* Frencia · ExerciseSummary — RN port of components/log/ExerciseSummary.jsx
-   Resumen de una linea del plan: volumen · intensidad · descanso.
-   "4x10 · RIR 2 · 2 min". La intensidad va en naranja y el descanso lleva el
-   icono de reloj, para no confundirse con un tiempo de trabajo. El formato de
-   cada parte lo arma quien lo usa (src/lib/dia.ts). */
+/* Frencia · ExerciseSummary — resumen de una linea del plan (Lume).
+   Volumen · intensidad · descanso: "4x10 · RIR 2 · 2 min". El volumen va en
+   tinta semibold, la intensidad en intensity-text semibold (el esfuerzo es
+   tinta en Lume) y el descanso con el icono de reloj, en terciario, para no
+   confundirse con un tiempo de trabajo. El formato de cada parte lo arma
+   quien lo usa (src/lib/dia.ts). */
 
 import React from 'react';
 import { StyleSheet, Text, View, type ViewStyle } from 'react-native';
-import { mono, type Palette } from '../theme';
-import { useColors, useThemedStyles } from '../theme-context';
+
 import { Icon } from '../Icon';
+import { useLume } from '../lume/useLume';
+import { lumeFuente } from '../lume/tipografia';
 
 type Size = 'md' | 'lg';
 
@@ -26,26 +28,26 @@ export interface ExerciseSummaryProps {
 const FONT_SIZE: Record<Size, number> = { md: 13, lg: 15 };
 
 export function ExerciseSummary({ volume, intensity, rest, size = 'md', style }: ExerciseSummaryProps) {
-  const colors = useColors();
-  const styles = useThemedStyles(makeStyles);
+  const { t } = useLume();
   const fontSize = FONT_SIZE[size];
+  const lineHeight = fontSize + 5;
   const label = [volume, intensity, rest ? `descanso ${rest}` : null].filter(Boolean).join(', ');
 
   return (
     <View style={[styles.base, style]} accessible accessibilityLabel={label}>
-      <Text style={[styles.vol, { fontSize }]}>{volume}</Text>
+      <Text style={[styles.vol, { fontSize, lineHeight, color: t.textPrimary }]}>{volume}</Text>
       {intensity ? (
         <>
-          <Text style={[styles.sep, { fontSize }]}>·</Text>
-          <Text style={[styles.int, { fontSize }]}>{intensity}</Text>
+          <Text style={[styles.sep, { fontSize, lineHeight, color: t.textDisabled }]}>·</Text>
+          <Text style={[styles.int, { fontSize, lineHeight, color: t.intensityText }]}>{intensity}</Text>
         </>
       ) : null}
       {rest ? (
         <>
-          <Text style={[styles.sep, { fontSize }]}>·</Text>
+          <Text style={[styles.sep, { fontSize, lineHeight, color: t.textDisabled }]}>·</Text>
           <View style={styles.rest}>
-            <Icon name="timer" size={fontSize} color={colors.textTertiary} />
-            <Text style={[styles.restText, { fontSize }]}>{rest}</Text>
+            <Icon name="timer" size={fontSize} strokeWidth={1.75} color={t.textTertiary} />
+            <Text style={[styles.restText, { fontSize, lineHeight, color: t.textTertiary }]}>{rest}</Text>
           </View>
         </>
       ) : null}
@@ -53,12 +55,11 @@ export function ExerciseSummary({ volume, intensity, rest, size = 'md', style }:
   );
 }
 
-const makeStyles = (colors: Palette) =>
-  StyleSheet.create({
-    base: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', columnGap: 7, rowGap: 2 },
-    vol: { fontFamily: mono.semibold, color: colors.textPrimary, fontVariant: ['tabular-nums'] },
-    sep: { fontFamily: mono.medium, color: colors.textDisabled },
-    int: { fontFamily: mono.semibold, color: colors.intensityText, fontVariant: ['tabular-nums'] },
-    rest: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-    restText: { fontFamily: mono.medium, color: colors.textTertiary, fontVariant: ['tabular-nums'] },
-  });
+const styles = StyleSheet.create({
+  base: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', columnGap: 7, rowGap: 2 },
+  vol: { fontFamily: lumeFuente.semibold, fontVariant: ['tabular-nums'] },
+  sep: { fontFamily: lumeFuente.medium },
+  int: { fontFamily: lumeFuente.semibold, fontVariant: ['tabular-nums'] },
+  rest: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  restText: { fontFamily: lumeFuente.medium, fontVariant: ['tabular-nums'] },
+});

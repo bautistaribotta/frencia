@@ -1,11 +1,15 @@
-/* Frencia · Stepper — RN port of components/data/Stepper.jsx
-   Numeric stepper for logging reps / load. Tabular mono value, ± controls. */
+/* Frencia · Stepper — paso numerico para series, reps, RIR y RPE (Lume).
+   Valor condensado y tabular entre - y +, sobre surface-inset. Los botones
+   se separan del valor con un filo border-subtle; apretados suben a
+   surface-card-elevated y en el tope pasan a text-disabled. */
 
 import React from 'react';
 import { Pressable, StyleSheet, Text, View, type ViewStyle } from 'react-native';
-import { mono, radius, tracking, type Palette } from '../theme';
-import { useColors, useThemedStyles } from '../theme-context';
+
 import { Icon } from '../Icon';
+import { useLume } from '../lume/useLume';
+import { lumeFuente, lumeTexto } from '../lume/tipografia';
+import { lumeRadius } from '../lume/tokens';
 
 type Size = 'md' | 'lg';
 
@@ -40,8 +44,7 @@ export function Stepper({
   fullWidth = false,
   style,
 }: StepperProps) {
-  const colors = useColors();
-  const styles = useThemedStyles(makeStyles);
+  const { t } = useLume();
   const lg = size === 'lg';
   const set = (next: number) => {
     const clamped = Math.max(min, Math.min(max, next));
@@ -49,73 +52,70 @@ export function Stepper({
   };
   const atMin = value <= min;
   const atMax = value >= max;
-  const btnSize = { width: lg ? 52 : 44, height: lg ? 56 : 48 };
+  const alto = lg ? 58 : 48;
+  const ancho = fullWidth ? (lg ? 52 : 44) : alto;
   const shown = format ? format(value) : String(value);
+
+  const boton = (icono: 'minus' | 'plus', tope: boolean, onPress: () => void, lado: 'izq' | 'der') => (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={icono === 'minus' ? 'menos' : 'más'}
+      disabled={tope}
+      onPress={onPress}
+      style={({ pressed }) => [
+        styles.btn,
+        { width: ancho, height: alto, borderColor: t.borderSubtle },
+        lado === 'izq' ? styles.btnIzq : styles.btnDer,
+        pressed && !tope && { backgroundColor: t.surfaceCardElevated },
+      ]}
+    >
+      <Icon name={icono} size={18} strokeWidth={1.75} color={tope ? t.textDisabled : t.textPrimary} />
+    </Pressable>
+  );
 
   return (
     <View style={[styles.base, fullWidth && styles.baseFull, style]}>
-      {label ? <Text style={styles.label}>{label}</Text> : null}
-      <View style={styles.row}>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="menos"
-          disabled={atMin}
-          onPress={() => set(value - step)}
-          style={({ pressed }) => [styles.btn, btnSize, pressed && !atMin && styles.btnPressed, atMin && styles.btnDisabled]}
-        >
-          <Icon name="minus" size={20} strokeWidth={2.5} color={colors.textSecondary} />
-        </Pressable>
+      {label ? <Text style={[lumeTexto.label, { color: t.textTertiary }]}>{label}</Text> : null}
+      <View style={[styles.row, { backgroundColor: t.surfaceInset, borderColor: t.borderSubtle }]}>
+        {boton('minus', atMin, () => set(value - step), 'izq')}
 
         <Text
           accessibilityLabel={label ? `${label}: ${shown}` : shown}
-          style={[styles.val, { fontSize: lg ? 28 : 22, minWidth: lg ? 80 : 64 }, fullWidth && styles.valFull]}
+          style={[
+            styles.val,
+            { color: t.textPrimary, fontSize: lg ? 30 : 24, minWidth: lg ? 88 : 72 },
+            fullWidth && styles.valFull,
+          ]}
         >
           {shown}
-          {unit ? <Text style={styles.unit}>{unit}</Text> : null}
+          {unit ? <Text style={[styles.unit, { color: t.textTertiary }]}> {unit}</Text> : null}
         </Text>
 
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="más"
-          disabled={atMax}
-          onPress={() => set(value + step)}
-          style={({ pressed }) => [styles.btn, btnSize, pressed && !atMax && styles.btnPressed, atMax && styles.btnDisabled]}
-        >
-          <Icon name="plus" size={20} strokeWidth={2.5} color={colors.textSecondary} />
-        </Pressable>
+        {boton('plus', atMax, () => set(value + step), 'der')}
       </View>
     </View>
   );
 }
 
-const makeStyles = (colors: Palette) =>
-  StyleSheet.create({
-    base: { gap: 6, alignSelf: 'flex-start' },
-    baseFull: { alignSelf: 'stretch' },
-    label: {
-      fontFamily: mono.medium,
-      fontSize: 11,
-      letterSpacing: tracking.wider,
-      textTransform: 'uppercase',
-      color: colors.textTertiary,
-    },
-    row: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      backgroundColor: colors.surfaceInset,
-      borderWidth: 1,
-      borderColor: colors.borderSubtle,
-      borderRadius: radius.md,
-      overflow: 'hidden',
-    },
-    btn: { alignItems: 'center', justifyContent: 'center' },
-    btnPressed: { backgroundColor: colors.surfaceCardElevated },
-    btnDisabled: { opacity: 0.35 },
-    val: {
-      textAlign: 'center',
-      fontFamily: mono.bold,
-      color: colors.textPrimary,
-    },
-    valFull: { flex: 1, minWidth: 0 },
-    unit: { fontFamily: mono.medium, fontSize: 12, color: colors.textTertiary },
-  });
+const styles = StyleSheet.create({
+  base: { gap: 8, alignSelf: 'flex-start' },
+  baseFull: { alignSelf: 'stretch' },
+  row: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderRadius: lumeRadius.md,
+    overflow: 'hidden',
+  },
+  btn: { alignItems: 'center', justifyContent: 'center' },
+  btnIzq: { borderRightWidth: 1 },
+  btnDer: { borderLeftWidth: 1 },
+  val: {
+    textAlign: 'center',
+    fontFamily: lumeFuente.condMedium,
+    letterSpacing: -0.5,
+    fontVariant: ['tabular-nums'],
+  },
+  valFull: { flex: 1, minWidth: 0 },
+  unit: { fontFamily: lumeFuente.medium, fontSize: 12, letterSpacing: 0 },
+});

@@ -2,7 +2,8 @@
    Frencia · Lume · Campo de texto con icono
    Vidrio normal. En foco sube a vidrio fuerte y toma el borde de lume con
    un anillo de 1 px; el icono tambien pasa a lume. Nada mas cambia de
-   color.
+   color. Con `iconoAcento` el icono va en lume siempre (el nombre de la
+   rutina o del dia); con `lg` el campo gana aire a los costados.
    ============================================================ */
 
 import React, { forwardRef, useState } from 'react';
@@ -17,10 +18,12 @@ export interface CampoProps extends TextInputProps {
   icono: string;
   // Algo al final del campo (el ojo de la contraseña).
   final?: React.ReactNode;
+  iconoAcento?: boolean;
+  lg?: boolean;
 }
 
 export const Campo = forwardRef<TextInput, CampoProps>(function Campo(
-  { icono, final, onFocus, onBlur, style, ...rest },
+  { icono, final, iconoAcento = false, lg = false, onFocus, onBlur, style, ...rest },
   ref,
 ) {
   const { t, sombras } = useLume();
@@ -30,6 +33,7 @@ export const Campo = forwardRef<TextInput, CampoProps>(function Campo(
     <View
       style={[
         styles.campo,
+        lg && styles.campoLg,
         foco
           ? {
               backgroundColor: t.surfaceCardElevated,
@@ -44,7 +48,7 @@ export const Campo = forwardRef<TextInput, CampoProps>(function Campo(
             },
       ]}
     >
-      <Icon name={icono} size={20} color={foco ? t.signal : t.textTertiary} strokeWidth={1.75} />
+      <Icon name={icono} size={20} color={foco || iconoAcento ? t.signal : t.textTertiary} strokeWidth={1.75} />
       <TextInput
         ref={ref}
         style={[styles.input, { color: t.textPrimary }, style]}
@@ -76,6 +80,7 @@ const styles = StyleSheet.create({
     borderRadius: lumeRadius.lg,
     borderWidth: 1,
   },
+  campoLg: { paddingHorizontal: 20 },
   input: {
     flex: 1,
     fontFamily: lumeFuente.regular,
