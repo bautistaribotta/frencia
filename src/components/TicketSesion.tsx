@@ -3,17 +3,21 @@
    y el ticket de una sesion del historial. Ver docs/specs/registro-de-sesion.md,
    seccion 6.4.
 
-   El fondo del ticket es una silueta SVG (src/lib/silueta-ticket.ts) con las
-   muescas laterales y el borde festoneado recortados de verdad. La sombra la
+   Va en Lume: vidrio denso (surface-raised) con su filo, el encabezado
+   alineado a la izquierda, la marca con el punto en lume y el borde de abajo
+   recto. El fondo es una silueta SVG (src/lib/silueta-ticket.ts) con las
+   muescas laterales recortadas de verdad. La sombra la
    dibuja el mismo SVG con un desenfoque sobre esa forma: shadow* de iOS y
    elevation de Android siguen el rectangulo de la vista, y en el tema claro
-   se veia una sombra recta debajo de los festones.
+   se veia una sombra recta que no seguia los recortes.
 
-   `capturaRef` apunta al ticket con un margen del fondo de la app: es lo que
-   se comparte como imagen, asi los recortes se leen en ella. */
+   `capturaRef` apunta al ticket con un margen transparente alrededor: es lo
+   que se comparte como imagen. La captura no lleva fondo propio (sobre las
+   luces se veia como un bloque); por eso el ticket va en la version opaca
+   del vidrio, asi se ve igual en pantalla y en la imagen. */
 
 import React, { useMemo, useState, type RefObject } from 'react';
-import { StyleSheet, View, type LayoutChangeEvent } from 'react-native';
+import { StyleSheet, Text, View, type LayoutChangeEvent } from 'react-native';
 import Svg, { Defs, FeGaussianBlur, FeOffset, Filter, G, Path } from 'react-native-svg';
 
 import type { UnidadDistancia } from '@/lib/distancia';
@@ -30,25 +34,8 @@ import {
 } from '@/lib/resumen-sesion';
 import { pathSilueta } from '@/lib/silueta-ticket';
 import { reloj } from '@/lib/tiempo';
-import {
-  FrenciaText,
-  display,
-  mono,
-  radius,
-  sans,
-  shadowSpecs,
-  space,
-  spacing,
-  tracking,
-  useTheme,
-  useThemedStyles,
-  type Palette,
-  type ShadowSpec,
-} from '@/design';
+import { lumeFuente, lumeLayout, lumePalette, lumeRadius, lumeSpace, useLume } from '@/design/lume';
 
-// Festones del borde inferior. Con space-between se reparten en el ancho que
-// toque; once es lo que entra a ANCHO_TICKET (360), el ancho maximo del ticket.
-const FESTONES = 11;
 // El codigo se repite hasta cubrir el ancho; lo que sobra lo corta el contenedor.
 const REPETICIONES_BARRAS = 3;
 
@@ -75,8 +62,7 @@ export function TicketSesion({
   unidadDistancia,
   capturaRef,
 }: TicketSesionProps) {
-  const styles = useThemedStyles(makeStyles);
-  const { colors, mode } = useTheme();
+  const { t, modo, sombras } = useLume();
   // La silueta se dibuja con las medidas reales: el alto depende de cuantos
   // ejercicios haya y la perforacion, de cuanto ocupe el encabezado.
   const [tamano, setTamano] = useState<{ ancho: number; alto: number } | null>(null);
@@ -84,58 +70,63 @@ export function TicketSesion({
 
   function medirTicket(e: LayoutChangeEvent) {
     const { width, height } = e.nativeEvent.layout;
-    setTamano((t) => (t?.ancho === width && t?.alto === height ? t : { ancho: width, alto: height }));
+    setTamano((x) => (x?.ancho === width && x?.alto === height ? x : { ancho: width, alto: height }));
   }
 
   const series = useMemo(() => ejercicios.flatMap((e) => e.series), [ejercicios]);
   const volumen = tieneVolumen(series) ? miles(mostrarPeso(volumenKg(series), unidad)) : '—';
   const { fecha, hora } = fechaTicket(inicio);
   const barras = useMemo(() => barrasTicket(sessionId), [sessionId]);
+  const numero = sessionId.replace(/-/g, '').slice(0, 6).toUpperCase();
 
   // collapsable en false: Android optimiza las vistas sin dibujo propio y la
   // captura no las encuentra.
   return (
     <View ref={capturaRef} collapsable={false} style={styles.captura}>
       <View style={styles.contenedorTicket}>
-        <View style={styles.ticket} onLayout={medirTicket}>
+        <View onLayout={medirTicket}>
           {tamano && yPerforacion !== null && (
             <SiluetaTicket
               ancho={tamano.ancho}
               alto={tamano.alto}
               yMuesca={yPerforacion + ALTO_PERFORACION / 2}
-              relleno={colors.surfaceCardElevated}
-              sombra={shadowSpecs[mode].lg}
+              relleno={t.surfaceRaisedOpaco}
+              filo={t.glassLine}
+              sombra={SOMBRA[modo]}
             />
           )}
 
           {/* Encabezado */}
           <View style={styles.encabezado}>
             <View style={styles.marca}>
-              <FrenciaText style={styles.marcaTexto}>FRENCIA</FrenciaText>
-              <View style={styles.punto} />
+              <View style={styles.marcaNombre}>
+                <Text style={[styles.marcaTexto, { color: t.textPrimary }]}>FRENCIA</Text>
+                <View style={[styles.punto, { backgroundColor: t.signal, boxShadow: sombras.haloSignal }]} />
+              </View>
+              <Text style={[styles.meta, { color: t.textTertiary }]}>Nº {numero}</Text>
             </View>
-            {/* Dos textos y no un salto de linea: con el interlineado apretado
-               del design system, iOS recorta el acento y el tope de Anton.
-               Cada linea lleva su aire y la segunda se sube sobre la primera. */}
-            <View accessible accessibilityRole="header" accessibilityLabel="Sesión completa">
-              <FrenciaText style={[styles.completa, styles.completaPrimera]}>Sesión</FrenciaText>
-              <FrenciaText style={[styles.completa, styles.completaSegunda]}>completa</FrenciaText>
-            </View>
-            <FrenciaText style={styles.meta} numberOfLines={2}>
+            <Text style={[styles.completa, { color: t.textPrimary }]} accessibilityRole="header">
+              Sesión completa
+            </Text>
+            <Text style={[styles.meta, { color: t.textTertiary }]} numberOfLines={2}>
               {nombreDia} · {fecha} · {hora}
-            </FrenciaText>
+            </Text>
           </View>
 
           {/* Duracion y volumen */}
           <View style={styles.grandes}>
             <View style={styles.grande} accessible accessibilityLabel={`Duración ${reloj(duracionSegundos)}`}>
-              <FrenciaText style={styles.grandeValor}>{reloj(duracionSegundos)}</FrenciaText>
-              <FrenciaText style={styles.etiqueta}>Duración</FrenciaText>
+              <Text style={[styles.etiqueta, { color: t.textTertiary }]}>Duración</Text>
+              <Text style={[styles.grandeValor, { color: t.textPrimary }]}>{reloj(duracionSegundos)}</Text>
             </View>
-            <View style={styles.separadorVertical} />
-            <View style={styles.grande} accessible accessibilityLabel={`Tonelaje ${volumen} ${unidad}`}>
-              <FrenciaText style={styles.grandeValor}>{volumen}</FrenciaText>
-              <FrenciaText style={styles.etiqueta}>Tonelaje · {unidad}</FrenciaText>
+            <View style={[styles.separadorVertical, { backgroundColor: t.divider }]} />
+            <View
+              style={[styles.grande, styles.grandeSegundo]}
+              accessible
+              accessibilityLabel={`Tonelaje ${volumen} ${unidad}`}
+            >
+              <Text style={[styles.etiqueta, { color: t.textTertiary }]}>Tonelaje · {unidad}</Text>
+              <Text style={[styles.grandeValor, { color: t.textPrimary }]}>{volumen}</Text>
             </View>
           </View>
 
@@ -149,14 +140,14 @@ export function TicketSesion({
             {/* iOS no dibuja un borde punteado de un solo lado: se dibuja la
                caja entera y se deja ver solo su borde de arriba. */}
             <View style={styles.lineaRecorte}>
-              <View style={styles.lineaPunteada} />
+              <View style={[styles.lineaPunteada, { borderColor: t.borderStrong }]} />
             </View>
           </View>
 
           {/* Conteos */}
           <View style={styles.conteos}>
-            <Conteo label="Ejercicios" valor={ejercicios.length} styles={styles} />
-            <Conteo label="Series" valor={series.length} styles={styles} />
+            <Conteo label="Ejercicios" valor={ejercicios.length} />
+            <Conteo label="Series" valor={series.length} />
           </View>
 
           {/* Lo que se hizo, ejercicio por ejercicio */}
@@ -166,91 +157,95 @@ export function TicketSesion({
               return (
                 <View
                   key={ej.exerciseId}
-                  style={[styles.fila, i < ejercicios.length - 1 && styles.filaDivisor]}
+                  style={[styles.fila, i > 0 && { borderTopWidth: 1, borderTopColor: t.divider }]}
                   accessible
                   accessibilityLabel={`${ej.name}, ${ej.series.length} ${ej.series.length === 1 ? 'serie' : 'series'}${marca ? `, mejor ${marca}` : ''}`}
                 >
                   <View style={styles.filaIzq}>
-                    <FrenciaText style={styles.filaSeries}>{ej.series.length}×</FrenciaText>
-                    <FrenciaText style={styles.filaNombre} numberOfLines={1}>
+                    <Text style={[styles.filaSeries, { color: t.textTertiary }]}>{ej.series.length}×</Text>
+                    <Text style={[styles.filaNombre, { color: t.textSecondary }]} numberOfLines={1}>
                       {ej.name}
-                    </FrenciaText>
+                    </Text>
                   </View>
-                  <FrenciaText style={styles.filaMarca}>{marca}</FrenciaText>
+                  <Text style={[styles.filaMarca, { color: t.textPrimary }]}>{marca}</Text>
                 </View>
               );
             })}
           </View>
 
           {/* Codigo de barras */}
-          <View
-            style={styles.codigo}
-            accessibilityElementsHidden
-            importantForAccessibility="no-hide-descendants"
-          >
+          <View style={styles.codigo} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
             <View style={styles.barras}>
               {Array.from({ length: REPETICIONES_BARRAS }).flatMap((_, r) =>
                 barras.map((b, i) => (
                   <View
                     key={`${r}-${i}`}
-                    style={[styles.barra, { width: b.barra, marginRight: b.espacio }]}
+                    style={[styles.barra, { width: b.barra, marginRight: b.espacio, backgroundColor: t.textPrimary }]}
                   />
                 )),
               )}
             </View>
-            <FrenciaText style={styles.codigoTexto}>{codigoTicket(sessionId)}</FrenciaText>
+            <Text style={[styles.codigoTexto, { color: t.textTertiary }]}>{codigoTicket(sessionId)}</Text>
           </View>
-
-          {/* Lugar para el borde festoneado, que dibuja la silueta */}
-          <View style={styles.festoneado} />
         </View>
       </View>
     </View>
   );
 }
 
-function Conteo({
-  label,
-  valor,
-  styles,
-}: {
-  label: string;
-  valor: number;
-  styles: ReturnType<typeof makeStyles>;
-}) {
+function Conteo({ label, valor }: { label: string; valor: number }) {
+  const { t } = useLume();
   return (
     <View style={styles.conteo} accessible accessibilityLabel={`${label} ${valor}`}>
-      <FrenciaText style={styles.etiqueta}>{label}</FrenciaText>
-      <FrenciaText style={styles.conteoValor}>{valor}</FrenciaText>
+      <Text style={[styles.etiqueta, { color: t.textTertiary }]}>{label}</Text>
+      <Text style={[styles.conteoValor, { color: t.textPrimary }]}>{valor}</Text>
     </View>
   );
 }
 
-/** Fondo y sombra del ticket con la forma recortada. Va detras del contenido y
- *  se sale de la vista por los cuatro lados para que entre el desenfoque. */
+interface SombraTicket {
+  y: number;
+  blur: number;
+  color: string;
+  opacity: number;
+}
+
+// La sombra lejana de Lume (shadow-lg): 0 24 56, negra al 55 % en oscuro y
+// tinta al 14 % en claro.
+const SOMBRA: Record<'dark' | 'light', SombraTicket> = {
+  dark: { y: 24, blur: 56, color: lumePalette.graphite1000, opacity: 0.55 },
+  light: { y: 24, blur: 56, color: lumePalette.ivory900, opacity: 0.14 },
+};
+
+/** Fondo, filo y sombra del ticket con la forma recortada. Va detras del
+ *  contenido y se sale de la vista por los cuatro lados para que entre el
+ *  desenfoque. */
 function SiluetaTicket({
   ancho,
   alto,
   yMuesca,
   relleno,
+  filo,
   sombra,
 }: {
   ancho: number;
   alto: number;
   yMuesca: number;
   relleno: string;
-  sombra: ShadowSpec;
+  filo: string;
+  sombra: SombraTicket;
 }) {
   const d = useMemo(
     () =>
       pathSilueta({
         ancho,
         alto,
-        radio: radius['2xl'],
+        radio: RADIO,
         yMuesca,
         radioRecorte: MUESCA / 2,
-        festones: FESTONES,
-        margenFestones: space[2],
+        festones: 0,
+        radioAbajo: RADIO,
+        margenFestones: 0,
       }),
     [ancho, alto, yMuesca],
   );
@@ -262,11 +257,7 @@ function SiluetaTicket({
   const lienzo = { ancho: ancho + margen * 2, alto: alto + margen * 2 };
 
   return (
-    <Svg
-      width={lienzo.ancho}
-      height={lienzo.alto}
-      style={[estaticos.silueta, { left: -margen, top: -margen }]}
-    >
+    <Svg width={lienzo.ancho} height={lienzo.alto} style={[styles.silueta, { left: -margen, top: -margen }]}>
       <Defs>
         <Filter
           id="sombra-ticket"
@@ -282,183 +273,122 @@ function SiluetaTicket({
       </Defs>
       <G transform={`translate(${margen} ${margen})`}>
         <Path d={d} fill={sombra.color} fillOpacity={sombra.opacity} filter="url(#sombra-ticket)" />
-        <Path d={d} fill={relleno} />
+        <Path d={d} fill={relleno} stroke={filo} strokeWidth={1} />
       </G>
     </Svg>
   );
 }
 
 /** Ancho maximo del ticket; las acciones de la pantalla se alinean con el. */
-export const ANCHO_TICKET = 360;
-// Diametro de las muescas laterales y de los festones.
-const MUESCA = 22;
+export const ANCHO_TICKET = 342;
+// Radio de las esquinas y diametro de las muescas laterales.
+const RADIO = lumeRadius.xl;
+const MUESCA = 20;
 const ALTO_PERFORACION = 24;
 /** Aire de la captura alrededor del ticket: abajo mas que arriba porque la
  *  sombra cae hacia abajo. El marco de la pantalla lo descuenta de su scroll. */
-export const MARGEN_CAPTURA = { arriba: space[5], abajo: space[8] };
+export const MARGEN_CAPTURA = { arriba: lumeSpace[5], abajo: lumeSpace[8] };
 
-const estaticos = StyleSheet.create({
+const styles = StyleSheet.create({
   silueta: { position: 'absolute', pointerEvents: 'none' },
+  // El margen de la imagen compartida: el mismo de la pantalla a los lados,
+  // sin fondo.
+  captura: {
+    width: '100%',
+    maxWidth: ANCHO_TICKET + lumeLayout.padScreen * 2,
+    alignItems: 'center',
+    paddingHorizontal: lumeLayout.padScreen,
+    paddingTop: MARGEN_CAPTURA.arriba,
+    paddingBottom: MARGEN_CAPTURA.abajo,
+  },
+  contenedorTicket: { width: '100%', maxWidth: ANCHO_TICKET },
+
+  encabezado: {
+    alignItems: 'flex-start',
+    gap: lumeSpace[4],
+    paddingTop: lumeSpace[6],
+    paddingHorizontal: lumeSpace[6],
+    paddingBottom: lumeSpace[5],
+  },
+  marca: { alignSelf: 'stretch', flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between' },
+  marcaNombre: { flexDirection: 'row', alignItems: 'center', gap: 3 },
+  marcaTexto: { fontFamily: lumeFuente.condBold, fontSize: 13, lineHeight: 16, letterSpacing: 1.8 },
+  punto: { width: 4, height: 4, borderRadius: 2, marginTop: 6 },
+  completa: { fontFamily: lumeFuente.medium, fontSize: 30, lineHeight: 34, letterSpacing: -0.9 },
+  meta: {
+    fontFamily: lumeFuente.monoRegular,
+    fontSize: 11,
+    lineHeight: 14,
+    letterSpacing: 0.44,
+    textTransform: 'uppercase',
+  },
+
+  grandes: {
+    flexDirection: 'row',
+    paddingTop: lumeSpace[2],
+    paddingHorizontal: lumeSpace[6],
+    paddingBottom: lumeSpace[6],
+  },
+  grande: { flex: 1, alignItems: 'flex-start', gap: lumeSpace[2] },
+  grandeSegundo: { paddingLeft: lumeSpace[5] },
+  grandeValor: {
+    fontFamily: lumeFuente.condMedium,
+    fontSize: 44,
+    lineHeight: 46,
+    letterSpacing: -1.76,
+    fontVariant: ['tabular-nums'],
+  },
+  separadorVertical: { width: 1 },
+  etiqueta: {
+    fontFamily: lumeFuente.semiSemibold,
+    fontSize: 9.5,
+    lineHeight: 12,
+    letterSpacing: 0.76,
+    textTransform: 'uppercase',
+  },
+
+  perforacion: { height: ALTO_PERFORACION, justifyContent: 'center', paddingHorizontal: 20 },
+  lineaRecorte: { height: 1, overflow: 'hidden' },
+  lineaPunteada: { height: 4, borderWidth: 1, borderStyle: 'dashed', borderRadius: 1 },
+
+  // Los conteos se reparten parejo: el mismo espacio entre ellos y contra los
+  // bordes del ticket.
+  conteos: {
+    flexDirection: 'row',
+    justifyContent: 'space-evenly',
+    paddingTop: lumeSpace[5],
+    paddingBottom: lumeSpace[2],
+  },
+  conteo: { alignItems: 'center', gap: lumeSpace[1] },
+  conteoValor: { fontFamily: lumeFuente.condMedium, fontSize: 22, lineHeight: 26, fontVariant: ['tabular-nums'] },
+
+  registro: { paddingTop: lumeSpace[3], paddingHorizontal: lumeSpace[6], paddingBottom: lumeSpace[2] },
+  fila: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: lumeSpace[4],
+    paddingVertical: 10,
+  },
+  filaIzq: { flex: 1, minWidth: 0, flexDirection: 'row', alignItems: 'center', gap: lumeSpace[3] },
+  filaSeries: { fontFamily: lumeFuente.monoRegular, fontSize: 11, lineHeight: 14 },
+  filaNombre: { flexShrink: 1, fontFamily: lumeFuente.regular, fontSize: 13, lineHeight: 18 },
+  filaMarca: { fontFamily: lumeFuente.semibold, fontSize: 13, lineHeight: 18, fontVariant: ['tabular-nums'] },
+
+  codigo: {
+    alignItems: 'stretch',
+    gap: lumeSpace[3],
+    paddingTop: lumeSpace[5],
+    paddingHorizontal: lumeSpace[6],
+    paddingBottom: lumeSpace[6],
+  },
+  barras: { height: 36, flexDirection: 'row', overflow: 'hidden' },
+  barra: { height: '100%' },
+  codigoTexto: {
+    fontFamily: lumeFuente.monoRegular,
+    fontSize: 11,
+    lineHeight: 14,
+    letterSpacing: 1.76,
+    textAlign: 'center',
+  },
 });
-
-const makeStyles = (colors: Palette) =>
-  StyleSheet.create({
-    // El margen de la imagen compartida: el mismo de la pantalla a los lados.
-    captura: {
-      width: '100%',
-      maxWidth: ANCHO_TICKET + spacing.padScreen * 2,
-      alignItems: 'center',
-      paddingHorizontal: spacing.padScreen,
-      paddingTop: MARGEN_CAPTURA.arriba,
-      paddingBottom: MARGEN_CAPTURA.abajo,
-      backgroundColor: colors.bgApp,
-    },
-    contenedorTicket: { width: '100%', maxWidth: ANCHO_TICKET },
-    // Sin fondo ni overflow: la forma y la sombra las pone la silueta, que
-    // se sale de la vista por los costados.
-    ticket: {},
-
-    encabezado: {
-      alignItems: 'center',
-      paddingTop: 26,
-      paddingHorizontal: space[7],
-      paddingBottom: space[6],
-    },
-    marca: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 14 },
-    marcaTexto: {
-      fontFamily: display,
-      fontSize: 18,
-      lineHeight: 24,
-      letterSpacing: 1,
-      color: colors.textPrimary,
-    },
-    punto: { width: 6, height: 6, borderRadius: 3, backgroundColor: colors.accent },
-    completa: {
-      fontFamily: display,
-      fontSize: 38,
-      lineHeight: 48,
-      textAlign: 'center',
-      textTransform: 'uppercase',
-      color: colors.accent,
-    },
-    // El acento de la O sobresale mas que el tope de Anton: la primera linea
-    // necesita mas alto, y la segunda sube lo mismo para no separarse.
-    completaPrimera: { lineHeight: 58 },
-    completaSegunda: { marginTop: -16 },
-    meta: {
-      fontFamily: mono.regular,
-      fontSize: 11,
-      lineHeight: 16,
-      letterSpacing: tracking.wide,
-      textAlign: 'center',
-      textTransform: 'uppercase',
-      color: colors.textTertiary,
-      marginTop: space[4],
-    },
-
-    grandes: {
-      flexDirection: 'row',
-      justifyContent: 'space-around',
-      gap: space[4],
-      paddingTop: space[2],
-      paddingHorizontal: space[7],
-      paddingBottom: 22,
-    },
-    grande: { flex: 1, alignItems: 'center', gap: space[2] },
-    grandeValor: {
-      fontFamily: display,
-      fontSize: 40,
-      lineHeight: 50,
-      color: colors.textPrimary,
-    },
-    separadorVertical: { width: 1, backgroundColor: colors.divider },
-    etiqueta: {
-      fontFamily: mono.medium,
-      fontSize: 9,
-      lineHeight: 12,
-      letterSpacing: tracking.wider,
-      textTransform: 'uppercase',
-      color: colors.textTertiary,
-    },
-
-    perforacion: { height: ALTO_PERFORACION, justifyContent: 'center' },
-    lineaRecorte: { height: 2, marginHorizontal: 18, overflow: 'hidden' },
-    lineaPunteada: {
-      height: 6,
-      borderWidth: 2,
-      borderStyle: 'dashed',
-      borderColor: colors.borderDefault,
-      borderRadius: 1,
-    },
-
-    conteos: {
-      flexDirection: 'row',
-      gap: space[5],
-      paddingTop: 18,
-      paddingHorizontal: space[7],
-      paddingBottom: space[3],
-    },
-    conteo: { flex: 1, alignItems: 'center', gap: space[1] },
-    conteoValor: {
-      fontFamily: mono.bold,
-      fontSize: 18,
-      lineHeight: 24,
-      color: colors.textPrimary,
-    },
-
-    registro: { paddingTop: space[4], paddingHorizontal: space[7], paddingBottom: space[2] },
-    fila: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-      gap: space[4],
-      paddingVertical: 9,
-    },
-    filaDivisor: { borderBottomWidth: 1, borderBottomColor: colors.divider },
-    filaIzq: { flex: 1, minWidth: 0, flexDirection: 'row', alignItems: 'center', gap: 7 },
-    filaSeries: {
-      fontFamily: mono.regular,
-      fontSize: 11,
-      lineHeight: 16,
-      color: colors.textTertiary,
-    },
-    filaNombre: {
-      flexShrink: 1,
-      fontFamily: sans.regular,
-      fontSize: 13,
-      lineHeight: 18,
-      color: colors.textSecondary,
-    },
-    filaMarca: {
-      fontFamily: mono.semibold,
-      fontSize: 13,
-      lineHeight: 18,
-      color: colors.textPrimary,
-    },
-
-    codigo: {
-      alignItems: 'center',
-      gap: space[3],
-      paddingTop: space[6],
-      paddingHorizontal: space[7],
-      paddingBottom: 14,
-    },
-    barras: {
-      alignSelf: 'stretch',
-      height: 46,
-      flexDirection: 'row',
-      overflow: 'hidden',
-      opacity: 0.92,
-    },
-    barra: { height: '100%', backgroundColor: colors.textPrimary },
-    codigoTexto: {
-      fontFamily: mono.regular,
-      fontSize: 11,
-      lineHeight: 16,
-      letterSpacing: tracking.widest,
-      color: colors.textTertiary,
-    },
-
-    festoneado: { height: 14 },
-
-  });

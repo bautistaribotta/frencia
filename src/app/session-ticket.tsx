@@ -15,19 +15,10 @@ import { TicketSesion } from '@/components/TicketSesion';
 import { AVISO_COMPARTIR, compartirTicket } from '@/lib/compartir-ticket';
 import { useDetalleSesion } from '@/lib/detalle-sesion';
 import { duracionEnSegundos, ejerciciosDelHistorial } from '@/lib/resumen-sesion';
-import {
-  Button,
-  FrenciaText,
-  space,
-  spacing,
-  useColors,
-  useThemedStyles,
-  type Palette,
-} from '@/design';
+import { Fondo, LumeButton, LumeText, lumeLayout, lumeSpace, useLume } from '@/design/lume';
 
 export default function SessionTicketScreen() {
-  const colors = useColors();
-  const styles = useThemedStyles(makeStyles);
+  const { t } = useLume();
   const router = useRouter();
   const { profile } = useProfile();
   const { showToast } = useToast();
@@ -62,88 +53,93 @@ export default function SessionTicketScreen() {
   }
 
   const atras = (
-    <Button variant="ghost" size="sm" icon="chevron-left" onPress={volver}>
+    <LumeButton variant="ghost" size="sm" icon="chevron-left" onPress={volver}>
       Atrás
-    </Button>
+    </LumeButton>
   );
 
   return (
-    <SafeAreaView style={styles.safe} edges={['top', 'bottom', 'left', 'right']}>
-      {sesion ? (
-        <MarcoTicket
-          encabezado={atras}
-          acciones={
-            <Button
-              variant="primary"
-              size="lg"
-              icon="share"
-              style={styles.accion}
-              onPress={compartir}
-              loading={compartiendo}
-            >
-              Compartir
-            </Button>
-          }
-        >
-          <TicketSesion
-            sessionId={sesion.id}
-            nombreDia={sesion.dayName ?? 'Día eliminado'}
-            inicio={sesion.startedAt}
-            duracionSegundos={duracionEnSegundos(sesion.startedAt, sesion.finishedAt)}
-            ejercicios={ejercicios}
-            unidad={unidad}
-            unidadDistancia={unidadDistancia}
-            capturaRef={capturaRef}
-          />
-        </MarcoTicket>
-      ) : (
-        <>
-          <View style={styles.header}>{atras}</View>
-          {noEncontrada ? (
-            <View style={styles.centro}>
-              <FrenciaText role="subtitle" style={styles.centerText}>
-                No encontramos este entrenamiento
-              </FrenciaText>
-              <FrenciaText role="bodySm" color={colors.textSecondary} style={styles.centerText}>
-                Puede que ya no esté disponible en tu historial.
-              </FrenciaText>
-            </View>
-          ) : resultado?.estado === 'error' ? (
-            <View style={styles.centro}>
-              <FrenciaText role="subtitle" style={styles.centerText}>
-                No pudimos cargar el entrenamiento
-              </FrenciaText>
-              <FrenciaText role="bodySm" color={colors.textSecondary} style={styles.centerText}>
-                Comprueba tu conexión y vuelve a intentarlo.
-              </FrenciaText>
-              <Button variant="secondary" onPress={reintentar}>
-                Reintentar
-              </Button>
-            </View>
-          ) : (
-            <CargaCentrada texto="Cargando ticket…" />
-          )}
-        </>
-      )}
-    </SafeAreaView>
+    <View style={styles.pantalla}>
+      <Fondo posicion="centro" />
+      <SafeAreaView style={styles.safe} edges={['top', 'bottom', 'left', 'right']}>
+        {sesion ? (
+          <MarcoTicket
+            encabezado={atras}
+            acciones={
+              <LumeButton
+                variant="primary"
+                size="lg"
+                icon="share"
+                style={styles.accion}
+                onPress={compartir}
+                loading={compartiendo}
+              >
+                Compartir
+              </LumeButton>
+            }
+          >
+            <TicketSesion
+              sessionId={sesion.id}
+              nombreDia={sesion.dayName ?? 'Día eliminado'}
+              inicio={sesion.startedAt}
+              duracionSegundos={duracionEnSegundos(sesion.startedAt, sesion.finishedAt)}
+              ejercicios={ejercicios}
+              unidad={unidad}
+              unidadDistancia={unidadDistancia}
+              capturaRef={capturaRef}
+            />
+          </MarcoTicket>
+        ) : (
+          <>
+            <View style={styles.header}>{atras}</View>
+            {noEncontrada ? (
+              <View style={styles.centro}>
+                <LumeText rol="subtitle" style={styles.centrado}>
+                  No encontramos este entrenamiento
+                </LumeText>
+                <LumeText rol="bodySm" color={t.textSecondary} style={styles.centrado}>
+                  Puede que ya no esté disponible en tu historial.
+                </LumeText>
+              </View>
+            ) : resultado?.estado === 'error' ? (
+              <View style={styles.centro}>
+                <LumeText rol="subtitle" style={styles.centrado}>
+                  No pudimos cargar el entrenamiento
+                </LumeText>
+                <LumeText rol="bodySm" color={t.textSecondary} style={styles.centrado}>
+                  Revisá tu conexión y probá de nuevo.
+                </LumeText>
+                <LumeButton variant="secondary" onPress={reintentar}>
+                  Reintentar
+                </LumeButton>
+              </View>
+            ) : (
+              <CargaCentrada texto="Cargando ticket…" />
+            )}
+          </>
+        )}
+      </SafeAreaView>
+    </View>
   );
 }
 
-const makeStyles = (colors: Palette) =>
-  StyleSheet.create({
-    safe: { flex: 1, backgroundColor: colors.bgApp },
-    header: {
-      flexDirection: 'row',
-      paddingHorizontal: spacing.padScreen,
-      paddingVertical: space[5],
-    },
-    centro: {
-      flex: 1,
-      alignItems: 'center',
-      justifyContent: 'center',
-      gap: space[4],
-      padding: spacing.padScreen,
-    },
-    centerText: { textAlign: 'center' },
-    accion: { flex: 1 },
-  });
+const styles = StyleSheet.create({
+  pantalla: { flex: 1 },
+  safe: { flex: 1 },
+  // El boton ghost trae su propio padding: el margen lo corre 10 px a la
+  // izquierda para que el chevron quede alineado con el borde del contenido.
+  header: {
+    flexDirection: 'row',
+    paddingHorizontal: lumeLayout.padScreen - 10,
+    paddingVertical: lumeSpace[3],
+  },
+  centro: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: lumeSpace[4],
+    padding: lumeLayout.padScreen,
+  },
+  centrado: { textAlign: 'center' },
+  accion: { flex: 1 },
+});

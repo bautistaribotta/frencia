@@ -1,6 +1,6 @@
 /* Silueta del ticket del resumen como path SVG: esquinas de arriba redondeadas,
    una muesca a cada lado a la altura de la perforacion y el borde de abajo
-   festoneado. Los recortes son agujeros de verdad en la forma, no circulos
+   festoneado o, sin festones, recto con las esquinas redondeadas (Lume). Los recortes son agujeros de verdad en la forma, no circulos
    pintados encima: asi la sombra sigue el contorno y no dibuja un rectangulo
    debajo de los festones. */
 
@@ -14,6 +14,8 @@ export interface MedidasSilueta {
   /** Radio de las muescas y de los festones. */
   radioRecorte: number;
   festones: number;
+  /** Radio de las esquinas de abajo cuando no hay festones. */
+  radioAbajo?: number;
   /** Margen a cada lado antes del primer y del ultimo feston. */
   margenFestones: number;
 }
@@ -44,8 +46,16 @@ export function pathSilueta(m: MedidasSilueta): string {
     // Muesca derecha: baja por el borde y entra hacia el ticket.
     `L ${n(w)} ${n(y - r)}`,
     arco(w, y + r),
-    `L ${n(w)} ${n(h)}`,
   ];
+
+  // Sin festones el borde de abajo es recto, con las esquinas redondeadas.
+  const Rb = m.festones <= 0 ? (m.radioAbajo ?? 0) : 0;
+  const esquinaAbajo = (x: number, yy: number) => `A ${n(Rb)} ${n(Rb)} 0 0 1 ${n(x)} ${n(yy)}`;
+  if (Rb > 0) {
+    partes.push(`L ${n(w)} ${n(h - Rb)}`, esquinaAbajo(w - Rb, h), `L ${n(Rb)} ${n(h)}`, esquinaAbajo(0, h - Rb));
+  } else {
+    partes.push(`L ${n(w)} ${n(h)}`);
+  }
 
   // Festones de derecha a izquierda, cada uno mordiendo hacia arriba.
   for (const cx of centrosFestones(m).reverse()) {
@@ -53,7 +63,7 @@ export function pathSilueta(m: MedidasSilueta): string {
   }
 
   partes.push(
-    `L 0 ${n(h)}`,
+    ...(Rb > 0 ? [] : [`L 0 ${n(h)}`]),
     // Muesca izquierda: sube por el borde y entra hacia el ticket.
     `L 0 ${n(y + r)}`,
     arco(0, y - r),

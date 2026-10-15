@@ -44,3 +44,13 @@ test('las muescas quedan centradas en la perforacion', () => {
   assert.ok(d.includes('L 330 189 A 11 11 0 0 0 330 211'));
   assert.ok(d.includes('L 0 211 A 11 11 0 0 0 0 189'));
 });
+
+test('sin festones y con radioAbajo el borde de abajo es recto con las esquinas redondeadas', () => {
+  const d = pathSilueta({ ...base, festones: 0, radioAbajo: 22 });
+  assert.ok(d.endsWith('Z'));
+  // 4 esquinas + 2 muescas, y nada de festones.
+  assert.equal(d.match(/A /g)?.length, 6);
+  // Baja por la derecha hasta antes de la esquina y recorre el borde recto.
+  assert.ok(d.includes('L 330 578'));
+  assert.ok(d.includes('L 22 600'));
+});
