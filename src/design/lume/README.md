@@ -20,8 +20,15 @@ Terminos / Privacidad, el setup del perfil, Inicio (`(main)/home`), la barra de 
 Rutinas e Historial (con `SwipeableRow` y `src/components/EstadosPestania.tsx`), Perfil,
 Editar perfil y Configuracion. Tambien estan en Lume las piezas globales: el
 dialogo de confirmacion (`Dialogo` y el modal de alerta), el toast, la hoja
-inferior (`src/components/Hoja.tsx`) y la rueda de editar perfil
-(`src/components/MedidaLume.tsx`). El
+inferior (`src/components/Hoja.tsx`) y la rueda (`src/components/MeasurePicker.tsx`).
+Editar rutina y Editar dia tambien, con sus piezas compartidas: `DayEditor`,
+`DraggableRowList` y el selector de ejercicios (`ExercisePickerModal`).
+
+Las piezas compartidas se migran en su mismo archivo, no en copias: si una
+pantalla todavia vieja las usa (el wizard de crear rutina, la sesion), queda
+mezclada hasta que le toque. Asi pasaron a Lume en `src/design/components/`
+`Stepper`, `DurationField`, `DistanceField`, `NumberField`, `Tag`,
+`ExerciseTypeTag` y `ExerciseSummary`; y `Campo` suma `iconoAcento` y `lg`. El
 indicador de carga (`Cargando`) ya reemplaza a `ActivityIndicator` en toda la
 app, tambien en las pantallas que siguen en el sistema anterior.
 

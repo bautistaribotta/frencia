@@ -2,8 +2,8 @@
    Su nombre, si esta en curso o archivada, y los dias que la componen. Cada dia
    se toca para editarlo.
 
-   Mantiene el idioma de la lista de rutinas —nombre en display, datos en
-   monoespaciada, dias como filas al hilo— y no el del home, donde un dia es una
+   Mantiene el idioma de la lista de rutinas —nombre grande en la sans, datos
+   tabulares, dias como filas al hilo— y no el del home, donde un dia es una
    tarjeta con su tira de semana y su boton Empezar. Empezar el entrenamiento se
    hace desde el home; aca se mira y se corrige el plan. */
 
@@ -18,20 +18,18 @@ import { useToast } from '@/contexts/toast';
 import { alerta } from '@/lib/alerta';
 import { CargaCentrada } from '@/components/CargaCentrada';
 
+import { Icon } from '@/design';
 import {
-  Badge,
-  Button,
-  FrenciaText,
-  Icon,
-  display,
-  radius,
-  sans,
-  space,
-  spacing,
-  useColors,
-  useThemedStyles,
-  type Palette,
-} from '@/design';
+  Fondo,
+  LumeBadge,
+  LumeButton,
+  LumeText,
+  lumeFuente,
+  lumeLayout,
+  lumeRadius,
+  lumeSpace,
+  useLume,
+} from '@/design/lume';
 
 function resumenDia(ejercicios: number, weekdays: number[]): string {
   const cuenta = `${ejercicios} ${ejercicios === 1 ? 'ejercicio' : 'ejercicios'}`;
@@ -40,8 +38,7 @@ function resumenDia(ejercicios: number, weekdays: number[]): string {
 }
 
 export default function RoutineScreen() {
-  const colors = useColors();
-  const styles = useThemedStyles(makeStyles);
+  const { t } = useLume();
   const router = useRouter();
   const { showToast } = useToast();
 
@@ -112,180 +109,165 @@ export default function RoutineScreen() {
   }
 
   return (
-    <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
-      <View style={styles.header}>
-        <Button variant="ghost" size="sm" icon="chevron-left" onPress={volver}>
-          Atrás
-        </Button>
-      </View>
-
-      {cargando ? (
-        <CargaCentrada texto="Cargando rutina…" />
-      ) : !rutina ? (
-        <View style={styles.centro}>
-          <FrenciaText role="subtitle" style={styles.centerText}>
-            No encontramos esta rutina
-          </FrenciaText>
-          <FrenciaText role="bodySm" color={colors.textSecondary} style={styles.centerText}>
-            Puede que la hayas borrado desde otro dispositivo.
-          </FrenciaText>
+    <View style={styles.pantalla}>
+      <Fondo posicion="cumbre" />
+      <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
+        <View style={styles.header}>
+          <LumeButton variant="ghost" size="sm" icon="chevron-left" onPress={volver}>
+            Atrás
+          </LumeButton>
         </View>
-      ) : (
-        <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
-          <View style={styles.titulo}>
-            <Badge tone={rutina.activa ? 'green' : 'neutral'}>
-              {rutina.activa ? 'En curso' : 'Archivada'}
-            </Badge>
-            <FrenciaText role="display" style={styles.nombre} numberOfLines={3}>
-              {rutina.name}
-            </FrenciaText>
-            <FrenciaText role="data" color={colors.textSecondary}>
-              {rutina.dias.length} {rutina.dias.length === 1 ? 'día' : 'días'} ·{' '}
-              {fechaCorta(rutina.creadaEl)}
-            </FrenciaText>
+
+        {cargando ? (
+          <CargaCentrada texto="Cargando rutina…" />
+        ) : !rutina ? (
+          <View style={styles.centro}>
+            <LumeText rol="subtitle" style={styles.centrado}>
+              No encontramos esta rutina
+            </LumeText>
+            <LumeText rol="bodySm" color={t.textSecondary} style={styles.centrado}>
+              Puede que la hayas borrado desde otro dispositivo.
+            </LumeText>
           </View>
-
-          {rutina.dias.length === 0 ? (
-            <View style={styles.vacio}>
-              <Icon name="calendar-off" size={22} color={colors.textTertiary} />
-              <FrenciaText role="bodySm" color={colors.textTertiary} style={styles.centerText}>
-                Esta rutina no tiene días.
-              </FrenciaText>
+        ) : (
+          <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
+            <View style={styles.titulo}>
+              <LumeBadge tone={rutina.activa ? 'signal' : 'neutral'}>
+                {rutina.activa ? 'En curso' : 'Archivada'}
+              </LumeBadge>
+              <LumeText rol="display" style={styles.nombre} numberOfLines={3}>
+                {rutina.name}
+              </LumeText>
+              <LumeText rol="data" color={t.textSecondary}>
+                {rutina.dias.length} {rutina.dias.length === 1 ? 'día' : 'días'} · {fechaCorta(rutina.creadaEl)}
+              </LumeText>
             </View>
-          ) : (
-            <View style={styles.seccion}>
-              <FrenciaText role="dataLabel" color={colors.textTertiary}>
-                Días de entrenamiento
-              </FrenciaText>
 
-              <View>
-                {rutina.dias.map((d, i) => (
-                  <Pressable
-                    key={d.id}
-                    onPress={() => router.push({ pathname: '/edit-day', params: { dia: d.id } })}
-                    accessibilityRole="button"
-                    accessibilityLabel={`Editar ${d.name}`}
-                    style={({ pressed }) => [
-                      styles.fila,
-                      i > 0 && styles.filaDivisor,
-                      pressed && styles.pressed,
-                    ]}
-                  >
-                    <View style={styles.filaTexto}>
-                      <FrenciaText role="bodySm" style={styles.filaNombre} numberOfLines={1}>
-                        {d.name}
-                      </FrenciaText>
-                      <FrenciaText role="dataLabel" color={colors.textTertiary}>
-                        {resumenDia(d.ejercicios, d.weekdays)}
-                      </FrenciaText>
-                    </View>
-                    {/* Lapiz y no chevron: la fila no lleva a ver el dia, lo
-                       abre para editarlo. Es el mismo icono que en el home. */}
-                    <Icon name="pencil" size={17} color={colors.textTertiary} />
-                  </Pressable>
-                ))}
+            {rutina.dias.length === 0 ? (
+              <View style={[styles.vacio, { backgroundColor: t.surfaceInset, borderColor: t.borderStrong }]}>
+                <Icon name="calendar-off" size={22} strokeWidth={1.75} color={t.textTertiary} />
+                <LumeText rol="bodySm" color={t.textTertiary} style={styles.centrado}>
+                  Esta rutina no tiene días.
+                </LumeText>
               </View>
-            </View>
-          )}
-        </ScrollView>
-      )}
+            ) : (
+              <View style={styles.seccion}>
+                <LumeText rol="label" color={t.textTertiary}>
+                  Días de entrenamiento
+                </LumeText>
 
-      {/* Acciones de la rutina: al pie, a todo el ancho. Editar arriba y
-         Eliminar al fondo, la accion irreversible mas lejos del pulgar. */}
-      {!cargando && rutina && (
-        <View style={styles.acciones}>
-          <Button
-            variant="secondary"
-            size="lg"
-            icon="pencil"
-            fullWidth
-            disabled={borrando}
-            onPress={editar}
-          >
-            Editar rutina
-          </Button>
-          <Button
-            variant="danger"
-            size="lg"
-            icon="trash-2"
-            fullWidth
-            loading={borrando}
-            onPress={pedirEliminar}
-          >
-            Eliminar rutina
-          </Button>
-        </View>
-      )}
-    </SafeAreaView>
+                <View>
+                  {rutina.dias.map((d, i) => (
+                    <Pressable
+                      key={d.id}
+                      onPress={() => router.push({ pathname: '/edit-day', params: { dia: d.id } })}
+                      accessibilityRole="button"
+                      accessibilityLabel={`Editar ${d.name}`}
+                      style={({ pressed }) => [
+                        styles.fila,
+                        i > 0 && { borderTopWidth: 1, borderTopColor: t.divider },
+                        pressed && styles.presionada,
+                      ]}
+                    >
+                      <View style={styles.filaTexto}>
+                        <LumeText rol="bodySm" style={styles.filaNombre} numberOfLines={1}>
+                          {d.name}
+                        </LumeText>
+                        <LumeText rol="label" color={t.textTertiary}>
+                          {resumenDia(d.ejercicios, d.weekdays)}
+                        </LumeText>
+                      </View>
+                      {/* Lapiz y no chevron: la fila no lleva a ver el dia, lo
+                         abre para editarlo. Es el mismo icono que en el home. */}
+                      <Icon name="pencil" size={17} strokeWidth={1.75} color={t.textTertiary} />
+                    </Pressable>
+                  ))}
+                </View>
+              </View>
+            )}
+          </ScrollView>
+        )}
+
+        {/* Acciones de la rutina: al pie, a todo el ancho. Editar arriba y
+           Eliminar al fondo, la accion irreversible mas lejos del pulgar. */}
+        {!cargando && rutina && (
+          <View style={styles.acciones}>
+            <LumeButton variant="secondary" size="lg" icon="pencil" fullWidth disabled={borrando} onPress={editar}>
+              Editar rutina
+            </LumeButton>
+            <LumeButton
+              variant="danger"
+              size="lg"
+              icon="trash-2"
+              fullWidth
+              loading={borrando}
+              onPress={pedirEliminar}
+            >
+              Eliminar rutina
+            </LumeButton>
+          </View>
+        )}
+      </SafeAreaView>
+    </View>
   );
 }
 
-const makeStyles = (colors: Palette) =>
-  StyleSheet.create({
-    safe: { flex: 1, backgroundColor: colors.bgApp },
+const styles = StyleSheet.create({
+  pantalla: { flex: 1 },
+  safe: { flex: 1 },
 
-    header: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-      paddingHorizontal: spacing.padScreen,
-      paddingVertical: space[5],
-      minHeight: 40,
-    },
+  // El boton ghost trae su propio padding: el margen lo corre 10 px a la
+  // izquierda para que el chevron quede alineado con el borde del contenido.
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: lumeLayout.padScreen - 10,
+    paddingVertical: lumeSpace[4],
+    minHeight: 44,
+  },
 
-    scroll: {
-      paddingHorizontal: spacing.padScreen,
-      paddingTop: space[4],
-      paddingBottom: space[10],
-      gap: space[7],
-    },
+  scroll: {
+    paddingHorizontal: lumeLayout.padScreen,
+    paddingTop: lumeSpace[4],
+    paddingBottom: lumeSpace[10],
+    gap: lumeSpace[7],
+  },
 
-    centro: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: space[3] },
-    centerText: { textAlign: 'center' },
-    pressed: { opacity: 0.75 },
+  centro: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: lumeSpace[3] },
+  centrado: { textAlign: 'center' },
+  presionada: { opacity: 0.6 },
 
-    titulo: { gap: space[3], alignItems: 'flex-start' },
-    // Anton no es de ancho fijo y el nombre lo pone el usuario, asi que se
-    // achica respecto del display por defecto para que entre en pocas lineas.
-    // El lineHeight se baja con el, pero no por debajo de la caja natural de
-    // la fuente: ahi RN recorta los ascendentes en vez de desbordar.
-    nombre: {
-      fontFamily: display,
-      fontSize: 34,
-      lineHeight: 40,
-      textTransform: 'uppercase',
-    },
+  titulo: { gap: lumeSpace[4], alignItems: 'flex-start' },
+  // El nombre lo pone el usuario: en la sans de display, ajustado para que
+  // entre en pocas lineas.
+  nombre: { fontSize: 34, lineHeight: 36, letterSpacing: -1 },
 
-    seccion: { gap: space[3] },
-    fila: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: space[4],
-      paddingVertical: space[4],
-      paddingHorizontal: space[1],
-    },
-    filaDivisor: { borderTopWidth: 1, borderTopColor: colors.divider },
-    filaTexto: { flex: 1, gap: space[1] },
-    filaNombre: { fontFamily: sans.semibold, color: colors.textPrimary },
+  seccion: { gap: lumeSpace[4] },
+  fila: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: lumeSpace[4],
+    paddingVertical: lumeSpace[4],
+    paddingHorizontal: lumeSpace[1],
+    minHeight: 60,
+  },
+  filaTexto: { flex: 1, gap: lumeSpace[1] },
+  filaNombre: { fontFamily: lumeFuente.semibold },
 
-    vacio: {
-      alignItems: 'center',
-      gap: space[3],
-      paddingVertical: space[8],
-      borderRadius: radius.lg,
-      borderWidth: 1,
-      borderStyle: 'dashed',
-      borderColor: colors.borderSubtle,
-    },
+  vacio: {
+    alignItems: 'center',
+    gap: lumeSpace[3],
+    paddingVertical: lumeSpace[8],
+    borderRadius: lumeRadius.lg,
+    borderWidth: 1,
+    borderStyle: 'dashed',
+  },
 
-    // Pie fijo con las acciones de la rutina. El borde superior lo separa del
-    // listado que scrollea por detras.
-    acciones: {
-      gap: space[3],
-      paddingHorizontal: spacing.padScreen,
-      paddingTop: space[4],
-      paddingBottom: space[2],
-      borderTopWidth: 1,
-      borderTopColor: colors.divider,
-    },
-  });
+  // Pie fijo con las acciones de la rutina.
+  acciones: {
+    gap: lumeSpace[3],
+    paddingHorizontal: lumeLayout.padScreen,
+    paddingTop: lumeSpace[4],
+    paddingBottom: lumeSpace[2],
+  },
+});
