@@ -72,6 +72,8 @@ const oscuro = {
   surfaceCardElevatedOpaco: '#222426',
   surfaceRaisedOpaco: '#121315',
   surfaceInset: 'rgba(0, 0, 0, 0.28)',
+  // El toast: bg-app al 92 %.
+  surfaceToast: 'rgba(8, 9, 10, 0.92)',
   glassLine: 'rgba(255, 255, 255, 0.13)',
   glassHighlight: 'rgba(255, 255, 255, 0.12)',
   surfaceSignalSoft: 'rgba(201, 226, 95, 0.10)',
@@ -137,6 +139,7 @@ const claro: LumePalette = {
   surfaceCardElevatedOpaco: '#fbfcf7',
   surfaceRaisedOpaco: '#f8f9f2',
   surfaceInset: 'rgba(20, 21, 17, 0.05)',
+  surfaceToast: 'rgba(238, 240, 230, 0.92)',
   glassLine: 'rgba(255, 255, 255, 0.80)',
   glassHighlight: 'rgba(255, 255, 255, 0.95)',
   surfaceSignalSoft: 'rgba(79, 106, 10, 0.08)',

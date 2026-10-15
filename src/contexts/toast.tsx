@@ -2,7 +2,9 @@
    Notificacion efimera, no bloqueante, montada una sola vez en la raiz
    para sobrevivir a cambios de ruta (ej. se dispara al guardar y se ve
    tras cerrar el modal). Una sola visible a la vez: un toast nuevo
-   reemplaza al anterior. Auto-descarta y se puede tocar para cerrar. */
+   reemplaza al anterior. Auto-descarta y se puede tocar para cerrar.
+   Va en Lume: bg-app al 92 % con borde glass-line; el icono de exito en
+   signal, el de error en carmin y el de info en texto secundario. */
 
 import React, {
   createContext,
@@ -16,19 +18,8 @@ import { Pressable, StyleSheet, View } from 'react-native';
 import Animated, { FadeInDown, FadeOutUp } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import {
-  FrenciaText,
-  Icon,
-  radius,
-  sans,
-  space,
-  spacing,
-  useColors,
-  useThemedStyles,
-  type IconName,
-  type Palette,
-  type Shadows,
-} from '@/design';
+import { Icon, type IconName } from '@/design';
+import { LumeText, lumeFuente, lumeLayout, lumeRadius, lumeSpace, useLume } from '@/design/lume';
 
 type ToastType = 'success' | 'error' | 'info';
 
@@ -63,8 +54,7 @@ const ICON_BY_TYPE: Record<ToastType, IconName> = {
 };
 
 export function ToastProvider({ children }: { children: React.ReactNode }) {
-  const colors = useColors();
-  const styles = useThemedStyles(makeStyles);
+  const { t, sombras } = useLume();
   const insets = useSafeAreaInsets();
   const [toast, setToast] = useState<ToastState | null>(null);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -91,9 +81,9 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const accentByType: Record<ToastType, string> = {
-    success: colors.success,
-    error: colors.danger,
-    info: colors.info,
+    success: t.signal,
+    error: t.dangerText,
+    info: t.textSecondary,
   };
 
   return (
@@ -106,7 +96,15 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
             key={toast.id}
             entering={FadeInDown.duration(240)}
             exiting={FadeOutUp.duration(180)}
-            style={[styles.toast, { marginTop: insets.top + space[4] }]}
+            style={[
+              styles.toast,
+              {
+                marginTop: insets.top + lumeSpace[4],
+                backgroundColor: t.surfaceToast,
+                borderColor: t.glassLine,
+                boxShadow: sombras.lg,
+              },
+            ]}
           >
             <View style={styles.fila}>
               <Pressable
@@ -116,9 +114,9 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
                 style={styles.pressable}
               >
                 <Icon name={ICON_BY_TYPE[toast.type]} size={20} color={accentByType[toast.type]} />
-                <FrenciaText role="bodySm" color={colors.textPrimary} style={styles.message}>
+                <LumeText rol="bodySm" color={t.textPrimary} style={styles.message}>
                   {toast.message}
-                </FrenciaText>
+                </LumeText>
               </Pressable>
               {/* Hermano y no hijo del de cerrar: un boton adentro de otro no
                  lo alcanza VoiceOver. */}
@@ -132,9 +130,9 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
                   hitSlop={8}
                   style={({ pressed }) => [styles.accion, pressed && styles.accionPresionada]}
                 >
-                  <FrenciaText role="bodySm" color={colors.accentText} style={styles.accionTexto}>
+                  <LumeText rol="bodySm" color={t.signalText} style={styles.accionTexto}>
                     {toast.action.label}
-                  </FrenciaText>
+                  </LumeText>
                 </Pressable>
               ) : null}
             </View>
@@ -149,35 +147,31 @@ export function useToast(): ToastContextValue {
   return useContext(ToastContext);
 }
 
-const makeStyles = (colors: Palette, shadows: Shadows) =>
-  StyleSheet.create({
-    overlay: {
-      pointerEvents: 'box-none',
-      ...StyleSheet.absoluteFill,
-      justifyContent: 'flex-start',
-      alignItems: 'center',
-      paddingHorizontal: spacing.padScreen,
-    },
-    toast: {
-      maxWidth: 480,
-      width: '100%',
-      backgroundColor: colors.surfaceCardElevated,
-      borderRadius: radius.lg,
-      borderWidth: 1,
-      borderColor: colors.borderSubtle,
-      ...shadows.lg,
-    },
-    fila: { flexDirection: 'row', alignItems: 'center' },
-    accion: { paddingHorizontal: space[4], paddingVertical: space[4] },
-    accionPresionada: { opacity: 0.6 },
-    accionTexto: { fontFamily: sans.semibold },
-    pressable: {
-      flex: 1,
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: space[3],
-      paddingHorizontal: space[4],
-      paddingVertical: space[4],
-    },
-    message: { flex: 1 },
-  });
+const styles = StyleSheet.create({
+  overlay: {
+    pointerEvents: 'box-none',
+    ...StyleSheet.absoluteFill,
+    justifyContent: 'flex-start',
+    alignItems: 'center',
+    paddingHorizontal: lumeLayout.padScreen,
+  },
+  toast: {
+    maxWidth: 480,
+    width: '100%',
+    borderRadius: lumeRadius.lg,
+    borderWidth: 1,
+  },
+  fila: { flexDirection: 'row', alignItems: 'center' },
+  accion: { paddingHorizontal: lumeSpace[4], paddingVertical: lumeSpace[4] },
+  accionPresionada: { opacity: 0.6 },
+  accionTexto: { fontFamily: lumeFuente.semibold },
+  pressable: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: lumeSpace[3],
+    paddingHorizontal: lumeSpace[4],
+    paddingVertical: lumeSpace[4],
+  },
+  message: { flex: 1 },
+});

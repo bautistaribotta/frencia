@@ -7,7 +7,7 @@
 
 import React from 'react';
 
-import { Button } from '@/design';
+import { LumeButton } from '@/design/lume';
 import { Dialogo } from '@/components/Dialogo';
 
 export interface ArchiveRoutineDialogProps {
@@ -34,15 +34,15 @@ export function ArchiveRoutineDialog({
       mensaje="Solo podés tener una rutina activa. La nueva puede reemplazarla, o quedar guardada en tus rutinas para activarla cuando quieras."
       onDescartar={onCancelar}
     >
-      <Button variant="primary" size="lg" fullWidth onPress={onContinuar}>
+      <LumeButton variant="primary" size="lg" fullWidth onPress={onContinuar}>
         Reemplazarla con la nueva
-      </Button>
-      <Button variant="secondary" size="lg" fullWidth onPress={onMantener}>
+      </LumeButton>
+      <LumeButton variant="secondary" size="lg" fullWidth onPress={onMantener}>
         Seguir con esta, guardar la nueva
-      </Button>
-      <Button variant="danger" size="lg" fullWidth onPress={onCancelar}>
+      </LumeButton>
+      <LumeButton variant="danger" size="lg" fullWidth onPress={onCancelar}>
         Cancelar
-      </Button>
+      </LumeButton>
     </Dialogo>
   );
 }

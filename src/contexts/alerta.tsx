@@ -2,13 +2,14 @@
    Montado una sola vez en la raiz; lo abre la funcion alerta() de
    src/lib/alerta.ts. Se dibuja con Dialogo, la misma base que
    ArchiveRoutineDialog. Las acciones van primero y Cancelar al final; una
-   accion destructiva va en rojo y el resto en verde. Un alerta nuevo
+   accion destructiva va delineada en carmin, el resto en el primario de Lume
+   y Cancelar en vidrio. Un alerta nuevo
    reemplaza al que este abierto. */
 
 import React, { useEffect, useState } from 'react';
 import type { AlertButton } from 'react-native';
 
-import { Button } from '@/design';
+import { LumeButton } from '@/design/lume';
 import { Dialogo } from '@/components/Dialogo';
 import { registrarAlerta, type AlertaSolicitud } from '@/lib/alerta';
 
@@ -44,7 +45,7 @@ export function AlertaProvider({ children }: { children: React.ReactNode }) {
         onDescartar={descartar}
       >
         {ordenados.map((boton, i) => (
-          <Button
+          <LumeButton
             key={`${boton.text}-${i}`}
             variant={
               boton.style === 'cancel'
@@ -58,7 +59,7 @@ export function AlertaProvider({ children }: { children: React.ReactNode }) {
             onPress={() => elegir(boton)}
           >
             {boton.text}
-          </Button>
+          </LumeButton>
         ))}
       </Dialogo>
     </>
