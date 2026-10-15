@@ -17,7 +17,11 @@ pantallas se migran de a partes. Una pantalla migrada importa de
 
 Migradas: login, registro, recuperar contraseña, aceptacion de textos legales,
 Terminos / Privacidad, el setup del perfil, Inicio (`(main)/home`), la barra de pestañas y las listas de
-Rutinas e Historial (con `SwipeableRow` y `src/components/EstadosPestania.tsx`). El
+Rutinas e Historial (con `SwipeableRow` y `src/components/EstadosPestania.tsx`), Perfil,
+Editar perfil y Configuracion. Tambien estan en Lume las piezas globales: el
+dialogo de confirmacion (`Dialogo` y el modal de alerta), el toast, la hoja
+inferior (`src/components/Hoja.tsx`) y la rueda de editar perfil
+(`src/components/MedidaLume.tsx`). El
 indicador de carga (`Cargando`) ya reemplaza a `ActivityIndicator` en toda la
 app, tambien en las pantallas que siguen en el sistema anterior.
 
@@ -34,6 +38,7 @@ app, tambien en las pantallas que siguen en el sistema anterior.
 | `Cargando` | El anillo de carga: pista en data-track, un cuarto en tinta, una vuelta cada 1,2 s (3,6 s con Reducir movimiento). `sm` 16 en botones, `md` 20 en pantallas y listas, `lg` 28 para arrastrar y actualizar. Reemplaza a `ActivityIndicator` en toda la app. |
 | `LumeIconButton`, `LumeBadge`, `LumeAvatar` | Boton de icono (primary, surface, ghost), insignia (neutral, signal, intensity, danger) y avatar (foto o beam con la cara en bg-app sobre el accent). |
 | `LumeMetricPill` | Chip de metrica sobre vidrio: icono, rotulo y valor (`stack` o `inline`; neutral, signal, intensity). |
+| `LumeSwitch` | Interruptor: pista en accent encendido, perilla en text-on-accent. |
 | `LumeTabBar` | La barra de pestañas: vidrio denso, la activa con el icono en signal y una marca de 2 px arriba; el boton central cuadrado en accent. Va debajo de la pantalla, sin blur. |
 | `Semana` | La tira de lunes a domingo: dato en tinta en la home, eleccion en accent con `editor`. |
 | `PasoWizard`, `Escala`, `BotonTexto` | El marco comun de los wizards. |

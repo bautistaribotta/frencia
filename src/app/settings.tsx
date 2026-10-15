@@ -9,23 +9,12 @@ import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 
-import {
-  Button,
-  FrenciaText,
-  Icon,
-  radius,
-  sans,
-  space,
-  spacing,
-  useColors,
-  useThemedStyles,
-  type Palette,
-} from '@/design';
+import { Icon } from '@/design';
+import { Fondo, LumeButton, LumeText, Vidrio, lumeFuente, lumeLayout, lumeSpace, useLume } from '@/design/lume';
 import { usePedirEliminarCuenta } from '@/lib/pedir-eliminar-cuenta';
 
 export default function SettingsScreen() {
-  const colors = useColors();
-  const styles = useThemedStyles(makeStyles);
+  const { t } = useLume();
   const router = useRouter();
   const { pedir: pedirEliminarCuenta, eliminando } = usePedirEliminarCuenta();
 
@@ -34,116 +23,99 @@ export default function SettingsScreen() {
     else router.replace('/profile');
   }
 
-  return (
-    <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
-      <View style={styles.backBtn}>
-        <Button variant="ghost" size="sm" icon="chevron-left" onPress={goBack}>
-          Atrás
-        </Button>
+  // Una fila de la lista: icono, titulo y chevron.
+  const fila = (
+    icono: string,
+    titulo: string,
+    onPress: () => void,
+    { peligro = false, deshabilitada = false }: { peligro?: boolean; deshabilitada?: boolean } = {},
+  ) => (
+    <Pressable
+      onPress={onPress}
+      disabled={deshabilitada}
+      accessibilityRole="button"
+      accessibilityLabel={titulo}
+      style={({ pressed }) => [styles.fila, pressed && { backgroundColor: t.surfaceChip }]}
+    >
+      <View style={styles.filaIzq}>
+        <Icon name={icono} size={20} color={peligro ? t.dangerText : t.textSecondary} strokeWidth={1.75} />
+        <LumeText rol="bodySm" color={peligro ? t.dangerText : t.textPrimary} style={styles.filaTitulo}>
+          {titulo}
+        </LumeText>
       </View>
+      <Icon name="chevron-right" size={20} color={t.textTertiary} strokeWidth={1.75} />
+    </Pressable>
+  );
 
-      <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
-        <View style={styles.header}>
-          <FrenciaText role="title">Configuración</FrenciaText>
+  return (
+    <View style={styles.pantalla}>
+      <Fondo posicion="cumbre" />
+      <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
+        <View style={styles.volver}>
+          <LumeButton variant="ghost" size="sm" icon="chevron-left" onPress={goBack}>
+            Atrás
+          </LumeButton>
         </View>
 
-        {/* Legal: textos de solo lectura, en un mismo recuadro. */}
-        <View style={styles.group}>
-          <FrenciaText role="dataLabel" color={colors.textTertiary}>
-            Legal
-          </FrenciaText>
-          <View style={styles.list}>
-            <Pressable
-              onPress={() => router.push('/terms')}
-              accessibilityRole="button"
-              accessibilityLabel="Términos y Condiciones"
-            >
-              <View style={styles.row}>
-                <View style={styles.rowLeft}>
-                  <Icon name="file-text" size={20} color={colors.textSecondary} />
-                  <FrenciaText role="bodySm" style={styles.rowTitle}>
-                    Términos y Condiciones
-                  </FrenciaText>
-                </View>
-                <Icon name="chevron-right" size={20} color={colors.textTertiary} />
-              </View>
-            </Pressable>
-            <View style={styles.rowDivider} />
-            <Pressable
-              onPress={() => router.push('/privacy')}
-              accessibilityRole="button"
-              accessibilityLabel="Política de Privacidad"
-            >
-              <View style={styles.row}>
-                <View style={styles.rowLeft}>
-                  <Icon name="shield" size={20} color={colors.textSecondary} />
-                  <FrenciaText role="bodySm" style={styles.rowTitle}>
-                    Política de Privacidad
-                  </FrenciaText>
-                </View>
-                <Icon name="chevron-right" size={20} color={colors.textTertiary} />
-              </View>
-            </Pressable>
+        <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
+          <View style={styles.titulo}>
+            <LumeText rol="title">Configuración</LumeText>
           </View>
-        </View>
 
-        {/* Eliminacion de cuenta: recuadro propio, accion destructiva. */}
-        <Pressable
-          style={styles.list}
-          onPress={pedirEliminarCuenta}
-          disabled={eliminando}
-          accessibilityRole="button"
-          accessibilityLabel="Eliminación de cuenta"
-        >
-          <View style={styles.row}>
-            <View style={styles.rowLeft}>
-              <Icon name="trash-2" size={20} color={colors.dangerText} />
-              <FrenciaText role="bodySm" style={styles.dangerTitle}>
-                Eliminación de cuenta
-              </FrenciaText>
-            </View>
-            <Icon name="chevron-right" size={20} color={colors.textTertiary} />
+          {/* Legal: textos de solo lectura, en un mismo recuadro. */}
+          <View style={styles.grupo}>
+            <LumeText rol="label" color={t.textTertiary}>
+              Legal
+            </LumeText>
+            <Vidrio style={styles.lista}>
+              {fila('file-text', 'Términos y Condiciones', () => router.push('/terms'))}
+              <View style={[styles.divisor, { backgroundColor: t.divider }]} />
+              {fila('shield', 'Política de Privacidad', () => router.push('/privacy'))}
+            </Vidrio>
           </View>
-        </Pressable>
-      </ScrollView>
-    </SafeAreaView>
+
+          {/* Eliminacion de cuenta: recuadro propio, accion destructiva. */}
+          <Vidrio style={styles.lista}>
+            {fila('trash-2', 'Eliminación de cuenta', pedirEliminarCuenta, {
+              peligro: true,
+              deshabilitada: eliminando,
+            })}
+          </Vidrio>
+        </ScrollView>
+      </SafeAreaView>
+    </View>
   );
 }
 
-const makeStyles = (colors: Palette) =>
-  StyleSheet.create({
-  safe: { flex: 1, backgroundColor: colors.bgApp },
-  // Envuelve el Button de Atras: da el margen de pantalla y el aire.
-  backBtn: {
+const styles = StyleSheet.create({
+  pantalla: { flex: 1 },
+  safe: { flex: 1 },
+  // El boton ghost trae su propio padding: el margen lo corre 10 px a la
+  // izquierda para que el chevron quede alineado con el borde del contenido.
+  volver: {
     flexDirection: 'row',
-    paddingHorizontal: spacing.padScreen,
-    paddingTop: space[8],
-    paddingBottom: space[2],
+    paddingHorizontal: lumeLayout.padScreen - 10,
+    paddingTop: lumeSpace[6],
+    paddingBottom: lumeSpace[2],
   },
   scroll: {
-    paddingHorizontal: spacing.padScreen,
-    paddingTop: space[4],
-    paddingBottom: space[12],
-    gap: space[7],
+    paddingHorizontal: lumeLayout.padScreen,
+    paddingTop: lumeSpace[4],
+    paddingBottom: lumeSpace[12],
+    gap: lumeSpace[7],
   },
-  header: { justifyContent: 'center', minHeight: 40 },
-  list: {
-    backgroundColor: colors.surfaceCard,
-    borderRadius: radius.lg,
-    borderWidth: 1,
-    borderColor: colors.borderSubtle,
-    overflow: 'hidden',
-  },
-  row: {
+  titulo: { justifyContent: 'center', minHeight: 40 },
+  grupo: { gap: lumeSpace[3] },
+  lista: { overflow: 'hidden' },
+  fila: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    gap: space[4],
-    padding: space[5],
+    gap: lumeSpace[4],
+    padding: lumeSpace[5],
+    minHeight: 60,
   },
-  group: { gap: space[3] },
-  rowLeft: { flexDirection: 'row', alignItems: 'center', gap: space[4] },
-  rowTitle: { fontFamily: sans.semibold },
-  rowDivider: { height: 1, marginLeft: space[5], backgroundColor: colors.divider },
-  dangerTitle: { fontFamily: sans.semibold, color: colors.dangerText },
+  filaIzq: { flexDirection: 'row', alignItems: 'center', gap: lumeSpace[4] },
+  filaTitulo: { fontFamily: lumeFuente.semibold },
+  divisor: { height: 1, marginLeft: lumeSpace[5] },
 });

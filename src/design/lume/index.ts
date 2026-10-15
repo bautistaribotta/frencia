@@ -18,6 +18,7 @@ export { LumeIconButton, type LumeIconButtonProps, type VarianteBotonIcono } fro
 export { LumeBadge, type LumeBadgeProps, type TonoBadge } from './LumeBadge';
 export { LumeAvatar, type LumeAvatarProps } from './LumeAvatar';
 export { LumeMetricPill, type LumeMetricPillProps } from './LumeMetricPill';
+export { LumeSwitch, type LumeSwitchProps } from './LumeSwitch';
 export { LumeTabBar, type LumeTabBarProps, type LumeTabItem, type LumeTabFab } from './LumeTabBar';
 export { Semana, type SemanaProps } from './Semana';
 export { Campo, type CampoProps } from './Campo';

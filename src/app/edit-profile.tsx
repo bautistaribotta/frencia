@@ -5,16 +5,7 @@
    gesto) pide confirmar antes de descartarlos. */
 
 import React, { useEffect, useState } from 'react';
-import {
-  KeyboardAvoidingView,
-  Modal,
-  Platform,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  TextInput,
-  View,
-} from 'react-native';
+import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { supabase } from '@/lib/supabase';
@@ -24,23 +15,22 @@ import { mostrarPeso } from '@/lib/peso';
 import { useProfile } from '@/contexts/profile';
 import { useToast } from '@/contexts/toast';
 import { useDescartarAlSalir } from '@/lib/descartar-al-salir';
-import { MeasurePicker } from '@/components/MeasurePicker';
+import { Hoja } from '@/components/Hoja';
+import { MedidaLume } from '@/components/MedidaLume';
 
+import { Icon } from '@/design';
 import {
-  Button,
-  FrenciaText,
-  Icon,
-  SegmentedControl,
-  useColors,
-  useThemedStyles,
-  radius,
-  sans,
-  sizing,
-  space,
-  spacing,
-  type Palette,
-} from '@/design';
-import { Cargando } from '@/design/lume';
+  Campo,
+  Cargando,
+  Fondo,
+  LumeButton,
+  LumeText,
+  Segmentado,
+  lumeLayout,
+  lumeRadius,
+  lumeSpace,
+  useLume,
+} from '@/design/lume';
 
 // Opciones de sexo: el value coincide con los permitidos en la tabla profiles.
 const SEXO_OPTIONS = [
@@ -55,8 +45,7 @@ function firma(campos: string[]): string {
 }
 
 export default function EditProfileScreen() {
-  const colors = useColors();
-  const styles = useThemedStyles(makeStyles);
+  const { t } = useLume();
   const { profile, refresh, savePreferencias } = useProfile();
   const { showToast } = useToast();
   const [nombre, setNombre] = useState('');
@@ -214,283 +203,237 @@ export default function EditProfileScreen() {
   }
 
   return (
-    <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
-      <View style={styles.backBtn}>
-        <Button variant="ghost" size="sm" icon="chevron-left" onPress={() => salir()} disabled={loading}>
-          Atrás
-        </Button>
-      </View>
-      {cargandoPerfil ? (
-        <View style={styles.spinnerWrap}>
-          <Cargando />
+    <View style={styles.pantalla}>
+      <Fondo posicion="cumbre" />
+      <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
+        <View style={styles.volver}>
+          <LumeButton variant="ghost" size="sm" icon="chevron-left" onPress={() => salir()} disabled={loading}>
+            Atrás
+          </LumeButton>
         </View>
-      ) : (
-      <KeyboardAvoidingView
-        style={styles.flex}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      >
-        <ScrollView
-          contentContainerStyle={styles.scroll}
-          keyboardShouldPersistTaps="handled"
-          showsVerticalScrollIndicator={false}
-        >
-          {/* Form */}
-          <View style={styles.form}>
-            <FrenciaText role="title" style={styles.heading}>
-              Editar perfil
-            </FrenciaText>
-            <FrenciaText role="bodySm" color={colors.textSecondary}>
-              Cambiá los datos de los campos para actualizarlos.
-            </FrenciaText>
-
-            <View style={styles.fields}>
-              <TextEntryField
-                label="Nombre"
-                icon="user"
-                value={nombre}
-                onChangeText={setNombre}
-                placeholder="Tu nombre"
-              />
-              <TextEntryField
-                label="Apellido"
-                icon="user"
-                value={apellido}
-                onChangeText={setApellido}
-                placeholder="Tu apellido"
-              />
-
-              <View style={styles.segGroup}>
-                <FrenciaText role="dataLabel" color={colors.textTertiary}>
-                  Sexo
-                </FrenciaText>
-                <SegmentedControl
-                  fullWidth
-                  options={SEXO_OPTIONS}
-                  value={sexo}
-                  onChange={setSexo}
-                />
-              </View>
-
-              <SelectField
-                label="Edad"
-                icon="calendar"
-                value={edad ? `${edad} años` : ''}
-                placeholder="Elegí tu edad"
-                onPress={() => openPicker('age')}
-              />
-
-              {/* Guardado en cm y kg; se muestra en la unidad preferida. */}
-              <SelectField
-                label="Altura"
-                icon="trending-up"
-                value={altura ? mostrarAltura(alturaNum, unidadAltura) : ''}
-                placeholder="Elegí tu altura"
-                onPress={() => openPicker('height')}
-              />
-              <SelectField
-                label="Peso"
-                icon="target"
-                value={peso ? `${mostrarPeso(pesoNum, unidadPeso)} ${unidadPeso}` : ''}
-                placeholder="Elegí tu peso"
-                onPress={() => openPicker('weight')}
-              />
-            </View>
-
-            {errorMsg ? (
-              <FrenciaText role="bodySm" color={colors.dangerText}>
-                {errorMsg}
-              </FrenciaText>
-            ) : null}
-
-            <Button
-              variant="primary"
-              size="lg"
-              fullWidth
-              iconRight="arrow-right"
-              disabled={!canSubmit}
-              loading={loading}
-              onPress={handleSave}
-            >
-              Guardar
-            </Button>
-            <Button
-              variant="secondary"
-              size="lg"
-              fullWidth
-              icon="x"
-              disabled={loading}
-              onPress={() => salir()}
-              style={styles.cancelar}
-            >
-              Cancelar
-            </Button>
+        {cargandoPerfil ? (
+          <View style={styles.carga}>
+            <Cargando />
           </View>
-        </ScrollView>
-      </KeyboardAvoidingView>
-      )}
+        ) : (
+          <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+            <ScrollView
+              contentContainerStyle={styles.scroll}
+              keyboardShouldPersistTaps="handled"
+              showsVerticalScrollIndicator={false}
+            >
+              <View style={styles.form}>
+                <LumeText rol="title" style={styles.titulo}>
+                  Editar perfil
+                </LumeText>
+                <LumeText rol="bodySm" color={t.textSecondary}>
+                  Cambiá los datos de los campos para actualizarlos.
+                </LumeText>
 
-      {/* Rueda de altura/peso, reciclando la del setup inicial */}
-      <Modal
-        visible={picker !== null}
-        transparent
-        animationType="slide"
-        onRequestClose={() => setPicker(null)}
-      >
-        <Pressable style={styles.modalBackdrop} onPress={() => setPicker(null)} />
-        <View style={styles.sheet}>
-          <FrenciaText role="title" style={styles.sheetTitle}>
-            {picker === 'age' ? 'Tu edad' : picker === 'height' ? 'Tu altura' : 'Tu peso'}
-          </FrenciaText>
-          {picker !== null ? (
-            <MeasurePicker
-              kind={picker}
-              initial={draft}
-              onChange={setDraft}
-              initialUnit={
-                picker === 'height'
-                  ? unidadAltura === 'ft' ? 'imperial' : 'metric'
-                  : picker === 'weight'
-                    ? unidadPeso === 'lb' ? 'imperial' : 'metric'
-                    : 'metric'
-              }
-              onUnitChange={picker === 'age' ? undefined : cambiarUnidad}
-            />
-          ) : null}
-          <Button variant="primary" size="lg" fullWidth onPress={confirmPicker}>
-            Listo
-          </Button>
-        </View>
-      </Modal>
-    </SafeAreaView>
-  );
-}
+                <View style={styles.campos}>
+                  <Grupo etiqueta="Nombre">
+                    <Campo
+                      icono="user"
+                      value={nombre}
+                      onChangeText={setNombre}
+                      placeholder="Tu nombre"
+                      autoCapitalize="words"
+                      autoComplete="off"
+                      maxLength={40}
+                      accessibilityLabel="Nombre"
+                    />
+                  </Grupo>
+                  <Grupo etiqueta="Apellido">
+                    <Campo
+                      icono="user"
+                      value={apellido}
+                      onChangeText={setApellido}
+                      placeholder="Tu apellido"
+                      autoCapitalize="words"
+                      autoComplete="off"
+                      maxLength={40}
+                      accessibilityLabel="Apellido"
+                    />
+                  </Grupo>
 
-/* ── Campo de texto: nombre y apellido se escriben a teclado ─── */
-interface TextEntryFieldProps {
-  icon: string;
-  label: string;
-  value: string;
-  placeholder: string;
-  onChangeText: (t: string) => void;
-}
+                  <Grupo etiqueta="Sexo">
+                    <Segmentado opciones={SEXO_OPTIONS} value={sexo} onChange={setSexo} />
+                  </Grupo>
 
-function TextEntryField({ icon, label, value, placeholder, onChangeText }: TextEntryFieldProps) {
-  const colors = useColors();
-  const styles = useThemedStyles(makeStyles);
-  return (
-    <View style={styles.fieldGroup}>
-      <FrenciaText role="dataLabel" color={colors.textTertiary}>
-        {label}
-      </FrenciaText>
-      <View style={styles.field}>
-        <Icon name={icon} size={20} color={colors.textTertiary} />
-        <TextInput
-          style={styles.textInput}
-          value={value}
-          onChangeText={onChangeText}
-          placeholder={placeholder}
-          placeholderTextColor={colors.textTertiary}
-          autoCapitalize="words"
-          autoComplete="off"
-          maxLength={40}
-        />
-      </View>
+                  <CampoSelector
+                    etiqueta="Edad"
+                    icono="calendar"
+                    valor={edad ? `${edad} años` : ''}
+                    placeholder="Elegí tu edad"
+                    onPress={() => openPicker('age')}
+                  />
+                  {/* Guardado en cm y kg; se muestra en la unidad preferida. */}
+                  <CampoSelector
+                    etiqueta="Altura"
+                    icono="trending-up"
+                    valor={altura ? mostrarAltura(alturaNum, unidadAltura) : ''}
+                    placeholder="Elegí tu altura"
+                    onPress={() => openPicker('height')}
+                  />
+                  <CampoSelector
+                    etiqueta="Peso"
+                    icono="target"
+                    valor={peso ? `${mostrarPeso(pesoNum, unidadPeso)} ${unidadPeso}` : ''}
+                    placeholder="Elegí tu peso"
+                    onPress={() => openPicker('weight')}
+                  />
+                </View>
+
+                {errorMsg ? (
+                  <LumeText rol="bodySm" color={t.dangerText}>
+                    {errorMsg}
+                  </LumeText>
+                ) : null}
+
+                <LumeButton
+                  variant="primary"
+                  size="lg"
+                  fullWidth
+                  iconRight="arrow-right"
+                  disabled={!canSubmit}
+                  loading={loading}
+                  onPress={handleSave}
+                >
+                  Guardar
+                </LumeButton>
+                <LumeButton
+                  variant="secondary"
+                  size="lg"
+                  fullWidth
+                  icon="x"
+                  disabled={loading}
+                  onPress={() => salir()}
+                  style={styles.cancelar}
+                >
+                  Cancelar
+                </LumeButton>
+              </View>
+            </ScrollView>
+          </KeyboardAvoidingView>
+        )}
+      </SafeAreaView>
+
+      {/* Rueda de edad, altura o peso: la misma del setup inicial. */}
+      <Hoja visible={picker !== null} onCerrar={() => setPicker(null)} rueda>
+        <LumeText rol="title" style={styles.centrado}>
+          {picker === 'age' ? 'Tu edad' : picker === 'height' ? 'Tu altura' : 'Tu peso'}
+        </LumeText>
+        {picker !== null ? (
+          <MedidaLume
+            kind={picker}
+            initial={draft}
+            onChange={setDraft}
+            initialUnit={
+              picker === 'height'
+                ? unidadAltura === 'ft' ? 'imperial' : 'metric'
+                : picker === 'weight'
+                  ? unidadPeso === 'lb' ? 'imperial' : 'metric'
+                  : 'metric'
+            }
+            onUnitChange={picker === 'age' ? undefined : cambiarUnidad}
+          />
+        ) : null}
+        <LumeButton variant="primary" size="lg" fullWidth onPress={confirmPicker}>
+          Listo
+        </LumeButton>
+      </Hoja>
     </View>
   );
 }
 
-/* ── Campo de seleccion: abre la rueda en vez de teclado ─────── */
-interface SelectFieldProps {
-  icon: string;
-  label: string;
-  value: string;
+/* ── Rotulo y control, con la separacion del formulario ─── */
+function Grupo({ etiqueta, children }: { etiqueta: string; children: React.ReactNode }) {
+  const { t } = useLume();
+  return (
+    <View style={styles.grupo}>
+      <LumeText rol="label" color={t.textTertiary}>
+        {etiqueta}
+      </LumeText>
+      {children}
+    </View>
+  );
+}
+
+/* ── Campo de seleccion: abre la rueda en vez de teclado ─── */
+interface CampoSelectorProps {
+  icono: string;
+  etiqueta: string;
+  valor: string;
   placeholder: string;
   onPress: () => void;
 }
 
-function SelectField({ icon, label, value, placeholder, onPress }: SelectFieldProps) {
-  const colors = useColors();
-  const styles = useThemedStyles(makeStyles);
+function CampoSelector({ icono, etiqueta, valor, placeholder, onPress }: CampoSelectorProps) {
+  const { t, sombras } = useLume();
   return (
-    <View style={styles.fieldGroup}>
-      <FrenciaText role="dataLabel" color={colors.textTertiary}>
-        {label}
-      </FrenciaText>
+    <Grupo etiqueta={etiqueta}>
       <Pressable
-        style={styles.field}
         onPress={onPress}
         accessibilityRole="button"
-        accessibilityLabel={`${label}: ${value || placeholder}`}
+        accessibilityLabel={`${etiqueta}: ${valor || placeholder}`}
+        style={({ pressed }) => [
+          styles.selector,
+          {
+            backgroundColor: pressed ? t.surfaceCardElevated : t.surfaceCard,
+            borderColor: t.glassLine,
+            borderTopColor: t.glassHighlight,
+            boxShadow: sombras.glass,
+          },
+        ]}
       >
-        <Icon name={icon} size={20} color={colors.textTertiary} />
-        <FrenciaText
-          role="bodySm"
-          color={value ? colors.textPrimary : colors.textTertiary}
-          style={styles.selectValue}
-        >
-          {value || placeholder}
-        </FrenciaText>
-        <Icon name="chevron-right" size={20} color={colors.textTertiary} />
+        <Icon name={icono} size={20} color={t.textTertiary} strokeWidth={1.75} />
+        <LumeText rol="bodySm" color={valor ? t.textPrimary : t.textTertiary} style={styles.selectorValor}>
+          {valor || placeholder}
+        </LumeText>
+        <Icon name="chevron-right" size={20} color={t.textTertiary} strokeWidth={1.75} />
       </Pressable>
-    </View>
+    </Grupo>
   );
 }
 
-const makeStyles = (colors: Palette) =>
-  StyleSheet.create({
-  safe: { flex: 1, backgroundColor: colors.bgApp },
+const styles = StyleSheet.create({
+  pantalla: { flex: 1 },
+  safe: { flex: 1 },
   flex: { flex: 1 },
-  spinnerWrap: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  // Envuelve el Button de Atras: da el margen de pantalla y el aire.
-  backBtn: {
+  carga: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+  // El boton ghost trae su propio padding: el margen lo corre 10 px a la
+  // izquierda para que el chevron quede alineado con el borde del contenido.
+  volver: {
     flexDirection: 'row',
-    paddingHorizontal: spacing.padScreen,
-    paddingTop: space[9],
-    paddingBottom: space[5],
+    paddingHorizontal: lumeLayout.padScreen - 10,
+    paddingTop: lumeSpace[8],
+    paddingBottom: lumeSpace[4],
   },
-  // paddingTop: aire entre Atras y el titulo cuando el form llena la pantalla
-  // y deja de estar centrado.
+  // Centrado cuando entra en la pantalla; si no, scrollea desde arriba.
   scroll: {
     flexGrow: 1,
-    paddingHorizontal: spacing.padScreen,
-    paddingTop: space[6],
-    paddingBottom: space[8],
+    paddingHorizontal: lumeLayout.padScreen,
+    paddingTop: lumeSpace[5],
+    paddingBottom: lumeSpace[8],
     justifyContent: 'center',
-    gap: space[10],
   },
 
-  // Form
-  form: { gap: space[5] },
-  heading: { marginBottom: -space[3] },
+  form: { gap: lumeSpace[5] },
+  titulo: { marginBottom: -lumeSpace[3] },
+  campos: { gap: lumeSpace[4], marginTop: lumeSpace[3] },
+  grupo: { gap: lumeSpace[3] },
   // El form separa bloques con gap 5; Cancelar va pegado a Guardar.
-  cancelar: { marginTop: -space[3] },
-  fields: { gap: space[4], marginTop: space[2] },
-  segGroup: { gap: space[2] },
-  fieldGroup: { gap: space[2] },
-  field: {
+  cancelar: { marginTop: -lumeSpace[3] },
+
+  selector: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: space[4],
-    height: sizing.controlHLg,
-    paddingHorizontal: spacing.padControl,
-    borderRadius: radius.md,
-    backgroundColor: colors.surfaceCard,
+    gap: lumeSpace[4],
+    height: lumeLayout.controlHLg,
+    paddingHorizontal: lumeLayout.padControl,
+    borderRadius: lumeRadius.lg,
     borderWidth: 1,
-    borderColor: colors.borderSubtle,
   },
-  selectValue: { flex: 1 },
-  textInput: { flex: 1, fontFamily: sans.regular, fontSize: 16, color: colors.textPrimary, padding: 0 },
-
-  // Sheet de la rueda
-  modalBackdrop: { flex: 1, backgroundColor: colors.scrim },
-  sheet: {
-    backgroundColor: colors.surfaceRaised,
-    borderTopLeftRadius: radius['2xl'],
-    borderTopRightRadius: radius['2xl'],
-    paddingHorizontal: spacing.padScreen,
-    paddingTop: space[6],
-    paddingBottom: space[10],
-    gap: space[6],
-  },
-  sheetTitle: { textAlign: 'center' },
+  selectorValor: { flex: 1 },
+  centrado: { textAlign: 'center' },
 });

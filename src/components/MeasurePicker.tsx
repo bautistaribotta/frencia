@@ -6,7 +6,9 @@
    el dato se actualice igual que cuando se definio. El toggle avisa por
    `onUnitChange`: quien lo monta lo guarda como preferencia de toda la app.
    El descanso entre series usa las mismas ruedas: minutos y segundos (cada 5),
-   en segundos canonicos y sin toggle; 0:00 es un valor valido. */
+   en segundos canonicos y sin toggle; 0:00 es un valor valido.
+   La logica de rangos y conversion se exporta: MedidaLume (la misma rueda en
+   Lume) la reusa mientras las dos convivan. */
 
 import React, { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
@@ -26,8 +28,8 @@ import {
   type Palette,
 } from '@/design';
 
-type Kind = 'age' | 'height' | 'weight' | 'rest';
-type Unit = 'metric' | 'imperial';
+export type Kind = 'age' | 'height' | 'weight' | 'rest';
+export type Unit = 'metric' | 'imperial';
 
 export interface MeasurePickerProps {
   kind: Kind;
@@ -48,21 +50,21 @@ const range = (a: number, b: number) => Array.from({ length: b - a + 1 }, (_, i)
 const clamp = (n: number, a: number, b: number) => Math.max(a, Math.min(b, n));
 
 // Rangos de cada rueda.
-const AGE = range(13, 99);
-const HEIGHT_CM = range(120, 220);
-const FEET = range(4, 7);
-const INCH = range(0, 11);
-const KG_INT = range(30, 200);
-const LB_INT = range(66, 440);
-const DEC = range(0, 9);
-const REST_MIN = range(0, Math.floor(DESCANSO_MAXIMO / 60));
-const REST_SEC = range(0, 11).map((i) => String(i * 5).padStart(2, '0'));
+export const AGE = range(13, 99);
+export const HEIGHT_CM = range(120, 220);
+export const FEET = range(4, 7);
+export const INCH = range(0, 11);
+export const KG_INT = range(30, 200);
+export const LB_INT = range(66, 440);
+export const DEC = range(0, 9);
+export const REST_MIN = range(0, Math.floor(DESCANSO_MAXIMO / 60));
+export const REST_SEC = range(0, 11).map((i) => String(i * 5).padStart(2, '0'));
 
 // Defaults razonables si no hay dato previo.
-const DEFAULT = { age: 25, height: 170, weight: 70, rest: 120 };
+export const DEFAULT = { age: 25, height: 170, weight: 70, rest: 120 };
 
 // canonico -> indices de rueda segun unidad.
-function toIndices(kind: Kind, unit: Unit, value: number): [number, number] {
+export function toIndices(kind: Kind, unit: Unit, value: number): [number, number] {
   if (kind === 'age') return [clamp(Math.round(value), 13, 99) - 13, 0];
   if (kind === 'rest') {
     const total = clamp(Math.round(value / 5) * 5, 0, DESCANSO_MAXIMO);
@@ -85,7 +87,7 @@ function toIndices(kind: Kind, unit: Unit, value: number): [number, number] {
 }
 
 // indices de rueda -> canonico (años, cm o kg).
-function compose(kind: Kind, unit: Unit, i1: number, i2: number): number {
+export function compose(kind: Kind, unit: Unit, i1: number, i2: number): number {
   if (kind === 'age') return AGE[i1];
   if (kind === 'rest') return REST_MIN[i1] * 60 + i2 * 5;
   if (kind === 'height') {

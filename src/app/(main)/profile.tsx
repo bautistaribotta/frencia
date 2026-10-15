@@ -6,7 +6,7 @@
 
 import { useRouter } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';
-import { Modal, Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { useProfile, type Preferencias } from '@/contexts/profile';
@@ -15,23 +15,21 @@ import { pickAndUploadAvatar, signAvatarUrl, deleteAvatarFile } from '@/lib/avat
 import { supabase } from '@/lib/supabase';
 import { useVolverArribaAlRetocar } from '@/lib/volver-arriba';
 
+import { Icon, useTheme, type ThemePreference } from '@/design';
 import {
-  Avatar,
-  Button,
-  FrenciaText,
-  Icon,
-  radius,
-  sans,
-  SegmentedControl,
-  space,
-  spacing,
-  Switch,
-  useColors,
-  useTheme,
-  useThemedStyles,
-  type Palette,
-  type ThemePreference,
-} from '@/design';
+  Fondo,
+  LumeAvatar,
+  LumeButton,
+  LumeSwitch,
+  LumeText,
+  Segmentado,
+  Vidrio,
+  lumeFuente,
+  lumeLayout,
+  lumeSpace,
+  useLume,
+} from '@/design/lume';
+import { Hoja } from '@/components/Hoja';
 
 const TEMA_OPTIONS = [
   { value: 'system', label: 'Sistema' },
@@ -45,8 +43,7 @@ const TEMA_SUB: Record<ThemePreference, string> = {
 };
 
 export default function ProfileScreen() {
-  const colors = useColors();
-  const styles = useThemedStyles(makeStyles);
+  const { t } = useLume();
   const router = useRouter();
   const scrollRef = useRef<ScrollView>(null);
   useVolverArribaAlRetocar(scrollRef);
@@ -229,178 +226,138 @@ export default function ProfileScreen() {
     await supabase.auth.signOut();
   }
 
+  // Una fila de ajuste con interruptor.
+  const ajuste = (titulo: string, sub: string, on: boolean, onChange: (v: boolean) => void, primera = false) => (
+    <View style={[styles.fila, !primera && { borderTopWidth: 1, borderTopColor: t.divider }]}>
+      <View style={styles.filaTexto}>
+        <LumeText rol="bodySm" style={styles.filaTitulo}>
+          {titulo}
+        </LumeText>
+        <LumeText rol="bodySm" color={t.textTertiary} style={styles.filaSub}>
+          {sub}
+        </LumeText>
+      </View>
+      <LumeSwitch checked={on} onChange={onChange} accessibilityLabel={titulo} />
+    </View>
+  );
+
   return (
-    <SafeAreaView style={styles.safe} edges={['top']}>
-      <ScrollView ref={scrollRef} contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
-        {/* Sin boton de volver: es una pestania y se sale tocando otra. */}
-        <View style={styles.header}>
-          <FrenciaText role="title">Perfil</FrenciaText>
-        </View>
-
-        {/* Tarjeta de usuario */}
-        <View style={styles.userCard}>
-          <Pressable
-            onPress={() => setShowOptions(true)}
-            disabled={busy}
-            accessibilityRole="button"
-            accessibilityLabel="Cambiar foto de perfil"
-            style={styles.avatarWrap}
-          >
-            <Avatar name={seed ?? displayName} src={photo} size="lg" ring />
-            <View style={styles.avatarBadge}>
-              <Icon name="camera" size={13} color={colors.textOnAccent} />
-            </View>
-          </Pressable>
-          <View style={styles.userText}>
-            <FrenciaText role="subtitle">{fullName}</FrenciaText>
-            <FrenciaText role="dataLabel" color={colors.textTertiary}>
-              {busy ? 'Actualizando avatar...' : 'Tocá la foto para cambiarla'}
-            </FrenciaText>
-            {photoError ? (
-              <FrenciaText role="bodySm" color={colors.dangerText}>
-                {photoError}
-              </FrenciaText>
-            ) : null}
+    <View style={styles.pantalla}>
+      <Fondo posicion="cumbre" />
+      <SafeAreaView style={styles.safe} edges={['top']}>
+        <ScrollView ref={scrollRef} contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
+          {/* Sin boton de volver: es una pestania y se sale tocando otra. */}
+          <View style={styles.titulo}>
+            <LumeText rol="title">Perfil</LumeText>
           </View>
-        </View>
 
-        {/* Editar perfil */}
-        <Button
-          variant="secondary"
-          size="lg"
-          icon="user"
-          fullWidth
-          onPress={() => router.push('/edit-profile')}
-        >
-          Editar perfil
-        </Button>
-
-        {/* Ajustes */}
-        <View style={styles.settingsBlock}>
-          <FrenciaText
-            role="dataLabel"
-            color={colors.textTertiary}
-            style={styles.settingsLabel}
-          >
-            Ajustes básicos
-          </FrenciaText>
-
-          <View style={styles.settingsList}>
-            {/* Fila: RIR / RPE */}
-            <View style={styles.settingRow}>
-              <View style={styles.settingText}>
-                <FrenciaText role="bodySm" style={styles.settingTitle}>
-                  Usar RIR / RPE
-                </FrenciaText>
-                <FrenciaText role="bodySm" color={colors.textTertiary} style={styles.settingSub}>
-                  {useRpe ? 'Midiendo con RPE' : 'Midiendo con RIR'}
-                </FrenciaText>
+          {/* Tarjeta de usuario */}
+          <Vidrio style={styles.usuario}>
+            <Pressable
+              onPress={() => setShowOptions(true)}
+              disabled={busy}
+              accessibilityRole="button"
+              accessibilityLabel="Cambiar foto de perfil"
+            >
+              <LumeAvatar name={seed ?? displayName} src={photo} size="lg" ring />
+              <View style={[styles.camara, { backgroundColor: t.accent, borderColor: t.surfaceCardOpaco }]}>
+                <Icon name="camera" size={13} color={t.textOnAccent} strokeWidth={2} />
               </View>
-              <Switch checked={useRpe} onChange={toggleRpe} />
+            </Pressable>
+            <View style={styles.usuarioTexto}>
+              <LumeText rol="subtitle">{fullName}</LumeText>
+              <LumeText rol="label" color={t.textTertiary}>
+                {busy ? 'Actualizando avatar...' : 'Tocá la foto para cambiarla'}
+              </LumeText>
+              {photoError ? (
+                <LumeText rol="bodySm" color={t.dangerText}>
+                  {photoError}
+                </LumeText>
+              ) : null}
             </View>
+          </Vidrio>
 
-            {/* Fila: unidad de peso */}
-            <View style={[styles.settingRow, styles.settingRowDivider]}>
-              <View style={styles.settingText}>
-                <FrenciaText role="bodySm" style={styles.settingTitle}>
-                  Unidad de peso kg/lb
-                </FrenciaText>
-                <FrenciaText role="bodySm" color={colors.textTertiary} style={styles.settingSub}>
-                  {useLb ? 'En libras (lb)' : 'En kilogramos (kg)'}
-                </FrenciaText>
-              </View>
-              <Switch checked={useLb} onChange={toggleLb} />
-            </View>
+          <LumeButton variant="secondary" size="lg" icon="user" fullWidth onPress={() => router.push('/edit-profile')}>
+            Editar perfil
+          </LumeButton>
 
-            {/* Fila: unidad de altura */}
-            <View style={[styles.settingRow, styles.settingRowDivider]}>
-              <View style={styles.settingText}>
-                <FrenciaText role="bodySm" style={styles.settingTitle}>
-                  Unidad de altura cm/ft
-                </FrenciaText>
-                <FrenciaText role="bodySm" color={colors.textTertiary} style={styles.settingSub}>
-                  {useFeet ? 'En pies y pulgadas (ft)' : 'En centímetros (cm)'}
-                </FrenciaText>
-              </View>
-              <Switch checked={useFeet} onChange={toggleFeet} />
-            </View>
+          {/* Ajustes */}
+          <View style={styles.bloque}>
+            <LumeText rol="label" color={t.textTertiary} style={styles.etiqueta}>
+              Ajustes básicos
+            </LumeText>
+            <Vidrio style={styles.lista}>
+              {ajuste('Usar RIR / RPE', useRpe ? 'Midiendo con RPE' : 'Midiendo con RIR', useRpe, toggleRpe, true)}
+              {ajuste('Unidad de peso kg/lb', useLb ? 'En libras (lb)' : 'En kilogramos (kg)', useLb, toggleLb)}
+              {ajuste(
+                'Unidad de altura cm/ft',
+                useFeet ? 'En pies y pulgadas (ft)' : 'En centímetros (cm)',
+                useFeet,
+                toggleFeet,
+              )}
+              {ajuste('Unidad de distancia km/mi', useMiles ? 'En millas (mi)' : 'En kilómetros (km)', useMiles, toggleMiles)}
 
-            {/* Fila: unidad de distancia */}
-            <View style={[styles.settingRow, styles.settingRowDivider]}>
-              <View style={styles.settingText}>
-                <FrenciaText role="bodySm" style={styles.settingTitle}>
-                  Unidad de distancia km/mi
-                </FrenciaText>
-                <FrenciaText role="bodySm" color={colors.textTertiary} style={styles.settingSub}>
-                  {useMiles ? 'En millas (mi)' : 'En kilómetros (km)'}
-                </FrenciaText>
+              {/* Tema: tres opciones, asi que va en selector en vez de switch,
+                  apilado debajo del titulo para que entre en cualquier ancho. */}
+              <View style={[styles.filaApilada, { borderTopColor: t.divider }]}>
+                <View style={styles.filaTexto}>
+                  <LumeText rol="bodySm" style={styles.filaTitulo}>
+                    Tema
+                  </LumeText>
+                  <LumeText rol="bodySm" color={t.textTertiary} style={styles.filaSub}>
+                    {TEMA_SUB[preference]}
+                  </LumeText>
+                </View>
+                <Segmentado
+                  opciones={TEMA_OPTIONS}
+                  value={preference}
+                  onChange={(v) => setPreference(v as ThemePreference)}
+                />
               </View>
-              <Switch checked={useMiles} onChange={toggleMiles} />
-            </View>
-
-            {/* Fila: tema. Tres opciones, asi que va en selector en vez de switch,
-                apilado debajo del titulo para que entre en cualquier ancho. */}
-            <View style={[styles.settingRowStacked, styles.settingRowDivider]}>
-              <View style={styles.settingText}>
-                <FrenciaText role="bodySm" style={styles.settingTitle}>
-                  Tema
-                </FrenciaText>
-                <FrenciaText role="bodySm" color={colors.textTertiary} style={styles.settingSub}>
-                  {TEMA_SUB[preference]}
-                </FrenciaText>
-              </View>
-              <SegmentedControl
-                fullWidth
-                options={TEMA_OPTIONS}
-                value={preference}
-                onChange={(v) => setPreference(v as ThemePreference)}
-              />
-            </View>
+            </Vidrio>
           </View>
-        </View>
 
-        {/* Configuracion de la cuenta: misma fila que Cerrar sesion, en neutro */}
-        <Pressable
-          style={styles.settingsList}
-          onPress={() => router.push('/settings')}
-          accessibilityRole="button"
-          accessibilityLabel="Configuracion"
-        >
-          <View style={styles.settingRow}>
-            <View style={styles.configLeft}>
-              <Icon name="settings" size={20} color={colors.textPrimary} />
-              <FrenciaText role="bodySm" style={styles.settingTitle}>
-                Configuración
-              </FrenciaText>
-            </View>
-            <Icon name="chevron-right" size={20} color={colors.textTertiary} />
-          </View>
-        </Pressable>
+          {/* Configuracion de la cuenta: misma fila que Cerrar sesion, en neutro */}
+          <Vidrio style={styles.lista}>
+            <Pressable
+              onPress={() => router.push('/settings')}
+              accessibilityRole="button"
+              accessibilityLabel="Configuración"
+              style={({ pressed }) => [styles.fila, pressed && { backgroundColor: t.surfaceChip }]}
+            >
+              <View style={styles.filaIzq}>
+                <Icon name="settings" size={20} color={t.textPrimary} strokeWidth={1.75} />
+                <LumeText rol="bodySm" style={styles.filaTitulo}>
+                  Configuración
+                </LumeText>
+              </View>
+              <Icon name="chevron-right" size={20} color={t.textTertiary} strokeWidth={1.75} />
+            </Pressable>
+          </Vidrio>
 
-        {/* Cerrar sesion: recuadro propio, accion destructiva */}
-        <Pressable
-          style={styles.settingsList}
-          onPress={handleSignOut}
-          accessibilityRole="button"
-          accessibilityLabel="Cerrar sesion"
-        >
-          <View style={styles.settingRow}>
-            <View style={styles.configLeft}>
-              <Icon name="log-out" size={20} color={colors.dangerText} />
-              <FrenciaText role="bodySm" style={styles.signOutTitle}>
-                Cerrar sesion
-              </FrenciaText>
-            </View>
-          </View>
-        </Pressable>
-      </ScrollView>
+          {/* Cerrar sesion: recuadro propio, accion destructiva */}
+          <Vidrio style={styles.lista}>
+            <Pressable
+              onPress={handleSignOut}
+              accessibilityRole="button"
+              accessibilityLabel="Cerrar sesión"
+              style={({ pressed }) => [styles.fila, pressed && { backgroundColor: t.surfaceChip }]}
+            >
+              <View style={styles.filaIzq}>
+                <Icon name="log-out" size={20} color={t.dangerText} strokeWidth={1.75} />
+                <LumeText rol="bodySm" color={t.dangerText} style={styles.filaTitulo}>
+                  Cerrar sesión
+                </LumeText>
+              </View>
+            </Pressable>
+          </Vidrio>
+        </ScrollView>
+      </SafeAreaView>
 
       {/* Opciones de avatar */}
-      <Modal
+      <Hoja
         visible={showOptions}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setShowOptions(false)}
+        onCerrar={() => setShowOptions(false)}
         onDismiss={() => {
           if (pendingPick) {
             setPendingPick(false);
@@ -408,120 +365,77 @@ export default function ProfileScreen() {
           }
         }}
       >
-        <Pressable style={styles.backdrop} onPress={() => setShowOptions(false)}>
-          <Pressable style={styles.sheet}>
-            {/* Vista previa grande del avatar actual, refleja los cambios en vivo */}
-            <View style={styles.preview}>
-              <Avatar name={seed ?? displayName} src={photo} size="xl" ring />
-            </View>
-            <FrenciaText role="subtitle" style={styles.sheetTitle}>
-              Foto de perfil
-            </FrenciaText>
-            <Button variant="primary" size="lg" icon="repeat" fullWidth onPress={generateAvatar}>
-              Generar nuevo avatar
-            </Button>
-            <Button variant="secondary" size="lg" icon="camera" fullWidth onPress={requestUploadPhoto}>
-              Subir una foto
-            </Button>
-            {photo ? (
-              <Button variant="ghost" size="lg" icon="x" fullWidth onPress={removePhoto}>
-                Eliminar foto
-              </Button>
-            ) : null}
-            <Button variant="ghost" size="md" fullWidth onPress={() => setShowOptions(false)}>
-              Cancelar
-            </Button>
-          </Pressable>
-        </Pressable>
-      </Modal>
-    </SafeAreaView>
+        {/* Vista previa grande del avatar actual, refleja los cambios en vivo */}
+        <View style={styles.vista}>
+          <LumeAvatar name={seed ?? displayName} src={photo} size="xl" ring />
+        </View>
+        <LumeText rol="subtitle" style={styles.hojaTitulo}>
+          Foto de perfil
+        </LumeText>
+        <LumeButton variant="primary" size="lg" icon="repeat" fullWidth onPress={generateAvatar}>
+          Generar nuevo avatar
+        </LumeButton>
+        <LumeButton variant="secondary" size="lg" icon="camera" fullWidth onPress={requestUploadPhoto}>
+          Subir una foto
+        </LumeButton>
+        {photo ? (
+          <LumeButton variant="ghost" size="lg" icon="x" fullWidth onPress={removePhoto}>
+            Eliminar foto
+          </LumeButton>
+        ) : null}
+        <LumeButton variant="ghost" size="md" fullWidth onPress={() => setShowOptions(false)}>
+          Cancelar
+        </LumeButton>
+      </Hoja>
+    </View>
   );
 }
 
-const makeStyles = (colors: Palette) =>
-  StyleSheet.create({
-  safe: { flex: 1, backgroundColor: colors.bgApp },
+const styles = StyleSheet.create({
+  pantalla: { flex: 1 },
+  safe: { flex: 1 },
   scroll: {
-    paddingHorizontal: spacing.padScreen,
-    paddingTop: space[7],
-    paddingBottom: space[12],
-    gap: space[7],
+    paddingHorizontal: lumeLayout.padScreen,
+    paddingTop: lumeSpace[6],
+    paddingBottom: lumeSpace[12],
+    gap: lumeSpace[7],
   },
-
-  // Modal de opciones de avatar
-  backdrop: {
-    flex: 1,
-    backgroundColor: colors.scrim,
-    justifyContent: 'flex-end',
-  },
-  sheet: {
-    backgroundColor: colors.surfaceRaised,
-    borderTopLeftRadius: radius.xl,
-    borderTopRightRadius: radius.xl,
-    borderWidth: 1,
-    borderColor: colors.borderSubtle,
-    padding: space[5],
-    paddingBottom: space[8],
-    gap: space[3],
-  },
-  preview: { alignItems: 'center', marginBottom: space[2] },
-  sheetTitle: { marginBottom: space[1] },
-
-  // Encabezado
-  header: {
-    justifyContent: 'center',
-    minHeight: 40,
-  },
+  titulo: { justifyContent: 'center', minHeight: 40 },
 
   // Tarjeta de usuario
-  userCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: space[4],
-    backgroundColor: colors.surfaceCard,
-    borderRadius: radius.lg,
-    borderWidth: 1,
-    borderColor: colors.borderSubtle,
-    padding: space[5],
-  },
-  avatarWrap: { position: 'relative' },
-  avatarBadge: {
+  usuario: { flexDirection: 'row', alignItems: 'center', gap: lumeSpace[4], padding: lumeSpace[5] },
+  camara: {
     position: 'absolute',
     right: -2,
     bottom: -2,
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    backgroundColor: colors.accent,
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    borderWidth: 2,
     alignItems: 'center',
     justifyContent: 'center',
-    borderWidth: 2,
-    borderColor: colors.surfaceCard,
   },
-  userText: { flex: 1, gap: space[1] },
+  usuarioTexto: { flex: 1, gap: lumeSpace[1] },
 
   // Ajustes
-  settingsBlock: { gap: space[4] },
-  settingsLabel: { paddingHorizontal: space[1] },
-  settingsList: {
-    backgroundColor: colors.surfaceCard,
-    borderRadius: radius.lg,
-    borderWidth: 1,
-    borderColor: colors.borderSubtle,
-    overflow: 'hidden',
-  },
-  settingRow: {
+  bloque: { gap: lumeSpace[4] },
+  etiqueta: { paddingHorizontal: lumeSpace[1] },
+  lista: { overflow: 'hidden' },
+  fila: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    gap: space[4],
-    padding: space[5],
+    gap: lumeSpace[4],
+    padding: lumeSpace[5],
+    minHeight: 60,
   },
-  settingRowStacked: { gap: space[4], padding: space[5] },
-  settingRowDivider: { borderTopWidth: 1, borderTopColor: colors.divider },
-  settingText: { flex: 1, gap: space[1] },
-  configLeft: { flexDirection: 'row', alignItems: 'center', gap: space[4] },
-  settingTitle: { fontFamily: sans.semibold, color: colors.textPrimary },
-  settingSub: { fontSize: 12.5, lineHeight: 17 },
-  signOutTitle: { fontFamily: sans.semibold, color: colors.dangerText },
+  filaApilada: { gap: lumeSpace[4], padding: lumeSpace[5], borderTopWidth: 1 },
+  filaTexto: { flex: 1, gap: lumeSpace[1] },
+  filaIzq: { flexDirection: 'row', alignItems: 'center', gap: lumeSpace[4] },
+  filaTitulo: { fontFamily: lumeFuente.semibold },
+  filaSub: { fontSize: 12.5, lineHeight: 17 },
+
+  // Hoja de la foto
+  vista: { alignItems: 'center', marginBottom: lumeSpace[2] },
+  hojaTitulo: { marginBottom: lumeSpace[1] },
 });
