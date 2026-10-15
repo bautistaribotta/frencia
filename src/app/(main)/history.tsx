@@ -3,7 +3,7 @@
    por mes y paginadas: se traen de a HISTORIAL_PAGINA y se pide la siguiente
    al llegar al final. Conserva las paginas al volver del detalle; se actualiza
    al entrar desde otra pestania o al tirar hacia abajo desde el inicio.
-   Arrastrar una sesion hacia la derecha la elimina, previa confirmacion. */
+   Arrastrar una sesion hacia la izquierda la elimina, previa confirmacion. */
 
 import React, { useCallback, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import { RefreshControl, SectionList, StyleSheet, View } from 'react-native';
@@ -14,25 +14,24 @@ import { useSession } from '@/contexts/session';
 import { useToast } from '@/contexts/toast';
 import { alerta } from '@/lib/alerta';
 import { SwipeableRow } from '@/components/SwipeableRow';
-import { CargaCentrada } from '@/components/CargaCentrada';
+import { AvisoPie, CargaPestania, ErrorPestania, VacioPestania } from '@/components/EstadosPestania';
 import { eliminarSesion, haceCuanto, type SesionTerminada } from '@/lib/session';
 import { agruparHistorial, type MesHistorial } from '@/lib/history';
 import { crearHistorial } from '@/lib/history-store';
 import { useVolverArribaAlRetocar } from '@/lib/volver-arriba';
 
+import { Icon } from '@/design';
 import {
-  Button,
-  FrenciaText,
-  Icon,
-  MetricPill,
-  radius,
-  space,
-  spacing,
-  useColors,
-  useThemedStyles,
-  type Palette,
-} from '@/design';
-import { Cargando } from '@/design/lume';
+  Cargando,
+  Fondo,
+  LumeButton,
+  LumeMetricPill,
+  LumeText,
+  Vidrio,
+  lumeLayout,
+  lumeSpace,
+  useLume,
+} from '@/design/lume';
 
 const MESES = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
 const MESES_LARGO = [
@@ -65,8 +64,7 @@ function duracion(startedAt: number, finishedAt: number): string {
 }
 
 export default function HistoryScreen() {
-  const colors = useColors();
-  const styles = useThemedStyles(makeStyles);
+  const { t, sombras } = useLume();
   const { user } = useSession();
   const router = useRouter();
   const { showToast } = useToast();
@@ -134,218 +132,183 @@ export default function HistoryScreen() {
   // entrenamiento. El titulo queda en el mismo lugar que tendra en la lista.
   if (!loaded && error !== 'inicio') {
     return (
-      <SafeAreaView style={styles.safe} edges={['top']}>
-        <View style={styles.tituloCarga}>
-          <FrenciaText role="dataLabel" color={colors.textTertiary}>
-            Historial
-          </FrenciaText>
-        </View>
-        <CargaCentrada texto="Cargando historial…" />
-      </SafeAreaView>
+      <View style={styles.pantalla}>
+        <Fondo posicion="cumbre" />
+        <SafeAreaView style={styles.safe} edges={['top']}>
+          <CargaPestania titulo="Historial" texto="Cargando historial…" />
+        </SafeAreaView>
+      </View>
     );
   }
 
-  return (
-    <SafeAreaView style={styles.safe} edges={['top']}>
-      <SectionList
-        ref={scrollRef}
-        key={userId ?? 'sin-sesion'}
-        sections={secciones}
-        keyExtractor={(s) => s.id}
-        contentContainerStyle={styles.scroll}
-        showsVerticalScrollIndicator={false}
-        stickySectionHeadersEnabled={false}
-        onEndReached={() => { void historial.cargarMas(); }}
-        onEndReachedThreshold={0.5}
-        refreshControl={
-          <RefreshControl
-            refreshing={refrescando}
-            onRefresh={() => {
-              setRefrescandoPorGesto(true);
-              void historial.recargar();
-            }}
-            tintColor={colors.accent}
-            colors={[colors.accent]}
-            progressBackgroundColor={colors.surfaceCard}
-          />
-        }
-        ListHeaderComponent={
-          <View style={styles.header}>
-            <FrenciaText role="dataLabel" color={colors.textTertiary}>
-              Historial
-            </FrenciaText>
-            {error === 'inicio' && (
-              <View style={styles.error} accessibilityLiveRegion="polite">
-                <FrenciaText role="bodySm" style={styles.centerText}>
-                  {loaded ? 'No pudimos actualizar el historial.' : 'No pudimos cargar el historial.'}
-                </FrenciaText>
-                <FrenciaText role="bodySm" color={colors.textSecondary} style={styles.centerText}>
-                  Revisá tu conexión y probá de nuevo.
-                </FrenciaText>
-                <Button variant="secondary" onPress={() => { void historial.reintentar(); }}>Reintentar</Button>
-              </View>
-            )}
-          </View>
-        }
-        renderSectionHeader={({ section }) => (
-          <View style={styles.sectionHeader}>
-            <FrenciaText role="subtitle">{tituloMes(section.finishedAt)}</FrenciaText>
-            {section.completo && (
-              <FrenciaText role="dataLabel" color={colors.textTertiary}>
-                {section.data.length} {section.data.length === 1 ? 'sesión' : 'sesiones'}
-              </FrenciaText>
-            )}
-          </View>
-        )}
-        renderItem={({ item: s }) => (
-          <SwipeableRow
-            radio="xl"
-            onPress={() => abrirDetalle(s)}
-            derecha={{
-              icon: 'trash-2',
-              tono: 'danger',
-              label: 'Eliminar entrenamiento',
-              onTrigger: () => pedirEliminar(s),
-            }}
-          >
-          <View
-            accessibilityRole="button"
-            accessibilityLabel={`${s.dayName ?? 'Día eliminado'}, ${fechaCorta(s.finishedAt)}`}
-            accessibilityHint="Ver las series realizadas en este entrenamiento"
-            style={styles.card}
-          >
-            <View style={styles.cardHeader}>
-              <View style={styles.cardText}>
-                <FrenciaText role="subtitle" numberOfLines={1}>
-                  {s.dayName ?? 'Día eliminado'}
-                </FrenciaText>
-                <FrenciaText role="dataLabel" color={colors.textTertiary}>
-                  {fechaCorta(s.finishedAt)} · {haceCuanto(s.finishedAt)}
-                </FrenciaText>
-              </View>
-              <View style={styles.doneIcon}>
-                <Icon name="check" size={16} color={colors.accentText} />
-              </View>
-            </View>
+  const primera = secciones[0];
 
-            <View style={styles.cardFooter}>
-              <MetricPill icon="timer" label="Duración" value={duracion(s.startedAt, s.finishedAt)} />
-              <View style={styles.verSeries}>
-                <FrenciaText role="bodySm" color={colors.textSecondary}>Ver series</FrenciaText>
-                <Icon name="chevron-right" size={18} color={colors.textTertiary} />
+  return (
+    <View style={styles.pantalla}>
+      <Fondo posicion="cumbre" />
+      <SafeAreaView style={styles.safe} edges={['top']}>
+        <SectionList
+          ref={scrollRef}
+          key={userId ?? 'sin-sesion'}
+          sections={secciones}
+          keyExtractor={(s) => s.id}
+          contentContainerStyle={styles.scroll}
+          showsVerticalScrollIndicator={false}
+          stickySectionHeadersEnabled={false}
+          onEndReached={() => { void historial.cargarMas(); }}
+          onEndReachedThreshold={0.5}
+          refreshControl={
+            <RefreshControl
+              refreshing={refrescando}
+              onRefresh={() => {
+                setRefrescandoPorGesto(true);
+                void historial.recargar();
+              }}
+              tintColor={t.textPrimary}
+              colors={[t.textPrimary]}
+              progressBackgroundColor={t.surfaceRaisedOpaco}
+            />
+          }
+          ListHeaderComponent={
+            <View style={styles.header}>
+              <View style={styles.titulo}>
+                <LumeText rol="label" color={t.textTertiary}>
+                  Historial
+                </LumeText>
               </View>
+              {error === 'inicio' && (
+                <ErrorPestania
+                  titulo={loaded ? 'No pudimos actualizar tu historial.' : 'No pudimos cargar tu historial.'}
+                  texto="Revisá tu conexión y probá de nuevo."
+                  onReintentar={() => { void historial.reintentar(); }}
+                />
+              )}
             </View>
-          </View>
-          </SwipeableRow>
-        )}
-        ItemSeparatorComponent={() => <View style={styles.separador} />}
-        SectionSeparatorComponent={() => <View style={styles.separadorSeccion} />}
-        /* Hasta tener la primera lectura no decidimos que mostrar. */
-        ListEmptyComponent={
-          !loaded || error || cargando === 'inicio' ? null : (
-            <View style={styles.vacio}>
-              <Icon name="history" size={26} color={colors.textTertiary} />
-              <FrenciaText role="subtitle" style={styles.centerText}>
-                Todavía no hay sesiones
-              </FrenciaText>
-              <FrenciaText role="bodySm" color={colors.textSecondary} style={styles.vacioPara}>
-                Cuando termines tu primer entrenamiento va a aparecer acá, con las series que
-                hiciste y el peso que levantaste.
-              </FrenciaText>
+          }
+          renderSectionHeader={({ section }) => (
+            <View style={[styles.mes, section !== primera && styles.mesSeparado]}>
+              <LumeText rol="subtitle">{tituloMes(section.finishedAt)}</LumeText>
+              {section.completo && (
+                <LumeText rol="label" color={t.textTertiary}>
+                  {section.data.length} {section.data.length === 1 ? 'sesión' : 'sesiones'}
+                </LumeText>
+              )}
             </View>
-          )
-        }
-        ListFooterComponent={
-          <View style={styles.footer}>
-            {cargando === 'mas' ? (
-              <View style={styles.feedback} accessibilityLiveRegion="polite">
-                <Cargando />
-                <FrenciaText role="bodySm" color={colors.textSecondary}>
-                  Cargando más entrenamientos…
-                </FrenciaText>
+          )}
+          renderItem={({ item: s }) => (
+            <SwipeableRow
+              onPress={() => abrirDetalle(s)}
+              izquierda={{
+                icon: 'trash-2',
+                tono: 'danger',
+                label: 'Eliminar entrenamiento',
+                onTrigger: () => pedirEliminar(s),
+              }}
+            >
+              <Vidrio
+                accessibilityRole="button"
+                accessibilityLabel={`${s.dayName ?? 'Día eliminado'}, ${fechaCorta(s.finishedAt)}`}
+                accessibilityHint="Ver las series realizadas en este entrenamiento"
+                style={styles.tarjeta}
+              >
+                <View style={styles.tarjetaCabeza}>
+                  <View style={styles.tarjetaTexto}>
+                    <LumeText rol="subtitle" numberOfLines={1}>
+                      {s.dayName ?? 'Día eliminado'}
+                    </LumeText>
+                    <LumeText rol="label" color={t.textTertiary}>
+                      {fechaCorta(s.finishedAt)} · {haceCuanto(s.finishedAt)}
+                    </LumeText>
+                  </View>
+                  {/* Terminado: el check en un circulo de accent con su resplandor. */}
+                  <View style={[styles.hecho, { backgroundColor: t.accent, boxShadow: sombras.haloAccent }]}>
+                    <Icon name="check" size={16} color={t.textOnAccent} strokeWidth={2} />
+                  </View>
+                </View>
+
+                <View style={styles.tarjetaPie}>
+                  <LumeMetricPill icon="timer" label="Duración" value={duracion(s.startedAt, s.finishedAt)} />
+                  <View style={styles.verSeries}>
+                    <LumeText rol="bodySm" color={t.textSecondary}>
+                      Ver series
+                    </LumeText>
+                    <Icon name="chevron-right" size={18} color={t.textTertiary} strokeWidth={1.75} />
+                  </View>
+                </View>
+              </Vidrio>
+            </SwipeableRow>
+          )}
+          ItemSeparatorComponent={() => <View style={styles.separador} />}
+          /* Hasta tener la primera lectura no decidimos que mostrar. */
+          ListEmptyComponent={
+            !loaded || error || cargando === 'inicio' ? null : (
+              <VacioPestania
+                icono="history"
+                titulo="Todavía no hay sesiones"
+                texto="Cuando termines tu primer entrenamiento va a aparecer acá, con las series que hiciste y el peso que levantaste."
+              />
+            )
+          }
+          ListFooterComponent={
+            cargando === 'mas' ? (
+              <View style={styles.footer}>
+                <Cargando texto="Cargando más entrenamientos…" />
               </View>
             ) : error === 'mas' ? (
-              <View style={styles.feedback} accessibilityLiveRegion="polite">
-                <FrenciaText role="bodySm" style={styles.centerText}>No pudimos cargar más entrenamientos.</FrenciaText>
-                <Button variant="secondary" onPress={() => { void historial.reintentar(); }}>Reintentar</Button>
-              </View>
+              <AvisoPie
+                texto="No pudimos cargar más entrenamientos."
+                onReintentar={() => { void historial.reintentar(); }}
+              />
             ) : siguiente && !error && !cargando ? (
-              <Button variant="ghost" onPress={() => { void historial.cargarMas(); }}>Cargar más</Button>
-            ) : null}
-          </View>
-        }
-      />
-    </SafeAreaView>
+              <View style={styles.footer}>
+                <LumeButton variant="ghost" onPress={() => { void historial.cargarMas(); }}>
+                  Cargar más
+                </LumeButton>
+              </View>
+            ) : null
+          }
+        />
+      </SafeAreaView>
+    </View>
   );
 }
 
-const makeStyles = (colors: Palette) =>
-  StyleSheet.create({
-    safe: { flex: 1, backgroundColor: colors.bgApp },
-    // flexGrow: el contenido ocupa toda la altura aunque la lista sea corta,
-    // asi el gesto de tirar hacia abajo se toma desde cualquier punto.
-    scroll: {
-      flexGrow: 1,
-      paddingHorizontal: spacing.padScreen,
-      paddingTop: space[7],
-      paddingBottom: space[12],
-    },
-    header: { paddingHorizontal: space[1], paddingBottom: space[6] },
-    tituloCarga: { paddingHorizontal: spacing.padScreen + space[1], paddingTop: space[7] },
-    feedback: { alignItems: 'center', gap: space[4] },
-    error: {
-      alignItems: 'center', gap: space[4], padding: spacing.padCard,
-      marginTop: space[4], borderRadius: radius.xl,
-      backgroundColor: colors.surfaceCard, borderColor: colors.borderSubtle, borderWidth: 1,
-    },
-    centerText: { textAlign: 'center' },
+const styles = StyleSheet.create({
+  pantalla: { flex: 1 },
+  safe: { flex: 1 },
+  // flexGrow: el contenido ocupa toda la altura aunque la lista sea corta,
+  // asi el gesto de tirar hacia abajo se toma desde cualquier punto.
+  scroll: {
+    flexGrow: 1,
+    paddingHorizontal: lumeLayout.padScreen,
+    paddingTop: lumeSpace[6],
+    paddingBottom: lumeSpace[12],
+  },
+  header: { gap: lumeSpace[6], paddingBottom: lumeSpace[6] },
+  titulo: { paddingHorizontal: lumeSpace[1] },
+  footer: { alignItems: 'center', paddingVertical: lumeSpace[6] },
 
-    sectionHeader: {
-      flexDirection: 'row',
-      alignItems: 'baseline',
-      justifyContent: 'space-between',
-      gap: space[4],
-      paddingHorizontal: space[1],
-      paddingBottom: space[3],
-    },
-    // El separador de seccion se renderiza tanto arriba como abajo de cada
-    // seccion; el de arriba de la primera no suma porque el header ya deja aire.
-    separadorSeccion: { height: space[3] },
-    separador: { height: space[4] },
-    footer: { paddingVertical: space[6] },
+  mes: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    justifyContent: 'space-between',
+    gap: lumeSpace[4],
+    paddingHorizontal: lumeSpace[1],
+    paddingBottom: lumeSpace[3],
+  },
+  mesSeparado: { marginTop: lumeSpace[7] },
+  separador: { height: lumeSpace[3] },
 
-    card: {
-      gap: space[4],
-      padding: spacing.padCard,
-      borderRadius: radius.xl,
-      backgroundColor: colors.surfaceCard,
-      borderWidth: 1,
-      borderColor: colors.borderSubtle,
-    },
-    cardHeader: { flexDirection: 'row', alignItems: 'center', gap: space[3] },
-    cardFooter: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: space[3] },
-    verSeries: { flexDirection: 'row', alignItems: 'center', gap: space[1] },
-    cardText: { flex: 1, gap: space[1] },
-    doneIcon: {
-      width: 32,
-      height: 32,
-      borderRadius: radius.sm,
-      alignItems: 'center',
-      justifyContent: 'center',
-      backgroundColor: colors.surfaceGreenSoft,
-      borderWidth: 1,
-      borderColor: colors.surfaceGreenLine,
-    },
-
-    vacio: {
-      alignItems: 'center',
-      gap: space[4],
-      paddingVertical: space[10],
-      paddingHorizontal: space[6],
-      borderRadius: radius.xl,
-      borderWidth: 1.5,
-      borderStyle: 'dashed',
-      borderColor: colors.borderDefault,
-    },
-    vacioPara: { textAlign: 'center', maxWidth: 300 },
-  });
+  tarjeta: { gap: lumeSpace[4], padding: lumeLayout.padCard },
+  tarjetaCabeza: { flexDirection: 'row', alignItems: 'center', gap: lumeSpace[3] },
+  tarjetaTexto: { flex: 1, gap: lumeSpace[1] },
+  hecho: { width: 28, height: 28, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
+  tarjetaPie: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: lumeSpace[3],
+  },
+  verSeries: { flexDirection: 'row', alignItems: 'center', gap: lumeSpace[1] },
+});

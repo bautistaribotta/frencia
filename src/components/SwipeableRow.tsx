@@ -10,8 +10,9 @@
    pantalla confirma con alerta(). Un sentido sin accion ofrece resistencia y
    no descubre nada.
 
-   Hoy lo usan Rutinas (derecha elimina, izquierda pone en curso) e Historial
-   (derecha elimina el entrenamiento).
+   Hoy lo usan Rutinas (izquierda elimina, derecha pone en curso) e Historial
+   (izquierda elimina el entrenamiento). Va en Lume: la destructiva en carmin
+   con el icono blanco, la reversible en accent.
 
    El gesto se reconoce solo cuando el dedo va claramente en horizontal
    (activeOffsetX) y le cede el paso al scroll vertical de la lista
@@ -30,14 +31,8 @@ import Animated, {
 } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
 
-import {
-  Icon,
-  motion,
-  radius,
-  useColors,
-  useThemedStyles,
-  type Palette,
-} from '@/design';
+import { Icon } from '@/design';
+import { lumeMotion, lumePalette, lumeRadius, useLume } from '@/design/lume';
 
 // Ancho que descubre cada accion cuando la fila queda abierta en reposo... solo
 // que no queda abierta: al soltar siempre vuelve a cero. Es la referencia con
@@ -74,8 +69,6 @@ export interface SwipeableRowProps {
   derecha?: AccionDeslizable;
   /** Accion al arrastrar hacia la izquierda. */
   izquierda?: AccionDeslizable;
-  /** Radio de la tarjeta que envuelve, para recortar las acciones a su forma. */
-  radio?: 'lg' | 'xl';
   children: React.ReactNode;
 }
 
@@ -83,11 +76,9 @@ export function SwipeableRow({
   onPress,
   derecha,
   izquierda,
-  radio = 'lg',
   children,
 }: SwipeableRowProps) {
-  const styles = useThemedStyles(makeStyles);
-  const colors = useColors();
+  const { t } = useLume();
 
   const tx = useSharedValue(0);
   // 1 cuando el arrastre ya cruzo el umbral, para pegar un solo golpe al cruzar
@@ -129,7 +120,7 @@ export function SwipeableRow({
           // Siempre vuelve a cero: la accion se ejecuta afuera (reordenar la
           // lista, abrir un alerta), y la fila no tiene por que quedar colgada
           // mientras tanto.
-          tx.value = withTiming(0, { duration: motion.durBase });
+          tx.value = withTiming(0, { duration: lumeMotion.durBase });
           if (!paso) return;
           if (haciaDerecha) {
             if (onDerecha) runOnJS(onDerecha)();
@@ -166,7 +157,7 @@ export function SwipeableRow({
     // opacidad se queda quieta para que no titile.
     opacity:
       tx.value === 0
-        ? withTiming(apretada.value === 1 ? 0.72 : 1, { duration: motion.durFast })
+        ? withTiming(apretada.value === 1 ? 0.72 : 1, { duration: lumeMotion.durFast })
         : 1,
   }));
 
@@ -202,21 +193,21 @@ export function SwipeableRow({
     [derecha, izquierda],
   );
 
-  const fondo = (tono: AccionDeslizable['tono']) =>
-    tono === 'danger' ? styles.tonoDanger : styles.tonoAccent;
+  const fondo = (tono: AccionDeslizable['tono']) => ({ backgroundColor: tono === 'danger' ? t.danger : t.accent });
+  const tinta = (tono: AccionDeslizable['tono']) => (tono === 'danger' ? lumePalette.ivory0 : t.textOnAccent);
 
   return (
-    <View style={[styles.wrap, radio === 'xl' ? styles.radioXl : styles.radioLg]}>
+    <View style={styles.wrap}>
       {/* Detras de la fila: cada accion anclada al lado que se descubre. */}
       <View style={styles.acciones}>
         {derecha && (
           <Animated.View style={[styles.accion, styles.ladoIzquierdo, fondo(derecha.tono), derechaStyle]}>
-            <Icon name={derecha.icon} size={22} color={colors.textOnAccent} />
+            <Icon name={derecha.icon} size={22} color={tinta(derecha.tono)} strokeWidth={1.75} />
           </Animated.View>
         )}
         {izquierda && (
           <Animated.View style={[styles.accion, styles.ladoDerecho, fondo(izquierda.tono), izquierdaStyle]}>
-            <Icon name={izquierda.icon} size={22} color={colors.textOnAccent} />
+            <Icon name={izquierda.icon} size={22} color={tinta(izquierda.tono)} strokeWidth={1.75} />
           </Animated.View>
         )}
       </View>
@@ -237,24 +228,19 @@ export function SwipeableRow({
   );
 }
 
-const makeStyles = (colors: Palette) =>
-  StyleSheet.create({
-    // Recorta las acciones a la forma de la tarjeta: sin esto, los rectangulos
-    // de color asoman por las esquinas redondeadas.
-    wrap: { overflow: 'hidden' },
-    radioLg: { borderRadius: radius.lg },
-    radioXl: { borderRadius: radius.xl },
-    acciones: { ...StyleSheet.absoluteFill, flexDirection: 'row', pointerEvents: 'none' },
-    accion: {
-      position: 'absolute',
-      top: 0,
-      bottom: 0,
-      width: ANCHO_ACCION,
-      alignItems: 'center',
-      justifyContent: 'center',
-    },
-    ladoIzquierdo: { left: 0 },
-    ladoDerecho: { right: 0 },
-    tonoAccent: { backgroundColor: colors.accent },
-    tonoDanger: { backgroundColor: colors.danger },
-  });
+const styles = StyleSheet.create({
+  // Recorta las acciones a la forma de la tarjeta: sin esto, los rectangulos
+  // de color asoman por las esquinas redondeadas.
+  wrap: { overflow: 'hidden', borderRadius: lumeRadius.xl },
+  acciones: { ...StyleSheet.absoluteFill, flexDirection: 'row', pointerEvents: 'none' },
+  accion: {
+    position: 'absolute',
+    top: 0,
+    bottom: 0,
+    width: ANCHO_ACCION,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  ladoIzquierdo: { left: 0 },
+  ladoDerecho: { right: 0 },
+});

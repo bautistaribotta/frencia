@@ -4,7 +4,7 @@
    cual esta corriendo. La fila es la rutina entera.
 
    Todas las rutinas ocupan la misma tarjeta: lo unico que separa a la que esta
-   en curso es el color. Que la activa sea mas grande la convertiria en otra
+   en curso es el vidrio fuerte, el filo de lume y el texto. Que la activa sea mas grande la convertiria en otra
    cosa, y son todas lo mismo vistas en momentos distintos. Se entra tocando
    la tarjeta.
 
@@ -28,21 +28,21 @@ import { useSession } from '@/contexts/session';
 import { useToast } from '@/contexts/toast';
 import { alerta } from '@/lib/alerta';
 import { SwipeableRow } from '@/components/SwipeableRow';
-import { CargaCentrada } from '@/components/CargaCentrada';
+import { AvisoPie, CargaPestania, ErrorPestania, VacioPestania } from '@/components/EstadosPestania';
 import { useVolverArribaAlRetocar } from '@/lib/volver-arriba';
 
+import { Icon } from '@/design';
 import {
-  Button,
-  FrenciaText,
-  Icon,
-  radius,
-  space,
-  spacing,
-  useColors,
-  useThemedStyles,
-  type Palette,
-} from '@/design';
-import { Cargando } from '@/design/lume';
+  Cargando,
+  Fondo,
+  LumeButton,
+  LumeText,
+  Vidrio,
+  lumeLayout,
+  lumeRadius,
+  lumeSpace,
+  useLume,
+} from '@/design/lume';
 
 function contarDias(n: number): string {
   return `${n} ${n === 1 ? 'día' : 'días'}`;
@@ -56,8 +56,7 @@ function resumen(rutina: RutinaResumen): string {
 }
 
 export default function RoutinesScreen() {
-  const colors = useColors();
-  const styles = useThemedStyles(makeStyles);
+  const { t, sombras } = useLume();
   const router = useRouter();
   const { user } = useSession();
   const scrollRef = useRef<FlatList<RutinaResumen>>(null);
@@ -136,45 +135,45 @@ export default function RoutinesScreen() {
   const vacia = loaded && !error && !cargando && !activa && anteriores.length === 0;
 
   const tarjeta = (rutina: RutinaResumen) => (
-    // Arrastrar a la derecha elimina (pide confirmacion); a la izquierda pone
+    // Arrastrar a la izquierda elimina (pide confirmacion); a la derecha pone
     // la rutina en curso, salvo que ya lo este.
     <SwipeableRow
       key={rutina.id}
       onPress={() => abrirRutina(rutina.id)}
-      derecha={{
+      izquierda={{
         icon: 'trash-2',
         tono: 'danger',
         label: 'Eliminar rutina',
         onTrigger: () => pedirEliminar(rutina),
       }}
-      izquierda={
+      derecha={
         rutina.activa
           ? undefined
-          : { icon: 'flame', tono: 'accent', label: 'Poner en curso', onTrigger: () => activar(rutina) }
+          : { icon: 'play', tono: 'accent', label: 'Poner en curso', onTrigger: () => activar(rutina) }
       }
     >
-      <View
-        style={[styles.tarjeta, rutina.activa && styles.tarjetaActiva]}
+      {/* Una sola tarjeta para todas: la en curso sube a vidrio fuerte con un
+         filo de lume a la izquierda, y lo dice en texto. */}
+      <Vidrio
+        nivel={rutina.activa ? 'fuerte' : 'normal'}
+        borde={rutina.activa ? t.surfaceSignalLine : undefined}
+        style={styles.tarjeta}
         accessibilityRole="button"
         accessibilityLabel={`Abrir ${rutina.name}`}
       >
+        {rutina.activa ? (
+          <View style={[styles.filo, { backgroundColor: t.signal, boxShadow: sombras.haloSignal }]} />
+        ) : null}
         <View style={styles.tarjetaTexto}>
-          <FrenciaText role="subtitle" numberOfLines={1}>
+          <LumeText rol="subtitle" numberOfLines={1}>
             {rutina.name}
-          </FrenciaText>
-          <FrenciaText
-            role="dataLabel"
-            color={rutina.activa ? colors.accentText : colors.textTertiary}
-          >
+          </LumeText>
+          <LumeText rol="label" color={rutina.activa ? t.signalText : t.textTertiary}>
             {resumen(rutina)}
-          </FrenciaText>
+          </LumeText>
         </View>
-        <Icon
-          name="chevron-right"
-          size={18}
-          color={rutina.activa ? colors.accentText : colors.textTertiary}
-        />
-      </View>
+        <Icon name="chevron-right" size={18} color={t.textTertiary} strokeWidth={1.75} />
+      </Vidrio>
     </SwipeableRow>
   );
 
@@ -182,199 +181,162 @@ export default function RoutinesScreen() {
   // entrenamiento. El titulo queda en el mismo lugar que tendra en la lista.
   if (!loaded && error !== 'inicio') {
     return (
-      <SafeAreaView style={styles.safe} edges={['top']}>
-        <View style={styles.tituloCarga}>
-          <FrenciaText role="dataLabel" color={colors.textTertiary}>
-            Rutinas
-          </FrenciaText>
-        </View>
-        <CargaCentrada texto="Cargando rutinas…" />
-      </SafeAreaView>
+      <View style={styles.pantalla}>
+        <Fondo posicion="cumbre" />
+        <SafeAreaView style={styles.safe} edges={['top']}>
+          <CargaPestania titulo="Rutinas" texto="Cargando rutinas…" />
+        </SafeAreaView>
+      </View>
     );
   }
 
   return (
-    <SafeAreaView style={styles.safe} edges={['top']}>
-      <FlatList
-        ref={scrollRef}
-        key={userId ?? 'sin-sesion'}
-        data={anteriores}
-        keyExtractor={(r) => r.id}
-        contentContainerStyle={styles.scroll}
-        showsVerticalScrollIndicator={false}
-        onEndReached={() => { void lista.cargarMas(); }}
-        onEndReachedThreshold={0.5}
-        refreshControl={
-          <RefreshControl
-            refreshing={refrescando}
-            onRefresh={() => {
-              setRefrescandoPorGesto(true);
-              void lista.recargar();
-            }}
-            tintColor={colors.accent}
-            colors={[colors.accent]}
-            progressBackgroundColor={colors.surfaceCard}
-          />
-        }
-        ListHeaderComponent={
-          <View style={styles.header}>
-            <FrenciaText role="dataLabel" color={colors.textTertiary}>
-              Rutinas
-            </FrenciaText>
+    <View style={styles.pantalla}>
+      <Fondo posicion="cumbre" />
+      <SafeAreaView style={styles.safe} edges={['top']}>
+        <FlatList
+          ref={scrollRef}
+          key={userId ?? 'sin-sesion'}
+          data={anteriores}
+          keyExtractor={(r) => r.id}
+          contentContainerStyle={styles.scroll}
+          showsVerticalScrollIndicator={false}
+          onEndReached={() => { void lista.cargarMas(); }}
+          onEndReachedThreshold={0.5}
+          refreshControl={
+            <RefreshControl
+              refreshing={refrescando}
+              onRefresh={() => {
+                setRefrescandoPorGesto(true);
+                void lista.recargar();
+              }}
+              tintColor={t.textPrimary}
+              colors={[t.textPrimary]}
+              progressBackgroundColor={t.surfaceRaisedOpaco}
+            />
+          }
+          ListHeaderComponent={
+            <View style={styles.header}>
+              <LumeText rol="label" color={t.textTertiary}>
+                Rutinas
+              </LumeText>
 
-            {error === 'inicio' && (
-              <View style={styles.error} accessibilityLiveRegion="polite">
-                <FrenciaText role="bodySm" style={styles.centerText}>
-                  {loaded ? 'No pudimos actualizar tus rutinas.' : 'No pudimos cargar tus rutinas.'}
-                </FrenciaText>
-                <FrenciaText role="bodySm" color={colors.textSecondary} style={styles.centerText}>
-                  Revisá tu conexión y probá de nuevo.
-                </FrenciaText>
-                <Button variant="secondary" onPress={() => { void lista.reintentar(); }}>Reintentar</Button>
-              </View>
-            )}
+              {error === 'inicio' && (
+                <ErrorPestania
+                  titulo={loaded ? 'No pudimos actualizar tus rutinas.' : 'No pudimos cargar tus rutinas.'}
+                  texto="Revisá tu conexión y probá de nuevo."
+                  onReintentar={() => { void lista.reintentar(); }}
+                />
+              )}
 
-            {/* Hasta tener la primera lectura no decidimos que mostrar. */}
-            {!loaded ? null : vacia ? (
-              <View style={styles.vacio}>
-                <Icon name="layers" size={26} color={colors.textTertiary} />
-                <FrenciaText role="subtitle" style={styles.centerText}>
-                  Todavía no tenés rutinas
-                </FrenciaText>
-                <FrenciaText role="bodySm" color={colors.textSecondary} style={styles.vacioPara}>
-                  Cuando crees una, va a aparecer acá junto con las que archives más adelante.
-                </FrenciaText>
-                <Button variant="primary" size="lg" icon="plus" onPress={crearRutina}>
-                  Crear rutina
-                </Button>
-              </View>
-            ) : (
-              <>
-                {activa ? (
-                  tarjeta(activa)
-                ) : (
-                  <View style={styles.sinActiva}>
-                    <FrenciaText role="bodySm" color={colors.textSecondary}>
-                      No tenés ninguna rutina en curso.
-                    </FrenciaText>
-                    <Button variant="secondary" size="md" icon="plus" onPress={crearRutina}>
-                      Crear rutina
-                    </Button>
-                  </View>
-                )}
+              {/* Hasta tener la primera lectura no decidimos que mostrar. */}
+              {!loaded ? null : vacia ? (
+                <VacioPestania
+                  icono="layers"
+                  titulo="Todavía no tenés rutinas"
+                  texto="Cuando crees una, va a aparecer acá junto con las que archives más adelante."
+                >
+                  <LumeButton variant="primary" size="lg" icon="plus" onPress={crearRutina}>
+                    Crear rutina
+                  </LumeButton>
+                </VacioPestania>
+              ) : (
+                <>
+                  {activa ? (
+                    tarjeta(activa)
+                  ) : (
+                    <View
+                      style={[styles.sinActiva, { backgroundColor: t.surfaceInset, borderColor: t.borderStrong }]}
+                    >
+                      <LumeText rol="bodySm" color={t.textSecondary}>
+                        No tenés ninguna rutina en curso.
+                      </LumeText>
+                      <LumeButton variant="secondary" size="md" icon="plus" onPress={crearRutina}>
+                        Crear rutina
+                      </LumeButton>
+                    </View>
+                  )}
 
-                {anteriores.length > 0 && (
-                  <View style={styles.seccionHeader}>
-                    <FrenciaText role="dataLabel" color={colors.textTertiary}>
-                      Anteriores
-                    </FrenciaText>
-                    {/* El total solo se conoce cuando no quedan paginas por traer. */}
-                    {!siguiente && (
-                      <FrenciaText role="dataLabel" color={colors.textTertiary}>
-                        {anteriores.length}
-                      </FrenciaText>
-                    )}
-                  </View>
-                )}
-              </>
-            )}
-          </View>
-        }
-        renderItem={({ item }) => tarjeta(item)}
-        ItemSeparatorComponent={() => <View style={styles.separador} />}
-        ListFooterComponent={
-          <View style={styles.footer}>
-            {cargando === 'mas' ? (
-              <View style={styles.feedback} accessibilityLiveRegion="polite">
-                <Cargando />
-                <FrenciaText role="bodySm" color={colors.textSecondary}>
-                  Cargando más rutinas…
-                </FrenciaText>
+                  {anteriores.length > 0 && (
+                    <View style={styles.seccionHeader}>
+                      <LumeText rol="label" color={t.textTertiary}>
+                        Anteriores
+                      </LumeText>
+                      {/* El total solo se conoce cuando no quedan paginas por traer. */}
+                      {!siguiente && (
+                        <LumeText rol="label" color={t.textTertiary}>
+                          {anteriores.length}
+                        </LumeText>
+                      )}
+                    </View>
+                  )}
+                </>
+              )}
+            </View>
+          }
+          renderItem={({ item }) => tarjeta(item)}
+          ItemSeparatorComponent={() => <View style={styles.separador} />}
+          ListFooterComponent={
+            cargando === 'mas' ? (
+              <View style={styles.footer}>
+                <Cargando texto="Cargando más rutinas…" />
               </View>
             ) : error === 'mas' ? (
-              <View style={styles.feedback} accessibilityLiveRegion="polite">
-                <FrenciaText role="bodySm" style={styles.centerText}>No pudimos cargar más rutinas.</FrenciaText>
-                <Button variant="secondary" onPress={() => { void lista.reintentar(); }}>Reintentar</Button>
-              </View>
+              <AvisoPie texto="No pudimos cargar más rutinas." onReintentar={() => { void lista.reintentar(); }} />
             ) : siguiente && !error && !cargando ? (
-              <Button variant="ghost" onPress={() => { void lista.cargarMas(); }}>Cargar más</Button>
-            ) : null}
-          </View>
-        }
-      />
-    </SafeAreaView>
+              <View style={styles.footer}>
+                <LumeButton variant="ghost" onPress={() => { void lista.cargarMas(); }}>
+                  Cargar más
+                </LumeButton>
+              </View>
+            ) : null
+          }
+        />
+      </SafeAreaView>
+    </View>
   );
 }
 
-const makeStyles = (colors: Palette) =>
-  StyleSheet.create({
-    safe: { flex: 1, backgroundColor: colors.bgApp },
-    // flexGrow: el contenido ocupa toda la altura aunque la lista sea corta,
-    // asi el gesto de tirar hacia abajo se toma desde cualquier punto.
-    scroll: {
-      flexGrow: 1,
-      paddingHorizontal: spacing.padScreen,
-      paddingTop: space[7],
-      paddingBottom: space[12],
-    },
-    // Mismo aire que tenia el ScrollView entre bloques; el paddingBottom separa
-    // el titulo "Anteriores" de la primera tarjeta.
-    header: { gap: space[6], paddingBottom: space[3] },
-    tituloCarga: { paddingHorizontal: spacing.padScreen, paddingTop: space[7] },
-    centerText: { textAlign: 'center' },
-    feedback: { alignItems: 'center', gap: space[4] },
-    error: {
-      alignItems: 'center', gap: space[4], padding: spacing.padCard,
-      borderRadius: radius.xl,
-      backgroundColor: colors.surfaceCard, borderColor: colors.borderSubtle, borderWidth: 1,
-    },
-    footer: { paddingVertical: space[6] },
+const styles = StyleSheet.create({
+  pantalla: { flex: 1 },
+  safe: { flex: 1 },
+  // flexGrow: el contenido ocupa toda la altura aunque la lista sea corta,
+  // asi el gesto de tirar hacia abajo se toma desde cualquier punto.
+  scroll: {
+    flexGrow: 1,
+    paddingHorizontal: lumeLayout.padScreen,
+    paddingTop: lumeSpace[6],
+    paddingBottom: lumeSpace[12],
+  },
+  // El paddingBottom separa el titulo "Anteriores" de la primera tarjeta.
+  header: { gap: lumeSpace[6], paddingBottom: lumeSpace[3] },
+  footer: { alignItems: 'center', paddingVertical: lumeSpace[6] },
 
-    // Una sola tarjeta para todas. La activa cambia de color, no de tamanio.
-    tarjeta: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: space[4],
-      padding: spacing.padCard,
-      borderRadius: radius.lg,
-      backgroundColor: colors.surfaceCard,
-      borderWidth: 1,
-      borderColor: colors.borderSubtle,
-    },
-    tarjetaActiva: {
-      backgroundColor: colors.surfaceGreenSoft,
-      borderColor: colors.surfaceGreenLine,
-    },
-    tarjetaTexto: { flex: 1, gap: space[2] },
+  tarjeta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: lumeSpace[4],
+    padding: lumeLayout.padCard,
+    overflow: 'hidden',
+  },
+  // El filo de la en curso: 3 px de lume pegados al borde izquierdo.
+  filo: { position: 'absolute', left: 0, top: 0, bottom: 0, width: 3 },
+  tarjetaTexto: { flex: 1, gap: lumeSpace[3] },
 
-    sinActiva: {
-      alignItems: 'flex-start',
-      gap: space[4],
-      padding: spacing.padCard,
-      borderRadius: radius.lg,
-      borderWidth: 1,
-      borderStyle: 'dashed',
-      borderColor: colors.borderSubtle,
-    },
+  sinActiva: {
+    alignItems: 'flex-start',
+    gap: lumeSpace[5],
+    padding: lumeLayout.padCard,
+    borderRadius: lumeRadius.lg,
+    borderWidth: 1,
+    borderStyle: 'dashed',
+  },
 
-    seccionHeader: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-      paddingHorizontal: space[1],
-    },
-    separador: { height: space[3] },
-
-    // Estado vacio
-    vacio: {
-      alignItems: 'center',
-      gap: space[4],
-      paddingVertical: space[10],
-      paddingHorizontal: space[6],
-      borderRadius: radius.xl,
-      borderWidth: 1.5,
-      borderStyle: 'dashed',
-      borderColor: colors.borderDefault,
-    },
-    vacioPara: { textAlign: 'center', maxWidth: 280 },
-  });
+  seccionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: lumeSpace[1],
+  },
+  separador: { height: lumeSpace[3] },
+});
