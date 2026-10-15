@@ -7,7 +7,7 @@
    no se ve, pero la captura lo encuentra igual. */
 
 import React, { useMemo, useRef, useState } from 'react';
-import { SectionList, StyleSheet, View } from 'react-native';
+import { SectionList, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 
@@ -25,20 +25,18 @@ import { distanciaTabla, type UnidadDistancia } from '@/lib/distancia';
 import type { DatosRegistrados } from '@/lib/exercises';
 import { mostrarPeso, type UnidadPeso } from '@/lib/peso';
 import { duracionSesion, fechaSesion, type SerieRealizada } from '@/lib/session-history';
+import { Icon } from '@/design';
 import {
-  Badge,
-  Button,
-  FrenciaText,
-  Icon,
-  display,
-  mono,
-  radius,
-  space,
-  spacing,
-  useColors,
-  useThemedStyles,
-  type Palette,
-} from '@/design';
+  Fondo,
+  LumeBadge,
+  LumeButton,
+  LumeText,
+  lumeFuente,
+  lumeLayout,
+  lumeRadius,
+  lumeSpace,
+  useLume,
+} from '@/design/lume';
 
 interface SeccionEjercicio {
   key: string;
@@ -82,8 +80,7 @@ function datosSerie(
 }
 
 export default function SessionHistoryScreen() {
-  const colors = useColors();
-  const styles = useThemedStyles(makeStyles);
+  const { t } = useLume();
   const router = useRouter();
   const { user } = useSession();
   const { profile } = useProfile();
@@ -135,9 +132,9 @@ export default function SessionHistoryScreen() {
 
   return (
     <View style={styles.raiz}>
-      {/* El ticket que se comparte. Va antes de la pantalla y afuera de su
-         safe area: la pantalla, opaca y a pantalla completa, lo tapa entero,
-         incluida la zona de la barra de estado. */}
+      {/* El ticket que se comparte. Va antes del Fondo y afuera de la safe
+         area: el Fondo, opaco y a pantalla completa, lo tapa entero, incluida
+         la zona de la barra de estado. */}
       {sesion && totalSeries > 0 && (
         <View
           style={styles.ticketOculto}
@@ -157,33 +154,35 @@ export default function SessionHistoryScreen() {
         </View>
       )}
 
+      <Fondo posicion="velada" />
+
       <SafeAreaView style={styles.safe} edges={['top', 'bottom', 'left', 'right']}>
         <View style={styles.header}>
-          <Button variant="ghost" size="sm" icon="chevron-left" style={styles.boton} onPress={volver}>
+          <LumeButton variant="ghost" size="sm" icon="chevron-left" onPress={volver}>
             Atrás
-          </Button>
+          </LumeButton>
         </View>
 
         {noEncontrada ? (
           <View style={styles.centro}>
-            <FrenciaText role="subtitle" style={styles.centerText}>
+            <LumeText rol="subtitle" style={styles.centrado}>
               No encontramos este entrenamiento
-            </FrenciaText>
-            <FrenciaText role="bodySm" color={colors.textSecondary} style={styles.centerText}>
+            </LumeText>
+            <LumeText rol="bodySm" color={t.textSecondary} style={styles.centrado}>
               Puede que ya no esté disponible en tu historial.
-            </FrenciaText>
+            </LumeText>
           </View>
         ) : resultado?.estado === 'error' ? (
           <View style={styles.centro}>
-            <FrenciaText role="subtitle" style={styles.centerText}>
+            <LumeText rol="subtitle" style={styles.centrado}>
               No pudimos cargar el entrenamiento
-            </FrenciaText>
-            <FrenciaText role="bodySm" color={colors.textSecondary} style={styles.centerText}>
-              Comprueba tu conexión y vuelve a intentarlo.
-            </FrenciaText>
-            <Button variant="secondary" style={styles.boton} onPress={reintentar}>
+            </LumeText>
+            <LumeText rol="bodySm" color={t.textSecondary} style={styles.centrado}>
+              Revisá tu conexión y probá de nuevo.
+            </LumeText>
+            <LumeButton variant="secondary" onPress={reintentar}>
               Reintentar
-            </Button>
+            </LumeButton>
           </View>
         ) : !sesion ? (
           <CargaCentrada texto="Cargando entrenamiento…" />
@@ -199,45 +198,55 @@ export default function SessionHistoryScreen() {
             ListHeaderComponent={
               <View style={styles.intro}>
                 <View style={styles.titulo}>
-                  <Badge tone="green">Completada</Badge>
-                  <FrenciaText role="display" style={styles.nombre} accessibilityRole="header">
+                  <LumeBadge tone="signal">Completada</LumeBadge>
+                  <LumeText rol="display" style={styles.nombre} accessibilityRole="header">
                     {sesion.dayName ?? 'Día eliminado'}
-                  </FrenciaText>
-                  <FrenciaText role="data" color={colors.textSecondary}>
+                  </LumeText>
+                  <LumeText rol="data" color={t.textSecondary}>
                     {fechaSesion(sesion.finishedAt)}
-                  </FrenciaText>
+                  </LumeText>
                 </View>
 
-                <View style={styles.resumen}>
+                <View style={[styles.resumen, { borderColor: t.divider }]}>
                   <View style={[styles.metrica, styles.duracion]}>
-                    <FrenciaText role="dataLabel" color={colors.textSecondary}>Duración</FrenciaText>
-                    <FrenciaText role="display" style={styles.valorMetrica}>
+                    <LumeText rol="label" color={t.textSecondary}>
+                      Duración
+                    </LumeText>
+                    <LumeText rol="hero" style={styles.valorMetrica}>
                       {duracionSesion(sesion.startedAt, sesion.finishedAt)}
-                    </FrenciaText>
+                    </LumeText>
                   </View>
                   <View style={styles.metrica}>
-                    <FrenciaText role="dataLabel" color={colors.textSecondary}>Series</FrenciaText>
-                    <FrenciaText role="display" style={styles.valorMetrica}>{totalSeries}</FrenciaText>
+                    <LumeText rol="label" color={t.textSecondary}>
+                      Series
+                    </LumeText>
+                    <LumeText rol="hero" style={styles.valorMetrica}>
+                      {totalSeries}
+                    </LumeText>
                   </View>
                   <View style={styles.metrica}>
-                    <FrenciaText role="dataLabel" color={colors.textSecondary}>Ejercicios</FrenciaText>
-                    <FrenciaText role="display" style={styles.valorMetrica}>{secciones.length}</FrenciaText>
+                    <LumeText rol="label" color={t.textSecondary}>
+                      Ejercicios
+                    </LumeText>
+                    <LumeText rol="hero" style={styles.valorMetrica}>
+                      {secciones.length}
+                    </LumeText>
                   </View>
                 </View>
 
                 {totalSeries > 0 && (
-                  <FrenciaText role="dataLabel" color={colors.textSecondary}>
+                  <LumeText rol="label" color={t.textSecondary}>
                     Series realizadas
-                  </FrenciaText>
+                  </LumeText>
                 )}
               </View>
             }
             renderSectionHeader={({ section }) => (
               <View style={styles.ejercicio}>
                 <MarqueeText text={section.name} role="subtitle" boxStyle={styles.ejercicioNombre} />
-                <FrenciaText role="dataLabel" color={colors.textSecondary}>
+                <LumeText rol="label" color={t.textSecondary}>
                   {section.data.length} {section.data.length === 1 ? 'serie' : 'series'}
-                </FrenciaText>
+                </LumeText>
               </View>
             )}
             renderItem={({ item: serie, section }) => {
@@ -251,37 +260,31 @@ export default function SessionHistoryScreen() {
                 .join('. ');
               return (
                 <View
-                  style={styles.serie}
+                  style={[styles.serie, { borderBottomColor: t.divider }]}
                   accessible
                   accessibilityLabel={`Serie ${serie.setIndex}. ${accesible}. Completada.`}
                 >
-                  <FrenciaText role="data" style={styles.indice} color={colors.accentText}>
+                  <LumeText rol="data" color={t.textTertiary} style={styles.indice}>
                     {serie.setIndex}
-                  </FrenciaText>
+                  </LumeText>
                   <View style={styles.datosSerie}>
-                    <FrenciaText role="data" style={styles.pesoReps}>
+                    <LumeText rol="hero" style={styles.pesoReps}>
                       {datos.map((d, i) => (
                         <React.Fragment key={i}>
-                          {i > 0 ? (
-                            <FrenciaText role="data" color={colors.textSecondary}>{separador}</FrenciaText>
-                          ) : null}
+                          {i > 0 ? <Text style={[styles.separador, { color: t.textTertiary }]}>{separador}</Text> : null}
                           {d.valor}
-                          {d.unidad ? (
-                            <FrenciaText role="dataLabel" style={styles.unidad}> {d.unidad}</FrenciaText>
-                          ) : null}
+                          {d.unidad ? <Text style={[styles.unidad, { color: t.textTertiary }]}> {d.unidad}</Text> : null}
                         </React.Fragment>
                       ))}
-                    </FrenciaText>
+                    </LumeText>
                     {esfuerzo ? (
-                      <FrenciaText role="dataLabel" style={styles.esfuerzo}>{esfuerzo}</FrenciaText>
+                      <LumeText rol="label" color={t.intensityText}>
+                        {esfuerzo}
+                      </LumeText>
                     ) : null}
                   </View>
-                  <View
-                    style={styles.completada}
-                    accessibilityElementsHidden
-                    importantForAccessibility="no-hide-descendants"
-                  >
-                    <Icon name="check" size={20} color={colors.accentText} />
+                  <View accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
+                    <Icon name="check" size={18} strokeWidth={1.75} color={t.textTertiary} />
                   </View>
                 </View>
               );
@@ -290,16 +293,10 @@ export default function SessionHistoryScreen() {
             ListFooterComponent={
               totalSeries > 0 ? (
                 <View style={styles.acciones}>
-                  <Button
-                    variant="secondary"
-                    size="lg"
-                    icon="ticket"
-                    style={styles.accion}
-                    onPress={verTicket}
-                  >
+                  <LumeButton variant="secondary" size="lg" icon="ticket" style={styles.accion} onPress={verTicket}>
                     Ver ticket
-                  </Button>
-                  <Button
+                  </LumeButton>
+                  <LumeButton
                     variant="primary"
                     size="lg"
                     icon="share"
@@ -308,19 +305,21 @@ export default function SessionHistoryScreen() {
                     loading={compartiendo}
                   >
                     Compartir
-                  </Button>
+                  </LumeButton>
                 </View>
               ) : null
             }
             ListEmptyComponent={
-              <View style={styles.vacio}>
+              <View style={[styles.vacio, { backgroundColor: t.surfaceInset, borderColor: t.borderStrong }]}>
                 <View accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
-                  <Icon name="list" size={24} color={colors.textSecondary} />
+                  <Icon name="list" size={24} strokeWidth={1.75} color={t.textSecondary} />
                 </View>
-                <FrenciaText role="subtitle" style={styles.centerText}>Sin series registradas</FrenciaText>
-                <FrenciaText role="bodySm" color={colors.textSecondary} style={styles.centerText}>
+                <LumeText rol="subtitle" style={styles.centrado}>
+                  Sin series registradas
+                </LumeText>
+                <LumeText rol="bodySm" color={t.textSecondary} style={styles.centrado}>
                   Este entrenamiento se completó sin guardar ninguna serie.
-                </FrenciaText>
+                </LumeText>
               </View>
             }
           />
@@ -330,104 +329,89 @@ export default function SessionHistoryScreen() {
   );
 }
 
-const makeStyles = (colors: Palette) =>
-  StyleSheet.create({
-    raiz: { flex: 1, backgroundColor: colors.bgApp },
-    // Fondo opaco: tapa al ticket oculto que queda detras.
-    safe: { flex: 1, backgroundColor: colors.bgApp },
-    // Bajado para que la sombra de la silueta, que sobresale unos 60 por
-    // arriba del ticket, tampoco quede por encima del borde de la pantalla.
-    ticketOculto: { position: 'absolute', top: space[12], left: 0, right: 0, pointerEvents: 'none' },
-    header: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      paddingHorizontal: spacing.padScreen,
-      paddingVertical: space[5],
-    },
-    boton: { minHeight: 48 },
-    scroll: {
-      paddingHorizontal: spacing.padScreen,
-      paddingTop: space[4],
-      paddingBottom: space[10],
-    },
-    centro: {
-      flex: 1,
-      alignItems: 'center',
-      justifyContent: 'center',
-      gap: space[4],
-      padding: spacing.padScreen,
-    },
-    centerText: { textAlign: 'center' },
-    intro: { gap: space[7], paddingBottom: space[4] },
-    titulo: { gap: space[3], alignItems: 'flex-start' },
-    nombre: { fontFamily: display, fontSize: 34, lineHeight: 40, textTransform: 'uppercase' },
-    resumen: {
-      flexDirection: 'row',
-      flexWrap: 'wrap',
-      gap: space[5],
-      paddingVertical: space[5],
-      borderTopWidth: 1,
-      borderBottomWidth: 1,
-      borderColor: colors.divider,
-    },
-    metrica: { flexGrow: 1, flexBasis: 72, minWidth: 72, gap: space[2] },
-    duracion: { flexGrow: 2, flexBasis: 128, minWidth: 128 },
-    valorMetrica: { fontSize: 28, lineHeight: 34 },
-    ejercicio: {
-      flexDirection: 'row',
-      flexWrap: 'wrap',
-      alignItems: 'baseline',
-      justifyContent: 'space-between',
-      columnGap: space[4],
-      rowGap: space[2],
-      paddingBottom: space[4],
-    },
-    ejercicioNombre: { flexGrow: 1, flexShrink: 1, flexBasis: 200 },
-    serie: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: space[4],
-      paddingVertical: space[4],
-      paddingHorizontal: space[4],
-      marginBottom: space[3],
-      borderRadius: radius.lg,
-      backgroundColor: colors.surfaceGreenSoft,
-    },
-    indice: { fontFamily: mono.bold, minWidth: 24, textAlign: 'center' },
-    datosSerie: {
-      flex: 1,
-      minWidth: 0,
-      flexDirection: 'row',
-      flexWrap: 'wrap',
-      alignItems: 'center',
-      columnGap: space[4],
-      rowGap: space[3],
-    },
-    pesoReps: { fontFamily: mono.bold, fontSize: 18, lineHeight: 26, flexShrink: 1 },
-    unidad: { textTransform: 'none', color: colors.textSecondary },
-    esfuerzo: {
-      flexShrink: 1,
-      paddingHorizontal: space[3],
-      paddingVertical: space[2],
-      borderRadius: radius.sm,
-      borderWidth: 1,
-      borderColor: colors.surfaceOrangeLine,
-      backgroundColor: colors.surfaceOrangeSoft,
-      color: colors.intensityText,
-      overflow: 'hidden',
-    },
-    completada: { alignItems: 'center', justifyContent: 'center' },
-    finEjercicio: { height: space[5] },
-    acciones: { flexDirection: 'row', gap: 10, paddingTop: space[5] },
-    accion: { flex: 1 },
-    vacio: {
-      alignItems: 'center',
-      gap: space[4],
-      paddingVertical: space[8],
-      paddingHorizontal: spacing.padCard,
-      borderRadius: radius.xl,
-      borderWidth: 1,
-      borderStyle: 'dashed',
-      borderColor: colors.borderDefault,
-    },
-  });
+const styles = StyleSheet.create({
+  raiz: { flex: 1 },
+  safe: { flex: 1 },
+  // Bajado para que la sombra de la silueta, que sobresale unos 60 por
+  // arriba del ticket, tampoco quede por encima del borde de la pantalla.
+  ticketOculto: { position: 'absolute', top: lumeSpace[12], left: 0, right: 0, pointerEvents: 'none' },
+  // El boton ghost trae su propio padding: el margen lo corre 10 px a la
+  // izquierda para que el chevron quede alineado con el borde del contenido.
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: lumeLayout.padScreen - 10,
+    paddingVertical: lumeSpace[4],
+    minHeight: 44,
+  },
+  scroll: {
+    paddingHorizontal: lumeLayout.padScreen,
+    paddingTop: lumeSpace[4],
+    paddingBottom: lumeSpace[10],
+  },
+  centro: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: lumeSpace[4],
+    padding: lumeLayout.padScreen,
+  },
+  centrado: { textAlign: 'center' },
+  intro: { gap: lumeSpace[7], paddingBottom: lumeSpace[4] },
+  titulo: { gap: lumeSpace[4], alignItems: 'flex-start' },
+  nombre: { fontSize: 34, lineHeight: 36, letterSpacing: -1 },
+  resumen: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: lumeSpace[5],
+    paddingVertical: lumeSpace[5],
+    borderTopWidth: 1,
+    borderBottomWidth: 1,
+  },
+  metrica: { flexGrow: 1, flexBasis: 72, minWidth: 72, gap: lumeSpace[2] },
+  duracion: { flexGrow: 2, flexBasis: 128, minWidth: 128 },
+  valorMetrica: { fontSize: 32, lineHeight: 36, letterSpacing: -1 },
+  ejercicio: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    alignItems: 'baseline',
+    justifyContent: 'space-between',
+    columnGap: lumeSpace[4],
+    rowGap: lumeSpace[2],
+    paddingBottom: lumeSpace[2],
+  },
+  ejercicioNombre: { flexGrow: 1, flexShrink: 1, flexBasis: 200 },
+  // Cada serie en una fila con hairline, el numero a la izquierda.
+  serie: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: lumeSpace[4],
+    paddingVertical: lumeSpace[4],
+    borderBottomWidth: 1,
+  },
+  indice: { fontFamily: lumeFuente.semibold, fontSize: 12, lineHeight: 20, minWidth: 22 },
+  datosSerie: {
+    flex: 1,
+    minWidth: 0,
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    alignItems: 'center',
+    columnGap: lumeSpace[4],
+    rowGap: lumeSpace[3],
+  },
+  pesoReps: { fontSize: 22, lineHeight: 26, letterSpacing: -0.4, flexShrink: 1 },
+  separador: { fontFamily: lumeFuente.regular },
+  unidad: { fontFamily: lumeFuente.medium, fontSize: 12, letterSpacing: 0 },
+  finEjercicio: { height: lumeSpace[6] },
+  acciones: { flexDirection: 'row', gap: lumeSpace[3], paddingTop: lumeSpace[5] },
+  accion: { flex: 1 },
+  vacio: {
+    alignItems: 'center',
+    gap: lumeSpace[5],
+    paddingVertical: lumeSpace[8],
+    paddingHorizontal: lumeLayout.padCard,
+    borderRadius: lumeRadius.xl,
+    borderWidth: 1,
+    borderStyle: 'dashed',
+  },
+});
