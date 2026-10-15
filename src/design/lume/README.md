@@ -64,5 +64,9 @@ fondo, nunca el texto.
 
 - El brillo de canto del vidrio (`inset 0 1px 0`) es el borde de arriba en
   `glassHighlight`: RN no tiene sombra interior.
+- El vidrio normal y el fuerte no llevan sombra lejana (`shadow-glass` queda
+  transparente): sin el `backdrop-filter` de la web, la sombra de una tarjeta
+  se veia a traves del vidrio de la de abajo como una franja oscura (issue
+  #29). Solo el vidrio denso, que flota, conserva su sombra.
 - Las dos reglas (altura y peso) son mas anchas que la pantalla y el borde del
   telefono las corta, sin fundido en los extremos.

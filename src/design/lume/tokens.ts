@@ -196,17 +196,22 @@ export function sinTransparencia(t: LumePalette): LumePalette {
 /* ---- Sombras y resplandores ----
    RN >= 0.76 acepta `boxShadow` con el mismo string del token. La parte
    `inset` del vidrio no existe en RN: el brillo de canto lo dibuja Vidrio
-   con una linea de 1 px arriba (glassHighlight). */
+   con una linea de 1 px arriba (glassHighlight).
+   `glass` queda sin sombra lejana (transparente): en la web el vidrio de al
+   lado desenfoca lo que tiene detras (backdrop-filter) y esa sombra se
+   disimula, pero en RN las tarjetas no desenfocan y la sombra del elemento
+   de arriba se veia a traves del vidrio de abajo como una franja oscura
+   (issue #29). El vidrio conserva su borde y el brillo de canto. */
 export const lumeSombras: Record<LumeModo, Record<'glass' | 'md' | 'lg' | 'haloAccent' | 'haloSignal', string>> = {
   dark: {
-    glass: '0 10px 30px rgba(0, 0, 0, 0.25)',
+    glass: '0 0 0 rgba(0, 0, 0, 0)',
     md: '0 12px 32px rgba(0, 0, 0, 0.45)',
     lg: '0 24px 56px rgba(0, 0, 0, 0.55)',
     haloAccent: '0 8px 24px rgba(201, 226, 95, 0.28)',
     haloSignal: '0 0 12px rgba(201, 226, 95, 0.45)',
   },
   light: {
-    glass: '0 10px 30px rgba(20, 21, 17, 0.06)',
+    glass: '0 0 0 rgba(0, 0, 0, 0)',
     md: '0 12px 32px rgba(20, 21, 17, 0.10)',
     lg: '0 24px 56px rgba(20, 21, 17, 0.14)',
     haloAccent: '0 8px 24px rgba(20, 21, 17, 0.18)',

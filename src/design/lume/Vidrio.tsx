@@ -41,7 +41,10 @@ export function Vidrio({
   const { t, modo, sombras, reducida } = useLume();
   const relleno =
     nivel === 'denso' ? t.surfaceRaised : nivel === 'fuerte' ? t.surfaceCardElevated : t.surfaceCard;
-  const sombra = sinSombra ? undefined : nivel === 'normal' ? sombras.glass : sombras.md;
+  // Solo el denso, que flota (hojas, barras), lleva sombra lejana. El normal y
+  // el fuerte van apilados en listas: sin el desenfoque de la web, su sombra
+  // se veia a traves del vidrio vecino como una franja (issue #29).
+  const sombra = sinSombra ? undefined : nivel === 'denso' ? sombras.md : sombras.glass;
   const linea = borde ?? t.glassLine;
 
   return (
