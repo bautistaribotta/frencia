@@ -15,7 +15,7 @@ import { TicketSesion } from '@/components/TicketSesion';
 import type { UnidadDistancia } from '@/lib/distancia';
 import type { UnidadPeso } from '@/lib/peso';
 import type { EjercicioResumen } from '@/lib/resumen-sesion';
-import { Button } from '@/design';
+import { LumeButton } from '@/design/lume';
 
 export interface ResumenSesionProps {
   sessionId: string;
@@ -46,13 +46,13 @@ export function ResumenSesion({
   return (
     <MarcoTicket
       encabezado={
-        <Button variant="ghost" size="sm" icon="chevron-left" onPress={onVolver} disabled={guardando}>
+        <LumeButton variant="ghost" size="sm" icon="chevron-left" onPress={onVolver} disabled={guardando}>
           Volver a la sesión
-        </Button>
+        </LumeButton>
       }
       acciones={
         <>
-          <Button
+          <LumeButton
             variant="secondary"
             size="lg"
             icon="share"
@@ -62,8 +62,8 @@ export function ResumenSesion({
             disabled={guardando}
           >
             Compartir
-          </Button>
-          <Button
+          </LumeButton>
+          <LumeButton
             variant="primary"
             size="lg"
             icon="check"
@@ -72,7 +72,7 @@ export function ResumenSesion({
             loading={guardando}
           >
             Hecho
-          </Button>
+          </LumeButton>
         </>
       }
     >

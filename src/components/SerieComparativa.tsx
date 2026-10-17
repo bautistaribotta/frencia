@@ -1,4 +1,4 @@
-/* Frencia · SerieComparativa — las tres lecturas de una serie, en una grilla.
+/* Frencia · SerieComparativa — las tres lecturas de una serie, en una grilla (Lume).
    Ver docs/specs/registro-de-sesion.md seccion 6.2
 
    Lo que indico quien armo la rutina, lo que se hizo la vez anterior y lo que
@@ -17,25 +17,16 @@
 
    Lo que las diferencia no es el color:
      - la etiqueta de la izquierda, que es texto y no depende del color;
-     - el orden fijo plan > ultima > hoy, que es una linea de tiempo;
-     - las tres filas comparten la caja redondeada, pero la de hoy es mas alta,
-       editable y toma el borde de acento al cargarse: es la unica que se
-       completa. La diferencia es funcional antes que decorativa.
-   El acento naranja va encima de todo eso, no en lugar de eso. */
+     - el orden fijo rutina > ultima > hoy, que es una linea de tiempo;
+     - rutina y ultima son numeros sueltos en una tabla con hairlines; hoy es
+       la unica fila con celdas de vidrio, porque es la unica que se completa.
+       La celda en foco toma el borde de lume con su brillo y la ya cargada
+       pasa a vidrio fuerte. */
 
-import React from 'react';
+import React, { useState } from 'react';
 import { StyleSheet, Text, TextInput, View } from 'react-native';
 
-import {
-  FrenciaText,
-  mono,
-  radius,
-  sizing,
-  space,
-  useColors,
-  useThemedStyles,
-  type Palette,
-} from '@/design';
+import { LumeText, lumeFuente, lumeLayout, lumeRadius, lumeSpace, useLume } from '@/design/lume';
 
 // Marca de dato ausente. El mismo signo para "el plan no lo dice", "no hay
 // registro" y "todavia no lo cargaste": en los tres casos no hay numero.
@@ -65,10 +56,10 @@ export interface SerieComparativaProps {
   /** Hace cuanto fue la vez anterior. null = sin registro en la ventana. */
   cuandoAnterior: string | null;
   /** Sin la fila de hoy la grilla es solo referencia: lo de hoy se carga en
-   *  campos propios fuera de ella (el cardio). */
+   *  campos propios fuera de ella (el cardio y los isometricos). */
   mostrarHoy?: boolean;
-  /** Amplia: mas aire entre filas y cajas de hoy mas altas, para la fuerza,
-   *  donde la grilla es lo unico que se completa en la pantalla. */
+  /** Amplia: numeros y celdas de hoy mas grandes, para la fuerza, donde la
+   *  grilla es lo unico que se completa en la pantalla. */
   amplia?: boolean;
 }
 
@@ -78,19 +69,18 @@ export function SerieComparativa({
   mostrarHoy = true,
   amplia = false,
 }: SerieComparativaProps) {
-  const colors = useColors();
-  const styles = useThemedStyles(makeStyles);
+  const { t } = useLume();
 
   return (
-    <View style={[styles.grilla, amplia && styles.grillaAmplia]}>
+    <View>
       {/* Encabezado de columnas, una sola vez para las tres filas */}
-      <View style={styles.fila}>
+      <View style={[styles.fila, styles.filaCabeza]}>
         <View style={styles.etiqueta} />
         {columnas.map((c) => (
           <View key={c.key} style={styles.celda}>
-            <FrenciaText role="dataLabel" color={colors.textTertiary} style={styles.centrado}>
+            <LumeText rol="label" color={t.textTertiary} style={styles.centrado} numberOfLines={1}>
               {c.label}
-            </FrenciaText>
+            </LumeText>
           </View>
         ))}
       </View>
@@ -100,8 +90,6 @@ export function SerieComparativa({
         detalle={null}
         valores={columnas.map((c) => c.plan)}
         amplia={amplia}
-        styles={styles}
-        colors={colors}
       />
 
       <Referencia
@@ -109,20 +97,18 @@ export function SerieComparativa({
         detalle={cuandoAnterior ?? 'sin registro'}
         valores={columnas.map((c) => (cuandoAnterior ? c.anterior : null))}
         amplia={amplia}
-        styles={styles}
-        colors={colors}
       />
 
-      {/* Hoy: la unica fila con cajas, porque es la unica que se completa. */}
+      {/* Hoy: la unica fila con celdas, porque es la unica que se completa. */}
       {mostrarHoy ? (
-        <View style={[styles.fila, styles.filaHoy, amplia && styles.filaHoyAmplia]}>
+        <View style={[styles.fila, styles.filaHoy, { borderTopColor: t.borderDefault }]}>
           <View style={styles.etiqueta}>
-            <FrenciaText role="dataLabel" color={colors.accentText}>
+            <LumeText rol="label" color={t.signalText}>
               Hoy
-            </FrenciaText>
+            </LumeText>
           </View>
           {columnas.map((c) => (
-            <Caja key={c.key} columna={c} amplia={amplia} styles={styles} colors={colors} />
+            <Caja key={c.key} columna={c} amplia={amplia} />
           ))}
         </View>
       ) : null}
@@ -130,81 +116,74 @@ export function SerieComparativa({
   );
 }
 
-/* Fila de solo lectura. Los numeros van en la misma mono y en la misma columna
-   que los de hoy, un punto mas chicos: se leen igual pero no compiten. */
+/* Fila de solo lectura: numeros sueltos, un punto mas chicos que los de hoy y
+   en texto secundario. Se leen igual pero no compiten. */
 function Referencia({
   etiqueta,
   detalle,
   valores,
   amplia,
-  styles,
-  colors,
 }: {
   etiqueta: string;
   detalle: string | null;
   valores: (string | null)[];
   amplia: boolean;
-  styles: ReturnType<typeof makeStyles>;
-  colors: Palette;
 }) {
+  const { t } = useLume();
   return (
-    <View style={styles.fila}>
+    <View style={[styles.fila, { borderTopColor: t.divider }, styles.conLinea]}>
       <View style={styles.etiqueta}>
-        <FrenciaText role="dataLabel" color={colors.textTertiary}>
+        <LumeText rol="label" color={t.textTertiary}>
           {etiqueta}
-        </FrenciaText>
+        </LumeText>
         {detalle ? (
-          <FrenciaText role="dataLabel" color={colors.textDisabled} numberOfLines={1}>
+          <LumeText rol="label" color={t.textDisabled} numberOfLines={1}>
             {detalle}
-          </FrenciaText>
+          </LumeText>
         ) : null}
       </View>
       {valores.map((v, i) => (
-        <View key={i} style={styles.celda}>
-          <View style={[styles.cajaRef, amplia && styles.cajaRefAmplia]}>
-            {/* Un tiempo largo ("1:05:00") no entra en un tercio de pantalla:
-               se achica en vez de cortarse. */}
-            <Text
-              numberOfLines={1}
-              adjustsFontSizeToFit
-              style={[
-                styles.numeroRef,
-                amplia && styles.numeroRefAmplio,
-                { color: v === null ? colors.textDisabled : colors.textSecondary },
-              ]}
-            >
-              {v ?? VACIO}
-            </Text>
-          </View>
+        <View key={i} style={[styles.celda, styles.ref]}>
+          {/* Un tiempo largo ("1:05:00") no entra en un tercio de pantalla:
+             se achica en vez de cortarse. */}
+          <Text
+            numberOfLines={1}
+            adjustsFontSizeToFit
+            style={[
+              styles.numeroRef,
+              amplia && styles.numeroRefAmplio,
+              { color: v === null ? t.textDisabled : t.textSecondary },
+            ]}
+          >
+            {v ?? VACIO}
+          </Text>
         </View>
       ))}
     </View>
   );
 }
 
-function Caja({
-  columna,
-  amplia,
-  styles,
-  colors,
-}: {
-  columna: ColumnaSerie;
-  amplia: boolean;
-  styles: ReturnType<typeof makeStyles>;
-  colors: Palette;
-}) {
+function Caja({ columna, amplia }: { columna: ColumnaSerie; amplia: boolean }) {
+  const { t, sombras } = useLume();
+  const [foco, setFoco] = useState(false);
   const cargado = columna.hoy !== '';
+
+  const caja = [
+    styles.caja,
+    amplia && styles.cajaAmplia,
+    {
+      backgroundColor: foco || cargado ? t.surfaceCardElevated : t.surfaceCard,
+      borderColor: foco ? t.signal : t.glassLine,
+      borderTopColor: foco ? t.signal : t.glassHighlight,
+      boxShadow: foco ? sombras.haloSignal : sombras.glass,
+    },
+  ];
 
   if (!columna.onHoy) {
     return (
       <View style={styles.celda}>
         <View
-          style={[
-            styles.caja,
-            amplia && styles.cajaAmplia,
-            styles.cajaLectura,
-            cargado && styles.cajaCargada,
-          ]}
+          style={[caja, styles.cajaLectura]}
           accessible
           accessibilityLabel={`${columna.accesible}: ${cargado ? columna.hoy : 'sin cargar'}`}
         >
@@ -214,7 +193,7 @@ function Caja({
             style={[
               styles.numeroHoy,
               amplia && styles.numeroHoyAmplio,
-              !cargado && { color: colors.textDisabled },
+              { color: cargado ? t.textPrimary : t.textDisabled },
             ]}
           >
             {cargado ? columna.hoy : VACIO}
@@ -226,97 +205,72 @@ function Caja({
 
   return (
     <View style={styles.celda}>
-      <TextInput
-        style={[
-          styles.caja,
-          styles.numeroHoy,
-          amplia && styles.cajaAmplia,
-          amplia && styles.numeroHoyAmplio,
-          cargado && styles.cajaCargada,
-        ]}
-        value={columna.hoy}
-        onChangeText={columna.onHoy}
-        keyboardType={columna.teclado ?? 'number-pad'}
-        accessibilityLabel={columna.accesible}
-        placeholder={VACIO}
-        placeholderTextColor={colors.textDisabled}
-        maxLength={5}
-        selectTextOnFocus
-      />
+      <View style={caja}>
+        <TextInput
+          style={[styles.entrada, styles.numeroHoy, amplia && styles.numeroHoyAmplio, { color: t.textPrimary }]}
+          value={columna.hoy}
+          onChangeText={columna.onHoy}
+          onFocus={() => setFoco(true)}
+          onBlur={() => setFoco(false)}
+          keyboardType={columna.teclado ?? 'number-pad'}
+          accessibilityLabel={columna.accesible}
+          placeholder={VACIO}
+          placeholderTextColor={t.textDisabled}
+          selectionColor={t.signal}
+          cursorColor={t.signal}
+          maxLength={5}
+          selectTextOnFocus
+        />
+      </View>
     </View>
   );
 }
 
-const makeStyles = (colors: Palette) =>
-  StyleSheet.create({
-    grilla: { gap: space[2] },
+const styles = StyleSheet.create({
+  fila: { flexDirection: 'row', alignItems: 'center', gap: lumeSpace[2], minHeight: 44 },
+  filaCabeza: { minHeight: 28 },
+  conLinea: { borderTopWidth: 1 },
+  // Ancho fijo: es lo que mantiene las columnas alineadas entre las tres
+  // filas, que es todo el punto de la grilla.
+  etiqueta: { width: 72, gap: 2 },
+  celda: { flex: 1, minWidth: 0 },
+  centrado: { textAlign: 'center' },
 
-    fila: { flexDirection: 'row', alignItems: 'center', gap: space[2] },
-    // Ancho fijo: es lo que mantiene las columnas alineadas entre las tres
-    // filas, que es todo el punto de la grilla.
-    etiqueta: { width: 76, gap: 2 },
-    celda: { flex: 1 },
-    centrado: { textAlign: 'center' },
+  ref: { height: 44, alignItems: 'center', justifyContent: 'center', paddingHorizontal: lumeSpace[1] },
+  numeroRef: {
+    fontFamily: lumeFuente.condMedium,
+    fontSize: 20,
+    lineHeight: 24,
+    letterSpacing: -0.3,
+    textAlign: 'center',
+    includeFontPadding: false,
+    fontVariant: ['tabular-nums'],
+  },
+  numeroRefAmplio: { fontSize: 22, lineHeight: 26 },
 
-    numeroRef: {
-      fontFamily: mono.medium,
-      fontSize: 20,
-      lineHeight: 26,
-      textAlign: 'center',
-      includeFontPadding: false,
-      paddingHorizontal: space[1],
-    },
+  // Hoy se separa con una linea mas marcada y algo de aire: es el corte entre
+  // lo que se mira y lo que se hace.
+  filaHoy: {
+    borderTopWidth: 1,
+    paddingTop: lumeSpace[4],
+    marginTop: lumeSpace[2],
+  },
 
-    // Plan y ultima comparten la caja redondeada de hoy, pero mas bajas y en el
-    // relleno base: son referencia, no el campo que se completa. La jerarquia la
-    // sostienen el alto y la tipografia, no un color distinto.
-    cajaRef: {
-      height: sizing.controlHMd,
-      borderRadius: radius.lg,
-      backgroundColor: colors.surfaceCard,
-      borderWidth: 1,
-      borderColor: colors.borderSubtle,
-      alignItems: 'center',
-      justifyContent: 'center',
-    },
-
-    // Hoy se separa con una linea de acento y algo mas de aire arriba: es el
-    // corte entre lo que se mira y lo que se hace.
-    filaHoy: {
-      marginTop: space[3],
-      paddingTop: space[3],
-      borderTopWidth: 1,
-      borderTopColor: colors.surfaceGreenLine,
-    },
-
-    caja: {
-      height: sizing.controlHLg,
-      borderRadius: radius.lg,
-      backgroundColor: colors.surfaceCard,
-      borderWidth: 1,
-      borderColor: colors.borderSubtle,
-    },
-    cajaLectura: { alignItems: 'center', justifyContent: 'center', paddingHorizontal: space[1] },
-    numeroHoy: {
-      textAlign: 'center',
-      fontFamily: mono.bold,
-      fontSize: 24,
-      color: colors.textPrimary,
-    },
-    // El borde de acento marca lo ya cargado sin necesidad de leer el numero.
-    cajaCargada: { borderColor: colors.accent },
-
-    // Variante amplia. Las referencias pierden la caja y quedan como numeros
-    // sueltos: con menos bordes la grilla deja de leerse como planilla y las
-    // unicas cajas de la pantalla son las que se completan.
-    grillaAmplia: { gap: space[3] },
-    cajaRefAmplia: {
-      height: sizing.controlHMd,
-      backgroundColor: 'transparent',
-      borderColor: 'transparent',
-    },
-    numeroRefAmplio: { fontSize: 22, lineHeight: 28 },
-    filaHoyAmplia: { marginTop: space[2], paddingTop: space[5] },
-    cajaAmplia: { height: 72 },
-    numeroHoyAmplio: { fontSize: 32 },
-  });
+  caja: {
+    height: lumeLayout.controlHLg,
+    borderRadius: lumeRadius.lg,
+    borderWidth: 1,
+  },
+  cajaAmplia: { height: 72 },
+  cajaLectura: { alignItems: 'center', justifyContent: 'center', paddingHorizontal: lumeSpace[1] },
+  entrada: { flex: 1, padding: 0, textAlignVertical: 'center' },
+  numeroHoy: {
+    textAlign: 'center',
+    fontFamily: lumeFuente.condMedium,
+    fontSize: 28,
+    letterSpacing: -0.56,
+    includeFontPadding: false,
+    fontVariant: ['tabular-nums'],
+  },
+  numeroHoyAmplio: { fontSize: 38, letterSpacing: -0.76 },
+});
