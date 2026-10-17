@@ -17,7 +17,7 @@
    tanda (rutina + dias + weekdays + ejercicios), asi cancelar no deja basura. */
 
 import { useRouter } from 'expo-router';
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { KeyboardAvoidingView, Platform, Pressable, StyleSheet, TextInput, View } from 'react-native';
 
 import { supabase } from '@/lib/supabase';
@@ -69,31 +69,11 @@ export default function CreateRoutineScreen() {
   // Ejercicio abierto en el modal. null = se esta agregando uno nuevo.
   const [editando, setEditando] = useState<DayExercise | null>(null);
   // Solo puede haber una rutina activa (indice unico parcial). Si ya hay una,
-  // antes de armar nada el usuario decide que hacer con ella: archivarla y
-  // activar la nueva, crear la nueva ya archivada, o no crear nada. La
-  // decision se guarda aca y se aplica recien al persistir.
+  // al finalizar el usuario decide que hacer con ella: archivarla y activar la
+  // nueva, o seguir con la actual y guardar la nueva archivada. Se pregunta al
+  // final y no al entrar: recien ahi la rutina nueva existe y la pregunta se
+  // entiende. Mientras el dialogo esta abierto, aca va el nombre de la activa.
   const [rutinaActiva, setRutinaActiva] = useState<string | null>(null);
-  const [activar, setActivar] = useState(true);
-
-  useEffect(() => {
-    let cancelado = false;
-    supabase
-      .from('routines')
-      .select('name')
-      .is('archived_at', null)
-      .maybeSingle()
-      .then(({ data }) => {
-        if (!cancelado && data) setRutinaActiva(data.name);
-      });
-    return () => {
-      cancelado = true;
-    };
-  }, []);
-
-  function decidir(activarNueva: boolean) {
-    setActivar(activarNueva);
-    setRutinaActiva(null);
-  }
 
   // Dos pasos fijos (nombre y cantidad) y uno por cada dia.
   const totalSteps = 2 + dias.length;
@@ -167,24 +147,61 @@ export default function CreateRoutineScreen() {
 
   // --- Persistencia ----------------------------------------------------------
 
+  /** Usuario de la sesion, o null con el aviso ya mostrado. */
+  async function usuarioActual(): Promise<string | null> {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) {
+      showToast({ message: 'No pudimos identificar tu sesión. Volvé a ingresar.', type: 'error' });
+      return null;
+    }
+    return user.id;
+  }
+
+  // Finalizar rutina. Sin otra rutina activa se crea directo y activa; con
+  // una, primero se pregunta que hacer con ella. La activa se lee recien
+  // ahora, no al entrar: mientras se armaba la nueva pudo haber cambiado.
   async function handleCreate() {
     if (!currentValid || saving) return;
     setSaving(true);
 
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
-    if (!user) {
+    const userId = await usuarioActual();
+    if (!userId) {
       setSaving(false);
-      showToast({ message: 'No pudimos identificar tu sesión. Volvé a ingresar.', type: 'error' });
       return;
     }
 
-    await crearRutina(user.id);
+    const { data: activa } = await supabase
+      .from('routines')
+      .select('name')
+      .eq('user_id', userId)
+      .is('archived_at', null)
+      .maybeSingle();
+
+    if (activa) {
+      setSaving(false);
+      setRutinaActiva(activa.name);
+      return;
+    }
+
+    await crearRutina(userId, true);
   }
 
-  async function crearRutina(userId: string) {
+  // Respuesta del dialogo. Cerrarlo sin elegir (tocar afuera o volver) no
+  // crea nada y deja el wizard en el ultimo paso, con todo lo armado.
+  async function decidir(activar: boolean) {
+    setRutinaActiva(null);
+    setSaving(true);
+    const userId = await usuarioActual();
+    if (!userId) {
+      setSaving(false);
+      return;
+    }
+    await crearRutina(userId, activar);
+  }
+
+  async function crearRutina(userId: string, activar: boolean) {
     if (activar) {
       // Archivamos la anterior antes de insertar, o el indice unico parcial
       // rechaza la nueva.
@@ -343,7 +360,7 @@ export default function CreateRoutineScreen() {
         nombreActual={rutinaActiva ?? ''}
         onContinuar={() => decidir(true)}
         onMantener={() => decidir(false)}
-        onCancelar={finish}
+        onCerrar={() => setRutinaActiva(null)}
       />
 
       <ExercisePickerModal

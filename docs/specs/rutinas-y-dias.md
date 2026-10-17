@@ -94,7 +94,9 @@ Ademas de `sets`, `reps`, `intensity_kind` e `intensity_value`, incluye
 ### 3.4 Reglas de negocio
 
 1. Un usuario tiene **como maximo una rutina activa**.
-2. Crear una rutina archiva automaticamente la anterior. No hay paso manual.
+2. Al crear una rutina con otra ya activa, el usuario elige al finalizar:
+   archivar la anterior y activar la nueva, o mantener la anterior y guardar
+   la nueva archivada (ver 5.1).
 3. Un dia pertenece a **exactamente una** rutina. Para reusarlo se duplica.
 4. Los dias de la semana se asignan **a nivel dia**, y son opcionales. Un dia
    puede repetirse en varios dias de la semana.
@@ -132,8 +134,17 @@ Implementado en `src/app/create-routine.tsx`. Dos pasos fijos y uno por dia:
    opcionales, y la lista de ejercicios con su buscador.
 
 Todo se acumula en memoria. Recien al finalizar se persiste en una tanda:
-archivar la rutina anterior, insertar la rutina, insertar los dias, y despues
-weekdays y ejercicios. Cancelar a mitad no deja basura.
+archivar la rutina anterior (si corresponde), insertar la rutina, insertar los
+dias, y despues weekdays y ejercicios. Cancelar a mitad no deja basura.
+
+**Rutina activa existente.** Si al tocar Finalizar rutina ya hay una rutina
+activa, se abre `ArchiveRoutineDialog` con dos opciones: reemplazarla con la
+nueva (se archiva la anterior y la nueva queda activa) o seguir con la actual
+y guardar la nueva archivada. Se pregunta al final y no al entrar al wizard:
+recien ahi la rutina nueva existe y la pregunta se entiende. La activa se lee
+en ese momento, no al entrar. El dialogo no tiene Cancelar: cerrarlo (tocar
+afuera o volver) no crea nada y deja el wizard en el ultimo paso, con todo lo
+armado.
 
 Los dias se insertan juntos y los ids se aparean por indice, aprovechando que
 Supabase devuelve las filas en el orden en que se enviaron.
@@ -149,8 +160,8 @@ la tarjeta y no en la cabecera de la rutina porque lo que se edita es el dia, y
 va en variante ghost para no disputarle la atencion a Empezar, que es la accion
 principal de la tarjeta.
 
-El boton de crear avisa explicitamente que archiva la rutina actual, porque no
-es obvio y no tiene vuelta atras desde la interfaz.
+Crear una rutina nueva no archiva la actual sin preguntar: la decision se toma
+al finalizar el wizard (ver 5.1).
 
 Si no hay rutina activa, se muestra el onboarding de cuenta nueva.
 

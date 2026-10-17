@@ -1,9 +1,11 @@
 /* Frencia · ArchiveRoutineDialog — que hacer con la rutina activa al crear otra.
-   Solo puede haber una rutina activa, asi que antes de armar una nueva el
-   usuario decide: reemplazar la actual con la nueva, seguir con la actual y
-   guardar la nueva archivada, o no crear nada (Cancelar). Se dibuja con
-   Dialogo, la misma base que el modal de alerta, para respetar el diseno de
-   la app: verde en el camino principal, rojo en el que aborta. */
+   Solo puede haber una rutina activa, asi que al finalizar una nueva el
+   usuario decide: reemplazar la actual con la nueva, o seguir con la actual y
+   guardar la nueva archivada. Aparece en Finalizar rutina y no al entrar al
+   wizard: recien ahi la rutina nueva existe y la pregunta se entiende.
+   No tiene Cancelar: cerrarlo (tocar afuera o volver) no crea nada y deja el
+   wizard en el ultimo paso, con todo lo armado. Se dibuja con Dialogo, la
+   misma base que el modal de alerta. */
 
 import React from 'react';
 
@@ -16,7 +18,8 @@ export interface ArchiveRoutineDialogProps {
   nombreActual: string;
   onContinuar: () => void;
   onMantener: () => void;
-  onCancelar: () => void;
+  /** Cerrar sin elegir. */
+  onCerrar: () => void;
 }
 
 export function ArchiveRoutineDialog({
@@ -24,24 +27,20 @@ export function ArchiveRoutineDialog({
   nombreActual,
   onContinuar,
   onMantener,
-  onCancelar,
+  onCerrar,
 }: ArchiveRoutineDialogProps) {
   return (
-    // Tocar fuera de la tarjeta cuenta como cancelar.
     <Dialogo
       visible={visible}
       titulo={`¿Qué hacemos con "${nombreActual}"?`}
       mensaje="Solo podés tener una rutina activa. La nueva puede reemplazarla, o quedar guardada en tus rutinas para activarla cuando quieras."
-      onDescartar={onCancelar}
+      onDescartar={onCerrar}
     >
       <LumeButton variant="primary" size="lg" fullWidth onPress={onContinuar}>
         Reemplazarla con la nueva
       </LumeButton>
       <LumeButton variant="secondary" size="lg" fullWidth onPress={onMantener}>
         Seguir con esta, guardar la nueva
-      </LumeButton>
-      <LumeButton variant="danger" size="lg" fullWidth onPress={onCancelar}>
-        Cancelar
       </LumeButton>
     </Dialogo>
   );
