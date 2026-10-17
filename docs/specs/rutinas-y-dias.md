@@ -138,10 +138,11 @@ archivar la rutina anterior (si corresponde), insertar la rutina, insertar los
 dias, y despues weekdays y ejercicios. Cancelar a mitad no deja basura.
 
 **Rutina activa existente.** Si al tocar Finalizar rutina ya hay una rutina
-activa, se abre `ArchiveRoutineDialog` con dos opciones: reemplazarla con la
-nueva (se archiva la anterior y la nueva queda activa) o seguir con la actual
-y guardar la nueva archivada. Se pregunta al final y no al entrar al wizard:
-recien ahi la rutina nueva existe y la pregunta se entiende. La activa se lee
+activa, se abre `ArchiveRoutineDialog` con dos botones que nombran la rutina
+que queda activa: **Activar la nueva** (se archiva la anterior) o **Mantener
+«nombre» activa** (la nueva se guarda archivada). Se pregunta al final y no
+al entrar al wizard: recien ahi la rutina nueva existe y la pregunta se
+entiende. La activa se lee
 en ese momento, no al entrar. El dialogo no tiene Cancelar: cerrarlo (tocar
 afuera o volver) no crea nada y deja el wizard en el ultimo paso, con todo lo
 armado.
