@@ -15,8 +15,8 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   Keyboard,
   KeyboardAvoidingView,
-  Modal,
   Platform,
+  Pressable,
   ScrollView,
   StyleSheet,
   Text,
@@ -68,26 +68,25 @@ import { AVISO_COMPARTIR, compartirTicket } from '@/lib/compartir-ticket';
 import { RestRing } from '@/components/RestRing';
 import { SerieComparativa, type ColumnaSerie } from '@/components/SerieComparativa';
 
+import { CargaCentrada } from '@/components/CargaCentrada';
+import { Hoja } from '@/components/Hoja';
+
+import { DistanceField, DurationField, Icon, IsoTimer, NumberField } from '@/design';
 import {
-  Button,
-  DistanceField,
-  DurationField,
-  FrenciaText,
-  Icon,
-  IconButton,
-  IsoTimer,
-  NumberField,
-  ProgressBar,
-  mono,
-  radius,
-  sizing,
-  space,
-  spacing,
-  useColors,
-  useThemedStyles,
-  type Palette,
-} from '@/design';
-import { Cargando } from '@/design/lume';
+  Cargando,
+  Escala,
+  Fondo,
+  LumeButton,
+  LumeIconButton,
+  LumeText,
+  Vidrio,
+  lumeFuente,
+  lumeLayout,
+  lumeRadius,
+  lumeSpace,
+  useLume,
+  type PosicionFondo,
+} from '@/design/lume';
 
 // --- Modelo de pasos ---------------------------------------------------------
 
@@ -209,8 +208,7 @@ function aValores(
 // --- Pantalla ----------------------------------------------------------------
 
 export default function SessionScreen() {
-  const colors = useColors();
-  const styles = useThemedStyles(makeStyles);
+  const { t } = useLume();
   const router = useRouter();
   const { showToast } = useToast();
   const { profile } = useProfile();
@@ -752,428 +750,693 @@ export default function SessionScreen() {
 
   // --- Render ----------------------------------------------------------------
 
-  if (fase === 'cargando') {
-    return (
-      <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
-        <View style={styles.centro}>
-          <Cargando />
-        </View>
-      </SafeAreaView>
+  /** El wizard: cabecera, el paso actual y la barra de abajo. */
+  function wizard(paso: Paso, ejercicioActual: EjercicioPlan) {
+    const totalEjercicios = cantidades.filter((c) => c > 0).length;
+    const nroEjercicio = cantidades.slice(0, paso.ejercicio).filter((c) => c > 0).length + 1;
+    const seriesDelEjercicio = cantidades[paso.ejercicio];
+    const fantasma =
+      paso.tipo === 'serie'
+        ? fantasmas.get(claveSerie(ejercicioActual.exerciseId, paso.serie + 1))
+        : undefined;
+    const cardio = esSerieUnica(ejercicioActual.kind);
+    const isometrico = ejercicioActual.kind === 'isometrico';
+    // Cardio e isometricos se cargan en sus campos, debajo de la grilla; la
+    // fuerza, en la fila Hoy de la grilla.
+    const conCampos = cardio || isometrico;
+    const columnas = cardio
+      ? columnasCardio(ejercicioActual, fantasma, unidadDistancia)
+      : isometrico
+        ? columnasIsometrico(ejercicioActual, fantasma, unidad)
+        : columnasFuerza(ejercicioActual, fantasma, valorActual, unidad, medidor, setCampo);
+    const esSerie = paso.tipo === 'serie';
+    const ultimoPaso = index === pasos.length - 1;
+    // El boton a la vista solo aparece con la serie vacia: apenas se carga un
+    // dato, saltar deja de ser lo probable y el camino queda en el menu.
+    const serieVacia =
+      !midiendo &&
+      valorActual.peso === '' &&
+      valorActual.reps === '' &&
+      valorActual.intensidad === '' &&
+      valorActual.tiempo === null &&
+      valorActual.distancia === null;
+    // No se avanza con una serie incompleta: no se guardaria y se perderia sin
+    // aviso. Para no hacerla esta Saltar serie.
+    const falta = esSerie ? faltantes(ejercicioActual, valorActual, medidor) : [];
+    const faltaTiempo = cardio && falta.includes('el tiempo');
+    const textoSaltar = ultimoPaso ? 'Saltar y terminar' : 'Saltar serie';
+
+    // La escala lleva un corte entre ejercicio y ejercicio: se ve cuanto falta
+    // del ejercicio actual y cuanto de la sesion.
+    const cortes = pasos.flatMap((p, i) =>
+      i < pasos.length - 1 && pasos[i + 1].ejercicio !== p.ejercicio ? [i] : [],
     );
-  }
 
-  if (fase === 'conflicto' && conflicto) {
+    // Lo que viene despues del descanso, para llegar a la barra sabiendo que
+    // cargar. Un descanso nunca es el ultimo paso: siempre le sigue una serie.
+    const proximo = paso.tipo === 'descanso' ? pasos[index + 1] : undefined;
+    const mismoEjercicio = proximo?.ejercicio === paso.ejercicio;
+    const finDelDescanso = paso.tipo === 'descanso' && restante === 0;
+
+    const accion = ultimoPaso
+      ? 'Terminar'
+      : paso.tipo === 'descanso'
+        ? restante > 0
+          ? 'Saltar descanso'
+          : mismoEjercicio
+            ? 'Siguiente serie'
+            : 'Siguiente ejercicio'
+        : conCampos
+          ? 'Siguiente'
+          : 'Registrar serie';
+
     return (
-      <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
-        <View style={styles.centro}>
-          <Icon name="alert-triangle" size={28} color={colors.intensity} />
-          <FrenciaText role="title" style={styles.centrado}>
-            Tenés una sesión sin terminar
-          </FrenciaText>
-          <FrenciaText role="bodySm" color={colors.textSecondary} style={styles.centrado}>
-            Quedó abierta en {conflicto.nombre}. Solo puede haber una sesión a la vez, así que
-            hay que cerrarla antes de empezar esta.
-          </FrenciaText>
-          {conflicto.diaId ? (
-            <Button variant="secondary" size="lg" icon="play" fullWidth onPress={retomarConflicto}>
-              Retomar la anterior
-            </Button>
-          ) : null}
-          <Button variant="primary" size="lg" icon="trash-2" fullWidth onPress={descartarConflicto}>
-            Descartarla y empezar esta
-          </Button>
-          <Button variant="ghost" size="lg" fullWidth onPress={salir}>
-            Volver
-          </Button>
-        </View>
-      </SafeAreaView>
-    );
-  }
-
-  if (fase === 'resumen' && resumen && sessionId) {
-    return (
-      <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
-        <ResumenSesion
-          sessionId={sessionId}
-          nombreDia={nombreDia}
-          inicio={resumen.inicio}
-          duracionSegundos={resumen.duracionSegundos}
-          ejercicios={resumen.ejercicios}
-          unidad={unidad}
-          unidadDistancia={unidadDistancia}
-          guardando={guardando}
-          capturaRef={capturaRef}
-          compartiendo={compartiendo}
-          onVolver={volverASesion}
-          onCompartir={compartirResumen}
-          onHecho={confirmarTerminar}
-        />
-      </SafeAreaView>
-    );
-  }
-
-  if (fase === 'sinEjercicios' || pasos.length === 0 || !paso || !ejercicioActual) {
-    return (
-      <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
-        <View style={styles.centro}>
-          <Icon name="dumbbell" size={28} color={colors.textTertiary} />
-          <FrenciaText role="bodySm" color={colors.textTertiary} style={styles.centrado}>
-            {nombreDia} no tiene ejercicios cargados.
-          </FrenciaText>
-          <Button variant="secondary" size="lg" fullWidth onPress={descartarYSalir}>
-            Volver
-          </Button>
-        </View>
-      </SafeAreaView>
-    );
-  }
-
-  const totalEjercicios = cantidades.filter((c) => c > 0).length;
-  const nroEjercicio = cantidades.slice(0, paso.ejercicio).filter((c) => c > 0).length + 1;
-  const seriesDelEjercicio = cantidades[paso.ejercicio];
-  const fantasma =
-    paso.tipo === 'serie'
-      ? fantasmas.get(claveSerie(ejercicioActual.exerciseId, paso.serie + 1))
-      : undefined;
-  const cardio = esSerieUnica(ejercicioActual.kind);
-  const isometrico = ejercicioActual.kind === 'isometrico';
-  // Cardio e isometricos se cargan en sus campos, debajo de la grilla; la
-  // fuerza, en la fila Hoy de la grilla.
-  const conCampos = cardio || isometrico;
-  const columnas = cardio
-    ? columnasCardio(ejercicioActual, fantasma, unidadDistancia)
-    : isometrico
-      ? columnasIsometrico(ejercicioActual, fantasma, unidad)
-      : columnasFuerza(ejercicioActual, fantasma, valorActual, unidad, medidor, setCampo);
-  const esSerie = paso.tipo === 'serie';
-  const ultimoPaso = index === pasos.length - 1;
-  // El boton a la vista solo aparece con la serie vacia: apenas se carga un
-  // dato, saltar deja de ser lo probable y el camino queda en el menu.
-  const serieVacia =
-    !midiendo &&
-    valorActual.peso === '' &&
-    valorActual.reps === '' &&
-    valorActual.intensidad === '' &&
-    valorActual.tiempo === null &&
-    valorActual.distancia === null;
-  // No se avanza con una serie incompleta: no se guardaria y se perderia sin
-  // aviso. Para no hacerla esta Saltar serie.
-  const falta = esSerie ? faltantes(ejercicioActual, valorActual, medidor) : [];
-  const faltaTiempo = cardio && falta.includes('el tiempo');
-  const textoSaltar = ultimoPaso ? 'Saltar y terminar' : 'Saltar serie';
-
-  return (
-    <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
-      <KeyboardAvoidingView
-        style={styles.flex}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      >
-        {/* Header: salir, progreso de toda la sesion, menu */}
-        <View style={styles.header}>
-          <Button variant="ghost" size="sm" icon="x" onPress={salir}>
-            Salir
-          </Button>
-          <View style={styles.flexItem}>
-            <ProgressBar value={index + 1} max={pasos.length} tone="green" size="sm" />
-          </View>
-          <IconButton
-            icon="more-horizontal"
-            variant="ghost"
-            size="sm"
-            accessibilityLabel="Opciones del ejercicio"
-            onPress={() => setMenuAbierto(true)}
-          />
-        </View>
-
-        <ScrollView
-          ref={scrollRef}
-          style={styles.scrollView}
-          contentContainerStyle={[styles.scroll, esSerie && !conCampos && styles.scrollAnclado]}
-          keyboardShouldPersistTaps="handled"
-          keyboardDismissMode="interactive"
-          showsVerticalScrollIndicator={false}
+      <>
+        <KeyboardAvoidingView
+          style={styles.flex}
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         >
-          <View style={styles.bloque}>
-            <FrenciaText role="dataLabel" color={colors.accentText}>
-              {nombreDia} · Ejercicio {nroEjercicio} de {totalEjercicios}
-            </FrenciaText>
-            <MarqueeText text={ejercicioActual.name} role="title" />
-            {/* En el descanso, lo que importa es cuanto del ejercicio ya quedo
-               atras. En la serie el objetivo ya no vive aca: es la primera fila
-               de la grilla, al lado de lo que se hizo y de lo que se esta
-               cargando. Ahi lo dice el titulo de abajo. */}
-            {paso.tipo === 'descanso' ? (
-              <FrenciaText role="bodySm" color={colors.textSecondary}>
-                {seriesHechas(paso.despuesDe + 1, seriesDelEjercicio)}
-              </FrenciaText>
-            ) : null}
+          {/* Cabecera: salir, dia y ejercicio, menu. Debajo, toda la sesion. */}
+          <Vidrio nivel="denso" radio={lumeRadius.pill} style={styles.cabeza}>
+            <LumeIconButton
+              icon="x"
+              variant="ghost"
+              size="md"
+              accessibilityLabel="Salir"
+              onPress={salir}
+            />
+            <View
+              style={styles.contador}
+              accessible
+              accessibilityLabel={`${nombreDia}, ejercicio ${nroEjercicio} de ${totalEjercicios}`}
+            >
+              <LumeText rol="data" numberOfLines={1} style={styles.contadorDia}>
+                {nombreDia}
+              </LumeText>
+              <LumeText rol="data" color={t.textTertiary} style={styles.contadorNro}>
+                · {nroEjercicio} / {totalEjercicios}
+              </LumeText>
+            </View>
+            <LumeIconButton
+              icon="more-horizontal"
+              variant="ghost"
+              size="md"
+              accessibilityLabel="Menú del ejercicio"
+              onPress={() => setMenuAbierto(true)}
+            />
+          </Vidrio>
+          <View style={styles.escala}>
+            <Escala total={pasos.length} actual={index} cortes={cortes} />
           </View>
 
-          {paso.tipo === 'descanso' ? (
-            <View style={styles.descanso}>
-              <RestRing
-                total={totalDescanso}
-                finAt={finDescanso}
-                color={colors.accent}
-                colorPista={colors.dataTrack}
-              >
-                <FrenciaText role="dataLabel" color={colors.textTertiary}>
-                  Descanso
-                </FrenciaText>
-                {/* Mono y no la display: los digitos de un contador cambian
-                   cada segundo, y sin ancho fijo el numero baila. */}
-                <Text
-                  style={[
-                    styles.reloj,
-                    { color: restante === 0 ? colors.accent : colors.textPrimary },
-                  ]}
-                >
-                  {mmss(restante)}
-                </Text>
-              </RestRing>
-
-              {/* El descanso del plan es una guia y el gimnasio no siempre la
-                 respeta. Restar no puede dejar el reloj en negativo, asi que
-                 con el descanso terminado solo queda sumar. */}
-              <View style={styles.ajustes}>
-                <Button
-                  variant="secondary"
-                  size="md"
-                  icon="minus"
-                  disabled={restante === 0}
-                  onPress={() => ajustarDescanso(-PASO_AJUSTE)}
-                  accessibilityLabel={`Restar ${PASO_AJUSTE} segundos al descanso`}
-                >
-                  {PASO_AJUSTE}s
-                </Button>
-                <Button
-                  variant="secondary"
-                  size="md"
-                  icon="plus"
-                  onPress={() => ajustarDescanso(PASO_AJUSTE)}
-                  accessibilityLabel={`Sumar ${PASO_AJUSTE} segundos al descanso`}
-                >
-                  {PASO_AJUSTE}s
-                </Button>
-              </View>
-
-              {restante === 0 ? (
-                <FrenciaText role="bodySm" color={colors.accentText} style={styles.centrado}>
-                  Descanso finalizado
-                </FrenciaText>
+          <ScrollView
+            ref={scrollRef}
+            style={styles.flex}
+            contentContainerStyle={[styles.scroll, esSerie && !conCampos && styles.scrollAnclado]}
+            keyboardShouldPersistTaps="handled"
+            keyboardDismissMode="interactive"
+            showsVerticalScrollIndicator={false}
+          >
+            <View style={styles.bloque}>
+              <LumeText rol="label" color={t.textTertiary}>
+                Ejercicio {nroEjercicio} de {totalEjercicios}
+              </LumeText>
+              <MarqueeText text={ejercicioActual.name} role="title" />
+              {/* En el descanso, lo que importa es cuanto del ejercicio ya
+                 quedo atras. En la serie el objetivo ya no vive aca: es la
+                 primera fila de la grilla, al lado de lo que se hizo y de lo
+                 que se esta cargando. */}
+              {paso.tipo === 'descanso' ? (
+                <LumeText rol="bodySm" color={t.textSecondary}>
+                  {seriesHechas(paso.despuesDe + 1, seriesDelEjercicio)}
+                </LumeText>
               ) : null}
             </View>
-          ) : (
-            /* En fuerza la serie baja a la zona del pulgar, pegada a
-               Siguiente: el contexto queda arriba y lo que se completa, abajo.
-               Cardio e isometricos siguen centrados, con sus campos. */
-            <View style={conCampos ? styles.serieCampos : styles.serieAnclada}>
-              <View style={styles.serieHead}>
-                <FrenciaText role="subtitle">
-                  {seriesDelEjercicio === 1
-                    ? 'Serie única'
-                    : `Serie ${paso.serie + 1} de ${seriesDelEjercicio}`}
-                </FrenciaText>
-                {/* Con la grilla abajo, saltar sube al titulo de la serie:
-                   queda a mano pero lejos de la barra que se toca de memoria. */}
-                {serieVacia && !conCampos ? (
-                  <Button variant="soft" size="sm" icon="skip-forward" onPress={saltarSerie}>
-                    {textoSaltar}
-                  </Button>
+
+            {paso.tipo === 'descanso' ? (
+              <View style={styles.descanso}>
+                <RestRing total={totalDescanso} finAt={finDescanso} restante={restante}>
+                  <LumeText rol="label" color={finDelDescanso ? t.signalText : t.textTertiary}>
+                    {finDelDescanso ? 'Listo' : 'Descanso'}
+                  </LumeText>
+                  <Text
+                    style={[styles.reloj, { color: finDelDescanso ? t.signalText : t.textPrimary }]}
+                  >
+                    {mmss(restante)}
+                  </Text>
+                  <LumeText rol="bodySm" color={t.textTertiary} style={styles.deTotal}>
+                    de {mmss(totalDescanso)}
+                  </LumeText>
+                </RestRing>
+
+                {/* El descanso del plan es una guia y el gimnasio no siempre
+                   la respeta. Restar no puede dejar el reloj en negativo, asi
+                   que con el descanso terminado solo queda sumar. */}
+                <View style={styles.ajustes}>
+                  <LumeButton
+                    variant="secondary"
+                    size="sm"
+                    icon="minus"
+                    disabled={restante === 0}
+                    onPress={() => ajustarDescanso(-PASO_AJUSTE)}
+                    accessibilityLabel={`Restar ${PASO_AJUSTE} segundos al descanso`}
+                  >
+                    {PASO_AJUSTE} s
+                  </LumeButton>
+                  <LumeButton
+                    variant="secondary"
+                    size="sm"
+                    icon="plus"
+                    onPress={() => ajustarDescanso(PASO_AJUSTE)}
+                    accessibilityLabel={`Sumar ${PASO_AJUSTE} segundos al descanso`}
+                  >
+                    {PASO_AJUSTE} s
+                  </LumeButton>
+                </View>
+
+                {proximo && proximo.tipo === 'serie' ? (
+                  <LoQueViene
+                    ejercicio={plan[proximo.ejercicio]}
+                    mismoEjercicio={mismoEjercicio}
+                    serie={proximo.serie}
+                    totalSeries={cantidades[proximo.ejercicio]}
+                    cargado={
+                      valores[claveSerie(plan[proximo.ejercicio].exerciseId, proximo.serie + 1)]
+                    }
+                    fantasma={fantasmas.get(
+                      claveSerie(plan[proximo.ejercicio].exerciseId, proximo.serie + 1),
+                    )}
+                    unidad={unidad}
+                    unidadDistancia={unidadDistancia}
+                    medidor={medidor}
+                    onPress={siguiente}
+                  />
                 ) : null}
               </View>
+            ) : (
+              /* En fuerza la serie baja a la zona del pulgar, pegada a la
+                 accion principal: el contexto queda arriba y lo que se
+                 completa, abajo. Cardio e isometricos siguen arriba, con sus
+                 campos. */
+              <View style={conCampos ? styles.serieCampos : styles.serieAnclada}>
+                <View style={styles.serieCabeza}>
+                  <View style={styles.serieTitulo}>
+                    <LumeText rol="subtitle">
+                      {seriesDelEjercicio === 1
+                        ? 'Serie única'
+                        : `Serie ${paso.serie + 1} de ${seriesDelEjercicio}`}
+                    </LumeText>
+                    {seriesDelEjercicio > 1 ? (
+                      <PuntosSerie total={seriesDelEjercicio} actual={paso.serie} />
+                    ) : null}
+                  </View>
+                  {/* Saltar va en el titulo de la serie: queda a mano pero
+                     lejos de la barra que se toca de memoria. */}
+                  {serieVacia ? (
+                    <LumeButton variant="soft" size="sm" icon="skip-forward" onPress={saltarSerie}>
+                      {textoSaltar}
+                    </LumeButton>
+                  ) : null}
+                </View>
 
-              {/* Las tres lecturas de la serie en una sola grilla. Los campos
-                 de hoy van vacios a proposito, para que la progresion sea una
-                 decision y no inercia: se ve lo anterior y se escribe igual. */}
-              <SerieComparativa
-                columnas={columnas}
-                cuandoAnterior={fantasma ? haceCuanto(fantasma.hechaEl) : null}
-                mostrarHoy={!conCampos}
-                amplia={!conCampos}
-              />
-              {!conCampos && falta.length > 0 && !serieVacia ? (
-                <FrenciaText role="bodySm" color={colors.warning} style={styles.centrado}>
-                  Falta cargar {enumerar(falta)}.
-                </FrenciaText>
-              ) : null}
+                {/* Las tres lecturas de la serie en una sola grilla. Los
+                   campos de hoy van vacios a proposito, para que la
+                   progresion sea una decision y no inercia: se ve lo anterior
+                   y se escribe igual. */}
+                <SerieComparativa
+                  columnas={columnas}
+                  cuandoAnterior={fantasma ? haceCuanto(fantasma.hechaEl) : null}
+                  mostrarHoy={!conCampos}
+                  amplia={!conCampos}
+                />
+                {!conCampos && falta.length > 0 && !serieVacia ? (
+                  <Aviso>Falta cargar {enumerar(falta)}.</Aviso>
+                ) : null}
 
-              {/* En cardio la grilla queda como referencia (plan y ultima) y
-                 lo de hoy se carga solo en sus campos, que saben escribir un
-                 reloj y una distancia con decimales. Repetirlo en una fila de
-                 solo lectura era mostrar el mismo dato dos veces. */}
-              {cardio ? (
-                <View style={styles.cardio}>
-                  {ejercicioActual.tracks.duration ? (
-                    /* El aviso va pegado al campo y en el naranja de alerta
-                       (warning): es lo que bloquea el avance y tiene que
-                       leerse como parte del campo, no como otro bloque. */
-                    <View style={styles.campoConAviso}>
-                      <DurationField
-                        label="Tiempo"
-                        value={valorActual.tiempo}
-                        onChange={(v) => setCampo('tiempo', v > 0 ? v : null)}
-                        step={60}
-                        allowHours
+                {/* En cardio la grilla queda como referencia (rutina y ultima)
+                   y lo de hoy se carga solo en sus campos, que saben escribir
+                   un reloj y una distancia con decimales. */}
+                {cardio ? (
+                  <View style={styles.campos}>
+                    {ejercicioActual.tracks.duration ? (
+                      /* El aviso va pegado al campo: es lo que bloquea el
+                         avance y tiene que leerse como parte del campo. */
+                      <View style={styles.campoConAviso}>
+                        <DurationField
+                          label="Tiempo"
+                          value={valorActual.tiempo}
+                          onChange={(v) => setCampo('tiempo', v > 0 ? v : null)}
+                          step={60}
+                          allowHours
+                          size="lg"
+                          fullWidth
+                        />
+                        {faltaTiempo ? <Aviso>Cargá el tiempo para seguir.</Aviso> : null}
+                      </View>
+                    ) : null}
+                    {ejercicioActual.tracks.distance ? (
+                      <DistanceField
+                        label="Distancia"
+                        value={valorActual.distancia}
+                        onChange={(v) => setCampo('distancia', v !== null && v > 0 ? v : null)}
+                        unit={unidadDistancia}
                         size="lg"
                         fullWidth
                       />
-                      {faltaTiempo ? (
-                        <FrenciaText role="bodySm" color={colors.warning} style={styles.centrado}>
-                          Cargá el tiempo para seguir.
-                        </FrenciaText>
-                      ) : null}
-                    </View>
-                  ) : null}
-                  {ejercicioActual.tracks.distance ? (
-                    <DistanceField
-                      label="Distancia"
-                      value={valorActual.distancia}
-                      onChange={(v) => setCampo('distancia', v !== null && v > 0 ? v : null)}
-                      unit={unidadDistancia}
-                      size="lg"
-                      fullWidth
-                    />
-                  ) : null}
-                  {/* Misma mecanica que tiempo y distancia, con la escala
-                     entera de 1 a 10 que se ofrece al planificar. Es
-                     opcional: borrar el numero deja la serie sin RPE. */}
-                  {ejercicioActual.intensityKind !== null ? (
-                    <NumberField
-                      label="RPE · qué tan duro fue"
-                      hint="1–10"
-                      value={parseNum(valorActual.intensidad)}
-                      onChange={(v) => setCampo('intensidad', v === null ? '' : String(v))}
-                      min={1}
-                      max={10}
-                      size="lg"
-                      fullWidth
-                    />
-                  ) : null}
-                </View>
-              ) : null}
+                    ) : null}
+                    {/* Misma mecanica que tiempo y distancia, con la escala
+                       entera de 1 a 10 que se ofrece al planificar. Es
+                       opcional: borrar el numero deja la serie sin RPE. */}
+                    {ejercicioActual.intensityKind !== null ? (
+                      <NumberField
+                        label="RPE · qué tan duro fue"
+                        hint="1–10"
+                        value={parseNum(valorActual.intensidad)}
+                        onChange={(v) => setCampo('intensidad', v === null ? '' : String(v))}
+                        min={1}
+                        max={10}
+                        size="lg"
+                        fullWidth
+                      />
+                    ) : null}
+                  </View>
+                ) : null}
 
-              {/* Isometrico: el cronometro mide y completa el tiempo, que
-                 queda editable; peso y RPE van debajo, opcionales salvo el
-                 peso cuando el plan lo prescribe. La key reinicia el
-                 cronometro en cada serie. */}
-              {isometrico ? (
-                <View style={styles.cardio}>
-                  <IsoTimer
-                    key={claveActual ?? ''}
-                    target={ejercicioActual.durationSeconds}
-                    value={valorActual.tiempo}
-                    onChange={(v) => setCampo('tiempo', v)}
-                    onMeasuringChange={setMidiendo}
-                  />
-                  {ejercicioActual.tracks.weight ? (
-                    <NumberField
-                      label={ejercicioActual.weightKg === null ? 'Peso · opcional' : 'Peso'}
-                      value={parseNum(valorActual.peso)}
-                      onChange={(v) => setCampo('peso', v !== null && v > 0 ? String(v) : '')}
-                      min={0}
-                      step={unidad === 'lb' ? 5 : 2.5}
-                      decimals={1}
-                      unit={unidad}
-                      size="lg"
-                      fullWidth
+                {/* Isometrico: el cronometro mide y completa el tiempo, que
+                   queda editable; peso y RPE van debajo, opcionales salvo el
+                   peso cuando el plan lo prescribe. La key reinicia el
+                   cronometro en cada serie. */}
+                {isometrico ? (
+                  <View style={styles.campos}>
+                    <IsoTimer
+                      key={claveActual ?? ''}
+                      target={ejercicioActual.durationSeconds}
+                      value={valorActual.tiempo}
+                      onChange={(v) => setCampo('tiempo', v)}
+                      onMeasuringChange={setMidiendo}
                     />
-                  ) : null}
-                  {ejercicioActual.intensityKind !== null ? (
-                    <NumberField
-                      label="RPE · qué tan duro fue"
-                      hint="1–10"
-                      value={parseNum(valorActual.intensidad)}
-                      onChange={(v) => setCampo('intensidad', v === null ? '' : String(v))}
-                      min={1}
-                      max={10}
-                      size="lg"
-                      fullWidth
-                    />
-                  ) : null}
-                  {falta.length > 0 && !serieVacia && !midiendo ? (
-                    <FrenciaText role="bodySm" color={colors.warning} style={styles.centrado}>
-                      Falta cargar {enumerar(falta)}.
-                    </FrenciaText>
-                  ) : null}
-                </View>
-              ) : null}
+                    {ejercicioActual.tracks.weight ? (
+                      <NumberField
+                        label={ejercicioActual.weightKg === null ? 'Peso · opcional' : 'Peso'}
+                        value={parseNum(valorActual.peso)}
+                        onChange={(v) => setCampo('peso', v !== null && v > 0 ? String(v) : '')}
+                        min={0}
+                        step={unidad === 'lb' ? 5 : 2.5}
+                        decimals={1}
+                        unit={unidad}
+                        size="lg"
+                        fullWidth
+                      />
+                    ) : null}
+                    {ejercicioActual.intensityKind !== null ? (
+                      <NumberField
+                        label="RPE · qué tan duro fue"
+                        hint="1–10"
+                        value={parseNum(valorActual.intensidad)}
+                        onChange={(v) => setCampo('intensidad', v === null ? '' : String(v))}
+                        min={1}
+                        max={10}
+                        size="lg"
+                        fullWidth
+                      />
+                    ) : null}
+                    {falta.length > 0 && !serieVacia && !midiendo ? (
+                      <Aviso>Falta cargar {enumerar(falta)}.</Aviso>
+                    ) : null}
+                  </View>
+                ) : null}
+              </View>
+            )}
+          </ScrollView>
 
-              {/* Verde y lejos de la barra de abajo: saltar es ocasional y
-                 no puede quedar donde se toca "Siguiente" de memoria. */}
-              {serieVacia && conCampos ? (
-                <Button
-                  variant="soft"
-                  size="md"
-                  icon="skip-forward"
-                  onPress={saltarSerie}
-                  style={styles.saltar}
-                >
-                  {textoSaltar}
-                </Button>
-              ) : null}
-            </View>
-          )}
-        </ScrollView>
-
-        <View style={styles.nav}>
-          <Button
-            variant="secondary"
-            size="lg"
-            icon="chevron-left"
-            disabled={index === 0}
-            onPress={anterior}
-            style={styles.flexItem}
-          >
-            Anterior
-          </Button>
-          <Button
-            variant="primary"
-            size="lg"
-            iconRight={index === pasos.length - 1 ? undefined : 'arrow-right'}
-            loading={guardando}
-            disabled={falta.length > 0}
-            onPress={siguiente}
-            style={styles.flexItem}
-          >
-            {index === pasos.length - 1 ? 'Terminar' : 'Siguiente'}
-          </Button>
-        </View>
-      </KeyboardAvoidingView>
-
-      <Modal visible={menuAbierto} transparent animationType="fade" onRequestClose={() => setMenuAbierto(false)}>
-        <View style={styles.menuFondo}>
-          <View style={styles.menu}>
-            <MarqueeText text={ejercicioActual.name} role="subtitle" />
-            {/* El cardio es una sola serie continua: no se le suman series. */}
-            {!esSerieUnica(ejercicioActual.kind) ? (
-              <Button variant="secondary" size="lg" icon="plus" fullWidth onPress={sumarSerie}>
-                Sumar una serie
-              </Button>
-            ) : null}
-            {esSerie ? (
-              <Button variant="secondary" size="lg" icon="skip-forward" fullWidth onPress={saltarSerie}>
-                {textoSaltar}
-              </Button>
-            ) : null}
-            {/* En el cardio, de una sola serie, terminar el ejercicio en la
-               serie actual no cambia nada. */}
-            {!esSerieUnica(ejercicioActual.kind) ? (
-              <Button variant="secondary" size="lg" icon="check" fullWidth onPress={cortarEjercicio}>
-                Terminar este ejercicio
-              </Button>
-            ) : null}
-            <Button variant="primary" size="lg" icon="flame" fullWidth loading={guardando} onPress={finalizar}>
-              Terminar la sesión
-            </Button>
-            <Button variant="ghost" size="lg" fullWidth onPress={() => setMenuAbierto(false)}>
-              Cancelar
-            </Button>
+          {/* Anterior queda como icono: la accion ancha es la que avanza, y
+             siempre esta en el mismo lugar. */}
+          <View style={styles.nav}>
+            <LumeIconButton
+              icon="chevron-left"
+              variant="surface"
+              size="lg"
+              disabled={index === 0}
+              onPress={anterior}
+              accessibilityLabel="Anterior"
+            />
+            <LumeButton
+              variant="primary"
+              size="lg"
+              icon={ultimoPaso ? 'check' : undefined}
+              iconRight={ultimoPaso ? undefined : 'arrow-right'}
+              loading={guardando}
+              disabled={falta.length > 0}
+              onPress={siguiente}
+              style={styles.flex}
+            >
+              {accion}
+            </LumeButton>
           </View>
-        </View>
-      </Modal>
-    </SafeAreaView>
+        </KeyboardAvoidingView>
+
+        {/* Lista de acciones con icono en lugar de una pila de botones:
+           ninguna compite con la otra. */}
+        <Hoja visible={menuAbierto} onCerrar={() => setMenuAbierto(false)}>
+          <LumeText rol="label" color={t.textTertiary} numberOfLines={1}>
+            {ejercicioActual.name}
+          </LumeText>
+          <View>
+            {/* El cardio es una sola serie continua: no se le suman series,
+               y terminar el ejercicio en la serie actual no cambia nada. */}
+            {!cardio ? <FilaMenu icono="plus" texto="Sumar una serie" onPress={sumarSerie} /> : null}
+            {esSerie ? (
+              <FilaMenu icono="skip-forward" texto={textoSaltar} onPress={saltarSerie} />
+            ) : null}
+            {!cardio ? (
+              <FilaMenu icono="check" texto="Terminar este ejercicio" onPress={cortarEjercicio} />
+            ) : null}
+            <FilaMenu
+              icono="flag"
+              texto="Terminar la sesión"
+              onPress={finalizar}
+              cargando={guardando}
+              ultima
+            />
+          </View>
+          <LumeButton variant="secondary" size="lg" fullWidth onPress={() => setMenuAbierto(false)}>
+            Cancelar
+          </LumeButton>
+        </Hoja>
+      </>
+    );
+  }
+
+  // Cada paso declara su fondo: la serie, velada (el texto chico va sobre
+  // la grilla); el descanso y el resumen, centro (la luz detras de la esfera
+  // y del ticket); los casos de borde, cumbre. Al cambiar de paso el Fondo
+  // hace el fundido solo.
+  let posicion: PosicionFondo = 'velada';
+  let contenido: React.ReactNode;
+
+  if (fase === 'cargando') {
+    contenido = <CargaCentrada texto="Preparando la sesión…" />;
+  } else if (fase === 'conflicto' && conflicto) {
+    posicion = 'cumbre';
+    contenido = (
+      <View style={styles.centro}>
+        <Vidrio radio={lumeRadius.lg} style={styles.iconoCaja}>
+          <Icon name="alert-triangle" size={24} strokeWidth={1.75} color={t.intensityText} />
+        </Vidrio>
+        <LumeText rol="title" style={styles.centrado}>
+          Tenés una sesión sin terminar
+        </LumeText>
+        <LumeText rol="bodySm" color={t.textSecondary} style={styles.centrado}>
+          Quedó abierta en {conflicto.nombre}. Solo puede haber una sesión a la vez, así que hay
+          que cerrarla antes de empezar esta.
+        </LumeText>
+        {/* Retomar es la accion principal; descartar va delineado en carmin. */}
+        {conflicto.diaId ? (
+          <LumeButton variant="primary" size="lg" icon="play" fullWidth onPress={retomarConflicto}>
+            Retomar la anterior
+          </LumeButton>
+        ) : null}
+        <LumeButton variant="danger" size="lg" icon="trash-2" fullWidth onPress={descartarConflicto}>
+          Descartarla y empezar esta
+        </LumeButton>
+        <LumeButton variant="ghost" size="lg" fullWidth onPress={salir}>
+          Volver
+        </LumeButton>
+      </View>
+    );
+  } else if (fase === 'resumen' && resumen && sessionId) {
+    posicion = 'centro';
+    contenido = (
+      <ResumenSesion
+        sessionId={sessionId}
+        nombreDia={nombreDia}
+        inicio={resumen.inicio}
+        duracionSegundos={resumen.duracionSegundos}
+        ejercicios={resumen.ejercicios}
+        unidad={unidad}
+        unidadDistancia={unidadDistancia}
+        guardando={guardando}
+        capturaRef={capturaRef}
+        compartiendo={compartiendo}
+        onVolver={volverASesion}
+        onCompartir={compartirResumen}
+        onHecho={confirmarTerminar}
+      />
+    );
+  } else if (fase === 'sinEjercicios' || pasos.length === 0 || !paso || !ejercicioActual) {
+    posicion = 'cumbre';
+    contenido = (
+      <View style={styles.centro}>
+        <Icon name="dumbbell" size={28} strokeWidth={1.75} color={t.textTertiary} />
+        <LumeText rol="bodySm" color={t.textTertiary} style={styles.centrado}>
+          {nombreDia} no tiene ejercicios cargados.
+        </LumeText>
+        <LumeButton variant="secondary" size="lg" fullWidth onPress={descartarYSalir}>
+          Volver
+        </LumeButton>
+      </View>
+    );
+  } else {
+    posicion = paso.tipo === 'descanso' ? 'centro' : 'velada';
+    contenido = wizard(paso, ejercicioActual);
+  }
+
+  return (
+    <View style={styles.pantalla}>
+      <Fondo posicion={posicion} />
+      <SafeAreaView style={styles.flex} edges={['top', 'bottom', 'left', 'right']}>
+        {contenido}
+      </SafeAreaView>
+    </View>
   );
+}
+
+// --- Piezas de la pantalla ---------------------------------------------------
+
+/** Las marcas de las series del ejercicio: hechas en tinta, la actual en lume
+ *  con su brillo, las que faltan en la pista. */
+function PuntosSerie({ total, actual }: { total: number; actual: number }) {
+  const { t, sombras } = useLume();
+  return (
+    <View style={styles.puntos} accessible={false}>
+      {Array.from({ length: total }, (_, i) => (
+        <View
+          key={i}
+          style={[
+            styles.punto,
+            i < actual
+              ? { backgroundColor: t.textPrimary }
+              : i === actual
+                ? { backgroundColor: t.signal, boxShadow: sombras.haloSignal }
+                : { backgroundColor: t.dataTrack },
+          ]}
+        />
+      ))}
+    </View>
+  );
+}
+
+/** Lo que falta para avanzar: en tinta, con icono. No es un error, es lo que
+ *  queda por cargar. */
+function Aviso({ children }: { children: React.ReactNode }) {
+  const { t } = useLume();
+  return (
+    <View style={styles.aviso}>
+      <Icon name="alert-circle" size={16} strokeWidth={1.75} color={t.intensityText} />
+      <LumeText rol="bodySm" color={t.intensityText} style={styles.flexTexto}>
+        {children}
+      </LumeText>
+    </View>
+  );
+}
+
+/** Una fila del menu del ejercicio. */
+function FilaMenu({
+  icono,
+  texto,
+  onPress,
+  cargando = false,
+  ultima = false,
+}: {
+  icono: string;
+  texto: string;
+  onPress: () => void;
+  cargando?: boolean;
+  ultima?: boolean;
+}) {
+  const { t } = useLume();
+  return (
+    <Pressable
+      accessibilityRole="button"
+      onPress={onPress}
+      disabled={cargando}
+      style={({ pressed }) => [
+        styles.filaMenu,
+        !ultima && { borderBottomWidth: 1, borderBottomColor: t.divider },
+        pressed && { backgroundColor: t.surfaceChip },
+      ]}
+    >
+      <Icon name={icono} size={20} strokeWidth={1.75} color={t.textSecondary} />
+      <LumeText rol="body" style={styles.filaMenuTexto}>
+        {texto}
+      </LumeText>
+      {cargando ? <Cargando tam="sm" /> : null}
+    </Pressable>
+  );
+}
+
+/** Lo que viene despues del descanso: la proxima serie y con que cargarla.
+ *  Sale de lo ya escrito para esa serie (al volver atras), si no de la vez
+ *  anterior, y si no del plan; el esfuerzo, del plan. Tocarla avanza, como la
+ *  accion de abajo. */
+function LoQueViene({
+  ejercicio,
+  mismoEjercicio,
+  serie,
+  totalSeries,
+  cargado,
+  fantasma,
+  unidad,
+  unidadDistancia,
+  medidor,
+  onPress,
+}: {
+  ejercicio: EjercicioPlan;
+  mismoEjercicio: boolean;
+  serie: number;
+  totalSeries: number;
+  cargado: ValoresSerie | undefined;
+  fantasma: SerieFantasma | undefined;
+  unidad: UnidadPeso;
+  unidadDistancia: UnidadDistancia;
+  medidor: Medidor;
+  onPress: () => void;
+}) {
+  const { t } = useLume();
+  const { grupos, esfuerzo } = datosProximos(
+    ejercicio,
+    cargado,
+    fantasma,
+    unidad,
+    unidadDistancia,
+    medidor,
+  );
+  const cualSerie = totalSeries === 1 ? 'Serie única' : `Serie ${serie + 1} de ${totalSeries}`;
+  const titulo = mismoEjercicio
+    ? `A continuación · ${cualSerie}`
+    : `A continuación · ${ejercicio.name}`;
+
+  // Los grupos se separan con un punto; dentro de un grupo (peso y reps), con
+  // una cruz. Los signos van en terciario para que manden los numeros.
+  const piezas: React.ReactNode[] = [];
+  grupos.forEach((grupo, g) => {
+    if (g > 0) piezas.push(<Text key={`p${g}`} style={{ color: t.textTertiary }}> · </Text>);
+    grupo.forEach((dato, d) => {
+      if (d > 0) piezas.push(<Text key={`x${g}${d}`} style={{ color: t.textTertiary }}> × </Text>);
+      piezas.push(dato);
+    });
+  });
+  if (esfuerzo) {
+    if (piezas.length > 0) piezas.push(<Text key="pe" style={{ color: t.textTertiary }}> · </Text>);
+    piezas.push(
+      <Text key="e" style={{ color: t.intensityText }}>
+        {esfuerzo}
+      </Text>,
+    );
+  }
+
+  return (
+    <Pressable
+      accessibilityRole="button"
+      onPress={onPress}
+      style={({ pressed }) => [styles.siguiente, pressed && { transform: [{ scale: 0.985 }] }]}
+    >
+      <Vidrio radio={lumeRadius.lg} style={styles.siguienteVidrio}>
+        <View style={styles.siguienteTexto}>
+          <LumeText rol="label" color={t.textTertiary} numberOfLines={1}>
+            {titulo}
+          </LumeText>
+          <LumeText rol="data" numberOfLines={1}>
+            {piezas.length > 0 ? piezas : mismoEjercicio ? 'Sin registro previo' : cualSerie}
+          </LumeText>
+        </View>
+        <Icon name="chevron-right" size={18} strokeWidth={1.75} color={t.textTertiary} />
+      </Vidrio>
+    </Pressable>
+  );
+}
+
+/** Los numeros de la proxima serie, en grupos para la tarjeta del descanso:
+ *  fuerza "80 kg × 8"; cardio "30:00 · 5.00 km"; isometrico "1:00 · 10 kg". */
+function datosProximos(
+  ej: EjercicioPlan,
+  cargado: ValoresSerie | undefined,
+  fantasma: SerieFantasma | undefined,
+  unidad: UnidadPeso,
+  unidadDistancia: UnidadDistancia,
+  medidor: Medidor,
+): { grupos: string[][]; esfuerzo: string | null } {
+  const grupos: string[][] = [];
+
+  const esfuerzoPlan = textoEsfuerzo(ej.intensityKind, ej.intensityValue);
+  // Cardio e isometricos se cargan siempre en RPE; la fuerza, con el medidor
+  // del perfil.
+  const medidorCargado: Medidor = esSerieUnica(ej.kind) || ej.kind === 'isometrico' ? 'rpe' : medidor;
+  const esfuerzoCargado = cargado ? textoEsfuerzo(medidorCargado, parseNum(cargado.intensidad)) : null;
+  const esfuerzo =
+    esfuerzoCargado ??
+    esfuerzoPlan ??
+    (fantasma ? textoEsfuerzo(fantasma.intensityKind, fantasma.intensityValue) : null);
+
+  const tiempo = cargado?.tiempo ?? ej.durationSeconds ?? fantasma?.durationSeconds ?? null;
+
+  if (esSerieUnica(ej.kind)) {
+    const grupo: string[] = [];
+    if (ej.tracks.duration && tiempo !== null) grupo.push(reloj(tiempo));
+    const distancia =
+      cargado?.distancia != null
+        ? `${cargado.distancia.toFixed(2)} ${unidadDistancia}`
+        : ej.distanceM != null
+          ? `${distanciaTabla(ej.distanceM, unidadDistancia)} ${unidadDistancia}`
+          : fantasma?.distanceM != null
+            ? `${distanciaTabla(fantasma.distanceM, unidadDistancia)} ${unidadDistancia}`
+            : null;
+    if (ej.tracks.distance && distancia) grupo.push(distancia);
+    grupo.forEach((d) => grupos.push([d]));
+    return { grupos, esfuerzo };
+  }
+
+  const pesoCargado = cargado ? parseNum(cargado.peso) : null;
+  const peso =
+    pesoCargado !== null
+      ? pesoCargado
+      : ej.kind === 'isometrico' && ej.weightKg !== null
+        ? mostrarPeso(ej.weightKg, unidad)
+        : fantasma?.weightKg != null
+          ? mostrarPeso(fantasma.weightKg, unidad)
+          : null;
+  const pesoTexto = peso !== null && peso > 0 ? `${peso} ${unidad}` : null;
+
+  if (ej.kind === 'isometrico') {
+    if (ej.tracks.duration && tiempo !== null) grupos.push([reloj(tiempo)]);
+    if (ej.tracks.weight && pesoTexto) grupos.push([pesoTexto]);
+    return { grupos, esfuerzo };
+  }
+
+  const repsCargadas = cargado ? parseNum(cargado.reps) : null;
+  const reps = repsCargadas ?? fantasma?.reps ?? ej.reps ?? null;
+  const fuerza: string[] = [];
+  if (pesoTexto) fuerza.push(pesoTexto);
+  if (reps !== null) fuerza.push(pesoTexto ? String(reps) : `${reps} reps`);
+  if (fuerza.length > 0) grupos.push(fuerza);
+  return { grupos, esfuerzo };
+}
+
+/** "RIR 2", "RPE 7" o "Al fallo". null sin esfuerzo. */
+function textoEsfuerzo(kind: Medidor | null, value: number | null): string | null {
+  if (kind === null || value === null) return null;
+  if (kind === 'rir') return value < 0 ? 'Al fallo' : `RIR ${value}`;
+  return `RPE ${value}`;
 }
 
 // --- Serie a guardar ---------------------------------------------------------
@@ -1396,70 +1659,116 @@ function columnasCardio(
   return columnas;
 }
 
-const makeStyles = (colors: Palette) =>
-  StyleSheet.create({
-    safe: { flex: 1, backgroundColor: colors.bgApp },
-    flex: { flex: 1, paddingHorizontal: spacing.padScreen, paddingVertical: space[5] },
-    flexItem: { flex: 1 },
-    // El scroll no lleva padding vertical propio: en iOS ese padding recorta el
-    // contenido en vez de sumarle aire, y la fila de hoy quedaba cortada abajo.
-    // El aire vertical vive en el contentContainerStyle.
-    scrollView: { flex: 1, paddingHorizontal: spacing.padScreen },
-    centro: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: space[5], padding: spacing.padScreen },
-    centrado: { textAlign: 'center' },
+const styles = StyleSheet.create({
+  pantalla: { flex: 1 },
+  flex: { flex: 1 },
+  flexTexto: { flex: 1 },
+  centro: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: lumeSpace[5],
+    padding: lumeLayout.padScreen,
+  },
+  centrado: { textAlign: 'center' },
+  iconoCaja: {
+    width: 52,
+    height: 52,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: lumeSpace[3],
+  },
 
-    header: { flexDirection: 'row', alignItems: 'center', gap: space[4] },
+  // La cabecera en una pildora de vidrio, como la barra de los otros wizards.
+  cabeza: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: lumeSpace[3],
+    marginTop: lumeSpace[2],
+    marginHorizontal: lumeLayout.padScreen - 6,
+    paddingVertical: 4,
+    paddingHorizontal: 2,
+  },
+  contador: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    justifyContent: 'center',
+    gap: 6,
+  },
+  contadorDia: { flexShrink: 1, fontFamily: lumeFuente.semibold, fontSize: 13, lineHeight: 16 },
+  contadorNro: { fontSize: 13, lineHeight: 16 },
+  escala: { paddingTop: lumeSpace[4], paddingHorizontal: lumeLayout.padScreen },
 
-    scroll: { flexGrow: 1, justifyContent: 'center', paddingVertical: space[8] + space[5], gap: space[7] },
-    bloque: { gap: space[2] },
-    // Fuerza: el bloque de arriba y la serie se separan hasta los bordes.
-    scrollAnclado: { justifyContent: 'space-between', paddingTop: space[6] + space[5], paddingBottom: space[2] },
-    serieAnclada: { gap: space[5] },
-    serieCampos: { gap: space[7] },
-    serieHead: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-      minHeight: sizing.controlHSm,
-    },
-    cardio: { gap: space[6] },
-    campoConAviso: { gap: space[3] },
-    saltar: { alignSelf: 'center' },
+  // El scroll no lleva padding vertical propio: en iOS ese padding recorta el
+  // contenido en vez de sumarle aire, y la fila de hoy quedaba cortada abajo.
+  // El aire vertical vive en el contentContainerStyle.
+  scroll: {
+    flexGrow: 1,
+    gap: lumeSpace[7],
+    paddingTop: lumeSpace[8],
+    paddingHorizontal: lumeLayout.padScreen,
+    paddingBottom: lumeSpace[5],
+  },
+  // Fuerza: el bloque de arriba y la serie se separan hasta los bordes.
+  scrollAnclado: { justifyContent: 'space-between' },
+  bloque: { gap: lumeSpace[3] },
+  serieAnclada: { gap: lumeSpace[5] },
+  serieCampos: { gap: lumeSpace[7] },
+  serieCabeza: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: lumeSpace[3],
+    minHeight: lumeLayout.controlHSm,
+  },
+  serieTitulo: { flexDirection: 'row', alignItems: 'center', flexShrink: 1 },
+  puntos: { flexDirection: 'row', gap: 4, marginLeft: lumeSpace[3] },
+  punto: { width: 14, height: 3, borderRadius: 2 },
+  aviso: { flexDirection: 'row', alignItems: 'center', gap: lumeSpace[3] },
+  campos: { gap: lumeSpace[6] },
+  campoConAviso: { gap: lumeSpace[4] },
 
-    // Descanso: el aro manda, todo lo demas es contexto.
-    descanso: { alignItems: 'center', gap: space[6], paddingVertical: space[6] },
-    // Al ancho del contenido y no estirados: dos botones anchos debajo del aro
-    // le pelearian el peso, y aca el aro es lo que se mira.
-    ajustes: { flexDirection: 'row', gap: space[3] },
-    reloj: {
-      fontFamily: mono.bold,
-      fontSize: 48,
-      lineHeight: 56,
-      includeFontPadding: false,
-    },
+  // Descanso: la esfera manda, todo lo demas es contexto.
+  descanso: { alignItems: 'center', gap: lumeSpace[6], paddingVertical: lumeSpace[3] },
+  reloj: {
+    fontFamily: lumeFuente.condMedium,
+    fontSize: 60,
+    lineHeight: 64,
+    letterSpacing: -2.4,
+    includeFontPadding: false,
+    fontVariant: ['tabular-nums'],
+  },
+  deTotal: { fontSize: 12.5, lineHeight: 17, fontVariant: ['tabular-nums'] },
+  // Al ancho del contenido y no estirados: dos botones anchos debajo de la
+  // esfera le pelearian el peso, y aca la esfera es lo que se mira.
+  ajustes: { flexDirection: 'row', gap: lumeSpace[3] },
+  siguiente: { alignSelf: 'stretch' },
+  siguienteVidrio: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: lumeSpace[4],
+    paddingVertical: lumeSpace[4],
+    paddingHorizontal: lumeSpace[5],
+  },
+  siguienteTexto: { flex: 1, gap: 2 },
 
-    // El aire de arriba es de la barra y no del scroll: con el teclado abierto
-    // el scroll lleva la caja enfocada justo al borde y su padding no se ve.
-    nav: {
-      flexDirection: 'row',
-      gap: space[3],
-      paddingHorizontal: spacing.padScreen,
-      paddingTop: space[5],
-      paddingBottom: space[5],
-    },
+  // El aire de arriba es de la barra y no del scroll: con el teclado abierto
+  // el scroll lleva la caja enfocada justo al borde y su padding no se ve.
+  nav: {
+    flexDirection: 'row',
+    gap: lumeSpace[3],
+    paddingHorizontal: lumeLayout.padScreen,
+    paddingTop: lumeSpace[4],
+    paddingBottom: lumeSpace[5],
+  },
 
-    // RN no parsea oklch, por eso el velo va en rgba como el resto de los
-    // tokens (ver la nota en tokens/colors.ts). Mismo tratamiento que el sheet
-    // de opciones del perfil.
-    menuFondo: { flex: 1, justifyContent: 'flex-end', backgroundColor: colors.scrim },
-    menu: {
-      gap: space[4],
-      padding: spacing.padScreen,
-      paddingBottom: space[9],
-      borderTopLeftRadius: radius.xl,
-      borderTopRightRadius: radius.xl,
-      backgroundColor: colors.surfaceRaised,
-      borderTopWidth: 1,
-      borderTopColor: colors.borderSubtle,
-    },
-  });
+  filaMenu: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: lumeSpace[4],
+    height: 56,
+    paddingHorizontal: lumeSpace[2],
+  },
+  filaMenuTexto: { flex: 1, fontFamily: lumeFuente.medium, lineHeight: 20 },
+});

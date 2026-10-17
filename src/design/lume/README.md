@@ -23,6 +23,10 @@ dialogo de confirmacion (`Dialogo` y el modal de alerta), el toast, la hoja
 inferior (`src/components/Hoja.tsx`) y la rueda (`src/components/MeasurePicker.tsx`).
 Editar rutina y Editar dia tambien, con sus piezas compartidas: `DayEditor`,
 `DraggableRowList` y el selector de ejercicios (`ExercisePickerModal`).
+La sesion (`session`) tambien: la cabecera en pildora con la escala cortada por
+ejercicio, la grilla de la serie (`SerieComparativa`), la esfera del descanso
+(`RestRing`), el cronometro del isometrico (`IsoTimer`), el menu del ejercicio
+en una hoja y el resumen (`ResumenSesion`).
 
 Las piezas compartidas se migran en su mismo archivo, no en copias: si una
 pantalla todavia vieja las usa (el wizard de crear rutina, la sesion), queda
