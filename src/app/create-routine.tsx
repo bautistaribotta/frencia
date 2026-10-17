@@ -1,11 +1,16 @@
-/* Frencia · Crear rutina — wizard.
+/* Frencia · Crear rutina — wizard (Lume).
    Una rutina es un conjunto de dias de entrenamiento. Cada dia tiene su nombre
    ("Dia 1" por defecto, renombrable a "Push"), los dias de la semana en que se
    entrena, y su lista de ejercicios con series, reps y medidor de esfuerzo.
    El wizard tiene dos pasos fijos y uno por cada dia:
-     1. nombre de la rutina
-     2. cuantos dias tiene
-     3..n. armado de cada dia
+     1. nombre de la rutina                Fondo base.
+     2. cuantos dias tiene                 Fondo cumbre.
+     3..n. armado de cada dia              Fondo cumbre.
+   Mismo marco que el setup (PasoWizard): barra en pildora con el contador,
+   escala de avance, una pregunta por pantalla a altura fija y una sola
+   accion abajo. Sin opcion de saltar: los datos son esenciales. Las luces no
+   derivan (eso es solo del onboarding): al cambiar de posicion, el Fondo hace
+   un fundido.
    El armado de un dia es DayEditor, la misma vista que usa la edicion de un dia
    ya creado.
    Todo se acumula en memoria y recien al finalizar se persiste en una sola
@@ -13,15 +18,7 @@
 
 import { useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
-import {
-  KeyboardAvoidingView,
-  Platform,
-  ScrollView,
-  StyleSheet,
-  TextInput,
-  View,
-} from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { KeyboardAvoidingView, Platform, Pressable, StyleSheet, TextInput, View } from 'react-native';
 
 import { supabase } from '@/lib/supabase';
 import { useProfile } from '@/contexts/profile';
@@ -38,28 +35,24 @@ import {
   type TrainingDay,
 } from '@/lib/dia';
 
+import { Tag } from '@/design';
 import {
-  Button,
-  FrenciaText,
-  Icon,
-  Stepper,
-  radius,
-  sans,
-  sizing,
-  space,
-  spacing,
-  useColors,
-  useThemedStyles,
-  type Palette,
-} from '@/design';
+  Fondo,
+  LumeButton,
+  LumeText,
+  PasoWizard,
+  lumeFuente,
+  lumeRadius,
+  lumeSpace,
+  useLume,
+  type PosicionFondo,
+} from '@/design/lume';
 
 const MIN_DIAS = 1;
 const MAX_DIAS = 7;
 const DIAS_POR_DEFECTO = 3;
 
 export default function CreateRoutineScreen() {
-  const colors = useColors();
-  const styles = useThemedStyles(makeStyles);
   const router = useRouter();
   const { showToast } = useToast();
   const { profile } = useProfile();
@@ -271,119 +264,78 @@ export default function CreateRoutineScreen() {
 
   // --- Textos del paso actual ------------------------------------------------
 
-  const stepTag = index === 0 ? 'Nombre' : index === 1 ? 'Días' : `Día ${diaIndex + 1}`;
-  const stepPrompt =
+  const nombreDia = diaActual?.name.trim() || `día ${diaIndex + 1}`;
+  const etiqueta =
+    index === 0 ? 'Nombre' : index === 1 ? 'Días' : `Día ${diaIndex + 1} de ${dias.length}`;
+  const pregunta =
     index === 0
       ? '¿Cómo se llama tu rutina?'
       : index === 1
         ? '¿Cuántos días tiene?'
-        : `¿Qué entrenás el ${diaActual?.name || `día ${diaIndex + 1}`}?`;
-  const stepHint =
+        : `¿Qué entrenás el ${nombreDia}?`;
+  const ayuda =
     index === 0
-      ? 'Por ejemplo "Push Pull Legs" o "Fuerza 4 días".'
+      ? 'Un nombre que reconozcas de un vistazo.'
       : index === 1
-        ? 'Podés agregar o quitar días más adelante.'
-        : 'Poné un nombre al día, marcá cuándo lo entrenás y sumá ejercicios.';
+        ? 'Después armás cada uno. Podés sumar o quitar días más adelante.'
+        : 'Nombre, días de la semana y ejercicios.';
+  const fondo: PosicionFondo = index === 0 ? 'base' : 'cumbre';
 
   return (
-    <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
+    <View style={styles.pantalla}>
+      <Fondo posicion={fondo} />
       <KeyboardAvoidingView
-        style={styles.flex}
+        style={styles.pantalla}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
-        {/* Header: salir + barra de progreso por segmentos */}
-        <View style={styles.header}>
-          <Button variant="ghost" size="sm" icon="chevron-left" onPress={goBack} disabled={saving}>
-            {index === 0 ? 'Salir' : 'Atrás'}
-          </Button>
-          <View style={styles.progress}>
-            {Array.from({ length: totalSteps }, (_, i) => (
-              <View
-                key={i}
-                style={[styles.segment, i <= index ? styles.segmentOn : styles.segmentOff]}
-              />
-            ))}
-          </View>
-        </View>
-
-        {/* Cuerpo scrolleable: contenido centrado en vertical, entra con el
-           teclado abierto y tocar fuera del input lo cierra
-           (keyboardShouldPersistTaps). */}
-        <ScrollView
-          style={styles.flex}
-          contentContainerStyle={styles.scroll}
-          keyboardShouldPersistTaps="handled"
-          keyboardDismissMode="interactive"
-          showsVerticalScrollIndicator={false}
+        <PasoWizard
+          actual={index}
+          total={totalSteps}
+          volver={index === 0 ? 'Salir' : 'Atrás'}
+          onVolver={goBack}
+          volverOff={saving}
+          rotulo={`Rutina nueva · ${etiqueta}`}
+          pregunta={pregunta}
+          ayuda={ayuda}
+          scroll
+          pie={
+            <LumeButton
+              variant="primary"
+              size="lg"
+              fullWidth
+              icon={isLast ? 'check' : undefined}
+              iconRight={isLast ? undefined : 'arrow-right'}
+              disabled={!currentValid}
+              loading={saving}
+              onPress={goNext}
+            >
+              {isLast ? 'Finalizar rutina' : 'Siguiente'}
+            </LumeButton>
+          }
         >
-          {/* Control del paso actual */}
-          <View style={styles.control}>
-            <FrenciaText role="dataLabel" color={colors.accentText}>
-              Paso {index + 1} de {totalSteps} · {stepTag}
-            </FrenciaText>
-            <FrenciaText role="subtitle">{stepPrompt}</FrenciaText>
-            <FrenciaText role="bodySm" color={colors.textSecondary} style={styles.hint}>
-              {stepHint}
-            </FrenciaText>
+          {index === 0 ? (
+            <PasoNombre
+              nombre={nombre}
+              onNombre={setNombre}
+              onListo={() => {
+                if (currentValid) goNext();
+              }}
+            />
+          ) : null}
 
-            {/* Paso 1: nombre de la rutina */}
-            {index === 0 && (
-              <View style={styles.field}>
-                <Icon name="list" size={20} color={colors.accent} />
-                <TextInput
-                  style={styles.input}
-                  placeholder="Push Pull Legs"
-                  placeholderTextColor={colors.textTertiary}
-                  value={nombre}
-                  onChangeText={setNombre}
-                  maxLength={40}
-                  returnKeyType="next"
-                  onSubmitEditing={() => {
-                    if (currentValid) goNext();
-                  }}
-                />
-              </View>
-            )}
+          {index === 1 ? <PasoDias dias={dias} onCantidad={setCantidadDias} /> : null}
 
-            {/* Paso 2: cuantos dias tiene la rutina */}
-            {index === 1 && (
-              <Stepper
-                label="Días de entrenamiento"
-                value={dias.length}
-                onChange={setCantidadDias}
-                min={MIN_DIAS}
-                max={MAX_DIAS}
-                size="lg"
-              />
-            )}
-
-            {/* Pasos siguientes: armado de cada dia */}
-            {diaActual && (
-              <DayEditor
-                dia={diaActual}
-                placeholderNombre={`Día ${diaIndex + 1}`}
-                onChange={(patch) => actualizarDia(diaIndex, patch)}
-                onAgregarEjercicio={() => abrirPicker(null)}
-                onEditarEjercicio={abrirPicker}
-              />
-            )}
-          </View>
-        </ScrollView>
-
-        {/* Navegacion: sin opcion de saltar, los datos son esenciales */}
-        <View style={styles.nav}>
-          <Button
-            variant="primary"
-            size="lg"
-            fullWidth
-            iconRight={isLast ? undefined : 'arrow-right'}
-            disabled={!currentValid}
-            loading={saving}
-            onPress={goNext}
-          >
-            {isLast ? 'Finalizar rutina' : 'Siguiente'}
-          </Button>
-        </View>
+          {/* Pasos siguientes: armado de cada dia */}
+          {diaActual ? (
+            <DayEditor
+              dia={diaActual}
+              placeholderNombre={`Día ${diaIndex + 1}`}
+              onChange={(patch) => actualizarDia(diaIndex, patch)}
+              onAgregarEjercicio={() => abrirPicker(null)}
+              onEditarEjercicio={abrirPicker}
+            />
+          ) : null}
+        </PasoWizard>
       </KeyboardAvoidingView>
 
       <ArchiveRoutineDialog
@@ -401,50 +353,183 @@ export default function CreateRoutineScreen() {
         onClose={() => setPickerOpen(false)}
         onSubmit={guardarEjercicio}
       />
-    </SafeAreaView>
+    </View>
   );
 }
 
-const makeStyles = (colors: Palette) =>
-  StyleSheet.create({
-    safe: { flex: 1, backgroundColor: colors.bgApp },
-    flex: { flex: 1, paddingHorizontal: spacing.padScreen, paddingVertical: space[5] },
+// --- Paso 1: nombre ------------------------------------------------------------
 
-    // Header / progreso
-    header: { flexDirection: 'row', alignItems: 'center', gap: space[5] },
-    progress: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: space[2] },
-    segment: { flex: 1, height: 4, borderRadius: radius.pill },
-    segmentOn: { backgroundColor: colors.accent },
-    segmentOff: { backgroundColor: colors.surfaceChip },
+const MAX_NOMBRE = 40;
+const SUGERIDOS = ['Push Pull Legs', 'Torso / Pierna', 'Full body', 'Fuerza 4 días'];
 
-    // Cuerpo scrolleable. Centrado vertical para que los inputs caigan en la
-    // zona que el pulgar alcanza usando el telefono con una mano. Con flexGrow
-    // el contenido largo (armado de un dia) sigue scrolleando normalmente.
-    scroll: {
-      flexGrow: 1,
-      justifyContent: 'center',
-      paddingTop: space[8],
-      paddingBottom: space[6],
-      gap: space[8],
-    },
+/** El nombre se escribe grande sobre una linea. Las sugerencias completan el
+ *  campo con un toque y desaparecen apenas hay texto. */
+function PasoNombre({
+  nombre,
+  onNombre,
+  onListo,
+}: {
+  nombre: string;
+  onNombre: (nombre: string) => void;
+  onListo: () => void;
+}) {
+  const { t } = useLume();
+  const [foco, setFoco] = useState(false);
 
-    // Control del paso
-    control: { gap: space[3] },
-    hint: { marginBottom: space[2], maxWidth: 320 },
+  return (
+    <View style={styles.nombre}>
+      <View style={styles.linea}>
+        <TextInput
+          style={[
+            styles.lineaEntrada,
+            {
+              color: t.textPrimary,
+              // En foco la linea pasa a lume y gana un pixel, sin mover el texto.
+              borderBottomColor: foco ? t.signal : t.borderStrong,
+              borderBottomWidth: foco ? 2 : 1,
+              marginBottom: foco ? 0 : 1,
+            },
+          ]}
+          placeholder="Nombre de la rutina"
+          placeholderTextColor={t.textDisabled}
+          selectionColor={t.signal}
+          cursorColor={t.signal}
+          value={nombre}
+          onChangeText={onNombre}
+          onFocus={() => setFoco(true)}
+          onBlur={() => setFoco(false)}
+          maxLength={MAX_NOMBRE}
+          returnKeyType="next"
+          onSubmitEditing={onListo}
+          accessibilityLabel="Nombre de la rutina"
+        />
+        <View style={styles.lineaPie}>
+          <LumeText rol="label" color={t.textTertiary}>
+            {nombre ? '' : 'Obligatorio'}
+          </LumeText>
+          <LumeText rol="label" color={t.textTertiary} style={styles.cifras}>
+            {nombre.length} / {MAX_NOMBRE}
+          </LumeText>
+        </View>
+      </View>
 
-    field: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: space[4],
-      paddingHorizontal: space[5],
-      height: sizing.controlHLg,
-      borderRadius: radius.lg,
-      backgroundColor: colors.surfaceCard,
-      borderWidth: 1,
-      borderColor: colors.borderSubtle,
-    },
-    input: { flex: 1, fontFamily: sans.regular, fontSize: 16, color: colors.textPrimary },
+      {nombre === '' ? (
+        <View style={styles.sugerencias}>
+          {SUGERIDOS.map((s) => (
+            <Tag key={s} selectable onPress={() => onNombre(s)}>
+              {s}
+            </Tag>
+          ))}
+        </View>
+      ) : null}
+    </View>
+  );
+}
 
-    // Navegacion inferior
-    nav: { paddingHorizontal: spacing.padScreen, paddingBottom: space[5] },
-  });
+// --- Paso 2: cantidad de dias -----------------------------------------------
+
+/** Siete numeros en vez de un stepper: se elige con un toque. Debajo, los dias
+ *  que se van a armar y en que paso. */
+function PasoDias({
+  dias,
+  onCantidad,
+}: {
+  dias: TrainingDay[];
+  onCantidad: (cantidad: number) => void;
+}) {
+  const { t, sombras } = useLume();
+  const opciones = Array.from({ length: MAX_DIAS - MIN_DIAS + 1 }, (_, i) => MIN_DIAS + i);
+
+  return (
+    <View style={styles.dias}>
+      <View style={styles.selector} accessibilityRole="radiogroup">
+        {opciones.map((n) => {
+          const elegido = n === dias.length;
+          return (
+            <Pressable
+              key={n}
+              accessibilityRole="radio"
+              accessibilityState={{ checked: elegido }}
+              accessibilityLabel={n === 1 ? '1 día' : `${n} días`}
+              onPress={() => onCantidad(n)}
+              style={({ pressed }) => [
+                styles.numero,
+                elegido
+                  ? { backgroundColor: t.accent, borderColor: t.accent, boxShadow: sombras.haloAccent }
+                  : {
+                      backgroundColor: pressed ? t.surfaceCardElevated : t.surfaceCard,
+                      borderColor: t.glassLine,
+                      borderTopColor: t.glassHighlight,
+                    },
+              ]}
+            >
+              <LumeText
+                rol="data"
+                color={elegido ? t.textOnAccent : t.textSecondary}
+                style={styles.numeroTexto}
+              >
+                {n}
+              </LumeText>
+            </Pressable>
+          );
+        })}
+      </View>
+
+      <View style={[styles.previa, { borderTopColor: t.divider }]}>
+        {dias.map((d, i) => (
+          <View key={i} style={[styles.previaFila, { borderBottomColor: t.divider }]}>
+            <LumeText rol="data" color={t.textTertiary} style={styles.previaNumero}>
+              {String(i + 1).padStart(2, '0')}
+            </LumeText>
+            <LumeText rol="bodySm" color={t.textSecondary} numberOfLines={1} style={styles.flex}>
+              {d.name.trim() || `Día ${i + 1}`}
+            </LumeText>
+            <LumeText rol="label" color={t.textDisabled}>
+              Paso {i + 3}
+            </LumeText>
+          </View>
+        ))}
+      </View>
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  pantalla: { flex: 1 },
+  flex: { flex: 1 },
+  cifras: { fontVariant: ['tabular-nums'] },
+
+  nombre: { gap: lumeSpace[6] },
+  linea: { gap: 10 },
+  lineaEntrada: {
+    fontFamily: lumeFuente.medium,
+    fontSize: 28,
+    letterSpacing: -0.56,
+    paddingTop: lumeSpace[3],
+    paddingBottom: 10,
+    paddingHorizontal: 0,
+  },
+  lineaPie: { flexDirection: 'row', justifyContent: 'space-between' },
+  sugerencias: { flexDirection: 'row', flexWrap: 'wrap', gap: lumeSpace[3] },
+
+  dias: { gap: lumeSpace[7] },
+  selector: { flexDirection: 'row', gap: 6 },
+  numero: {
+    flex: 1,
+    height: 56,
+    borderRadius: lumeRadius.md,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  numeroTexto: { fontFamily: lumeFuente.condMedium, fontSize: 22, lineHeight: 26 },
+  previa: { borderTopWidth: 1 },
+  previaFila: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: lumeSpace[4],
+    height: 48,
+    borderBottomWidth: 1,
+  },
+  previaNumero: { width: 22, fontFamily: lumeFuente.semibold, fontSize: 12, lineHeight: 16 },
+});

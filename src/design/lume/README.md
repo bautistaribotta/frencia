@@ -27,9 +27,11 @@ La sesion (`session`) tambien: la cabecera en pildora con la escala cortada por
 ejercicio, la grilla de la serie (`SerieComparativa`), la esfera del descanso
 (`RestRing`), el cronometro del isometrico (`IsoTimer`), el menu del ejercicio
 en una hoja y el resumen (`ResumenSesion`).
+El wizard de crear rutina tambien, con el marco de `PasoWizard`: el nombre sobre
+una linea con sugerencias y la cantidad de dias en siete numeros.
 
 Las piezas compartidas se migran en su mismo archivo, no en copias: si una
-pantalla todavia vieja las usa (el wizard de crear rutina, la sesion), queda
+pantalla todavia vieja las usa, queda
 mezclada hasta que le toque. Asi pasaron a Lume en `src/design/components/`
 `Stepper`, `DurationField`, `DistanceField`, `NumberField`, `Tag`,
 `ExerciseTypeTag` y `ExerciseSummary`; y `Campo` suma `iconoAcento` y `lg`. El
