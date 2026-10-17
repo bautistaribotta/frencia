@@ -9,6 +9,7 @@
 import React from 'react';
 import {
   Activity,
+  AlertCircle,
   AlertTriangle,
   Apple,
   ArrowDownRight,
@@ -29,6 +30,7 @@ import {
   Eye,
   EyeOff,
   FileText,
+  Flag,
   Flame,
   GripVertical,
   HeartPulse,
@@ -73,6 +75,7 @@ import { useColors } from './theme-context';
 
 const REGISTRY: Record<string, LucideIcon> = {
   activity: Activity,
+  'alert-circle': AlertCircle,
   'alert-triangle': AlertTriangle,
   apple: Apple,
   'arrow-down-right': ArrowDownRight,
@@ -93,6 +96,7 @@ const REGISTRY: Record<string, LucideIcon> = {
   eye: Eye,
   'eye-off': EyeOff,
   'file-text': FileText,
+  flag: Flag,
   flame: Flame,
   'grip-vertical': GripVertical,
   'heart-pulse': HeartPulse,
