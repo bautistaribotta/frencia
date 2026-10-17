@@ -1,17 +1,19 @@
-/* Frencia · IsoTimer — RN port of components/log/IsoTimer.jsx
+/* Frencia · IsoTimer — RN port of components/log/IsoTimer.jsx (Lume)
    Cronometro de esfuerzo para isometricos. Cuenta hacia arriba contra el
    objetivo del plan; al frenar completa la duracion de la serie, que queda
-   editable. Opuesto visual al RestRing: barra y no anillo, sube y no baja,
-   naranja (esfuerzo) y no verde (pausa).
+   editable. Opuesto visual al RestRing: barra y no esfera, sube y no baja,
+   tinta (esfuerzo) y no lume (pausa). Va en una tarjeta de vidrio que toma
+   el borde de esfuerzo mientras mide; Frenar es el unico relleno de tinta de
+   la pantalla.
 
    Diferencias con el design system, acordadas para la app:
    - Cuenta regresiva de 3 s al tocar Empezar, para apoyar el telefono y
      ponerse en posicion. Cancelable.
-   - Los digitos van en mono y no en la display, igual que el descanso: cambian
-     cada segundo y sin ancho fijo el numero baila.
    - Vibra en cada segundo de la cuenta regresiva, al arrancar y al llegar al
      objetivo. Llegar no frena: el que corta es el usuario, con Frenar.
    - Mientras mide, la pantalla no se apaga.
+   - Medido, la nota y Volver a medir van apiladas y centradas en el ancho
+     de la tarjeta, no en una fila.
 
    El tiempo sale de restar contra la hora de arranque y no de sumar ticks, asi
    que sigue siendo correcto si la app estuvo en segundo plano. */
@@ -20,8 +22,19 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Platform, Pressable, StyleSheet, Text, View, type ViewStyle } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import { useKeepAwake } from 'expo-keep-awake';
-import { mono, motion, radius, sans, space, tracking, type Palette } from '../theme';
-import { useColors, useThemedStyles } from '../theme-context';
+import Animated, {
+  cancelAnimation,
+  Easing,
+  useAnimatedStyle,
+  useSharedValue,
+  withRepeat,
+  withTiming,
+} from 'react-native-reanimated';
+import { useLume } from '../lume/useLume';
+import { lumeFuente, lumeTexto } from '../lume/tipografia';
+import { lumeMotion, lumeRadius, lumeSpace } from '../lume/tokens';
+import { Vidrio } from '../lume/Vidrio';
+import { LumeButton } from '../lume/LumeButton';
 import { Icon } from '../Icon';
 import { DurationField } from './DurationField';
 
@@ -64,6 +77,25 @@ function PantallaEncendida() {
   return null;
 }
 
+/** El punto que late al lado de "contando". Quieto con Reducir movimiento. */
+function EnVivo({ color }: { color: string }) {
+  const { reducirMovimiento } = useLume();
+  const opacidad = useSharedValue(1);
+
+  useEffect(() => {
+    if (reducirMovimiento) return;
+    opacidad.value = withRepeat(
+      withTiming(0.3, { duration: 600, easing: Easing.inOut(Easing.ease) }),
+      -1,
+      true,
+    );
+    return () => cancelAnimation(opacidad);
+  }, [reducirMovimiento, opacidad]);
+
+  const latido = useAnimatedStyle(() => ({ opacity: opacidad.value }));
+  return <Animated.View style={[styles.enVivo, { backgroundColor: color }, latido]} />;
+}
+
 export function IsoTimer({
   target = null,
   value,
@@ -72,8 +104,7 @@ export function IsoTimer({
   countdown = 3,
   style,
 }: IsoTimerProps) {
-  const colors = useColors();
-  const styles = useThemedStyles(makeStyles);
+  const { t } = useLume();
   const [fase, setFase] = useState<Fase>(value !== null ? 'hecho' : 'idle');
   // Momento en que se toco Empezar. Contar arranca `countdown` segundos despues.
   const [arranque, setArranque] = useState(0);
@@ -131,9 +162,9 @@ export function IsoTimer({
   }, [midiendo, llego]);
 
   function empezar() {
-    const t = Date.now();
-    setArranque(t);
-    setAhora(t);
+    const t0 = Date.now();
+    setArranque(t0);
+    setAhora(t0);
     setFase('midiendo');
   }
 
@@ -168,16 +199,25 @@ export function IsoTimer({
         : 'Esfuerzo';
 
   return (
-    <View style={[styles.base, midiendo && styles.baseMidiendo, style]}>
+    <Vidrio
+      radio={lumeRadius.xl}
+      borde={midiendo ? t.surfaceIntensityLine : undefined}
+      style={[styles.base, style]}
+    >
       {midiendo ? <PantallaEncendida /> : null}
 
       <View style={styles.arriba}>
         <View style={styles.titulo}>
-          {midiendo && !enCuenta ? <View style={styles.enVivo} /> : null}
-          <Text style={[styles.cap, midiendo && styles.capMidiendo]}>{titulo}</Text>
+          {midiendo && !enCuenta ? <EnVivo color={t.intensity} /> : null}
+          <Text style={[lumeTexto.label, { color: midiendo ? t.intensityText : t.textTertiary }]}>
+            {titulo}
+          </Text>
         </View>
-        <Text style={styles.objetivo}>
-          Objetivo <Text style={styles.objetivoValor}>{target ? reloj(target) : '—'}</Text>
+        <Text style={[styles.objetivo, { color: t.textTertiary }]}>
+          Objetivo{' '}
+          <Text style={[styles.objetivoValor, { color: t.textPrimary }]}>
+            {target ? reloj(target) : '—'}
+          </Text>
         </Text>
       </View>
 
@@ -195,8 +235,10 @@ export function IsoTimer({
           <Text
             style={[
               styles.digitos,
-              fase === 'idle' && styles.digitosApagados,
-              enCuenta && styles.digitosCuenta,
+              {
+                color:
+                  fase === 'idle' ? t.textDisabled : enCuenta ? t.intensityText : t.textPrimary,
+              },
             ]}
             accessibilityLiveRegion="none"
           >
@@ -204,150 +246,124 @@ export function IsoTimer({
           </Text>
           {target ? (
             <View
-              style={styles.barra}
+              style={[styles.barra, { backgroundColor: t.dataTrack }]}
               accessibilityRole="progressbar"
               accessibilityValue={{ min: 0, max: target, now: Math.floor(seg) }}
             >
-              <View style={[styles.relleno, { width: `${lleno}%` }]} />
-              <View style={[styles.marca, { left: `${marca}%` }]} />
+              <View style={[styles.relleno, { width: `${lleno}%`, backgroundColor: t.intensity }]} />
+              {/* La marca del objetivo: una linea fina con su punta arriba. */}
+              <View style={[styles.marca, { left: `${marca}%`, backgroundColor: t.textPrimary }]}>
+                <View style={[styles.punta, { borderTopColor: t.textPrimary }]} />
+              </View>
             </View>
           ) : null}
-          <Text style={[styles.nota, midiendo && llego && styles.notaSobre]}>{nota}</Text>
+          <Text
+            style={[
+              styles.nota,
+              { color: midiendo && llego ? t.intensityText : t.textSecondary },
+            ]}
+          >
+            {nota}
+          </Text>
         </>
       )}
 
       {fase === 'idle' ? (
-        <Pressable
-          accessibilityRole="button"
-          onPress={empezar}
-          style={({ pressed }) => [styles.boton, styles.botonEmpezar, pressed && styles.presionado]}
-        >
-          <Icon name="play" size={20} strokeWidth={2.5} color={colors.textOnAccent} />
-          <Text style={[styles.botonTexto, styles.botonTextoEmpezar]}>Empezar</Text>
-        </Pressable>
+        <LumeButton variant="primary" size="lg" icon="play" fullWidth onPress={empezar}>
+          Empezar
+        </LumeButton>
       ) : enCuenta ? (
-        <Pressable
-          accessibilityRole="button"
-          onPress={cancelar}
-          style={({ pressed }) => [styles.boton, styles.botonCancelar, pressed && styles.presionado]}
-        >
-          <Icon name="x" size={20} strokeWidth={2.5} color={colors.textPrimary} />
-          <Text style={[styles.botonTexto, styles.botonTextoCancelar]}>Cancelar</Text>
-        </Pressable>
+        <LumeButton variant="secondary" size="lg" icon="x" fullWidth onPress={cancelar}>
+          Cancelar
+        </LumeButton>
       ) : midiendo ? (
         <Pressable
           accessibilityRole="button"
           onPress={frenar}
-          style={({ pressed }) => [styles.boton, styles.botonFrenar, pressed && styles.presionado]}
+          style={({ pressed }) => [
+            styles.frenar,
+            { backgroundColor: t.intensity },
+            pressed && { transform: [{ scale: lumeMotion.pressScale }] },
+          ]}
         >
-          <Icon name="square" size={20} strokeWidth={2.5} color={colors.textInverse} />
-          <Text style={[styles.botonTexto, styles.botonTextoFrenar]}>Frenar</Text>
+          <Icon name="square" size={18} strokeWidth={2} color={t.textOnIntensity} />
+          <Text style={[styles.frenarTexto, { color: t.textOnIntensity }]}>Frenar</Text>
         </Pressable>
       ) : (
         <View style={styles.fila}>
-          <Text style={[styles.nota, styles.centrado]}>Corregilo si hace falta.</Text>
+          <Text style={[styles.nota, styles.centrado, { color: t.textSecondary }]}>
+            Corregilo si hace falta.
+          </Text>
           <Pressable
             accessibilityRole="button"
             onPress={empezar}
             hitSlop={8}
             style={({ pressed }) => [styles.link, pressed && styles.linkPresionado]}
           >
-            <Icon name="rotate-ccw" size={16} color={colors.accentText} />
-            <Text style={styles.linkTexto}>Volver a medir</Text>
+            <Icon name="rotate-ccw" size={16} strokeWidth={1.75} color={t.signalText} />
+            <Text style={[styles.linkTexto, { color: t.signalText }]}>Volver a medir</Text>
           </Pressable>
         </View>
       )}
-    </View>
+    </Vidrio>
   );
 }
 
-const makeStyles = (colors: Palette) =>
-  StyleSheet.create({
-    base: {
-      gap: space[5],
-      padding: space[6],
-      borderRadius: radius.xl,
-      backgroundColor: colors.surfaceCardElevated,
-      borderWidth: 1,
-      borderColor: colors.borderSubtle,
-    },
-    baseMidiendo: { borderColor: colors.surfaceOrangeLine },
-    arriba: {
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-      alignItems: 'baseline',
-      gap: space[4],
-    },
-    titulo: { flexDirection: 'row', alignItems: 'center', gap: 7, flexShrink: 1 },
-    enVivo: { width: 8, height: 8, borderRadius: 2, backgroundColor: colors.intensity },
-    cap: {
-      fontFamily: mono.semibold,
-      fontSize: 11,
-      letterSpacing: tracking.wider,
-      textTransform: 'uppercase',
-      color: colors.textTertiary,
-    },
-    capMidiendo: { color: colors.intensityText },
-    objetivo: { fontFamily: mono.regular, fontSize: 12, color: colors.textTertiary },
-    objetivoValor: { fontFamily: mono.bold, color: colors.textSecondary },
-    digitos: {
-      fontFamily: mono.bold,
-      fontSize: 64,
-      lineHeight: 72,
-      includeFontPadding: false,
-      color: colors.textPrimary,
-      fontVariant: ['tabular-nums'],
-    },
-    digitosApagados: { color: colors.textDisabled },
-    digitosCuenta: { color: colors.intensityText },
-    barra: {
-      height: 10,
-      borderRadius: radius.pill,
-      backgroundColor: colors.dataTrack,
-    },
-    relleno: {
-      position: 'absolute',
-      left: 0,
-      top: 0,
-      bottom: 0,
-      borderRadius: radius.pill,
-      backgroundColor: colors.intensity,
-    },
-    marca: {
-      position: 'absolute',
-      top: -5,
-      bottom: -5,
-      width: 2,
-      marginLeft: -1,
-      borderRadius: 1,
-      backgroundColor: colors.textPrimary,
-    },
-    nota: { fontFamily: mono.regular, fontSize: 12, color: colors.textSecondary, minHeight: 16 },
-    notaSobre: { color: colors.intensityText },
-    centrado: { textAlign: 'center' },
-    boton: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'center',
-      gap: 10,
-      height: 56,
-      borderRadius: radius.md,
-    },
-    botonEmpezar: { backgroundColor: colors.accent },
-    botonFrenar: { backgroundColor: colors.textPrimary },
-    botonCancelar: {
-      backgroundColor: colors.surfaceCard,
-      borderWidth: 1,
-      borderColor: colors.borderDefault,
-    },
-    presionado: { transform: [{ scale: motion.pressScale }] },
-    botonTexto: { fontFamily: sans.bold, fontSize: 17 },
-    botonTextoEmpezar: { color: colors.textOnAccent },
-    botonTextoFrenar: { color: colors.textInverse },
-    botonTextoCancelar: { color: colors.textPrimary },
-    // La nota arriba y el link abajo, centrados en el ancho de la tarjeta.
-    fila: { alignItems: 'center', gap: space[1] },
-    link: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingVertical: 10, paddingHorizontal: 4 },
-    linkPresionado: { opacity: 0.6 },
-    linkTexto: { fontFamily: sans.semibold, fontSize: 14, color: colors.accentText },
-  });
+const styles = StyleSheet.create({
+  base: { gap: 18, padding: lumeSpace[6] },
+  arriba: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'baseline',
+    gap: lumeSpace[4],
+  },
+  titulo: { flexDirection: 'row', alignItems: 'center', gap: lumeSpace[3], flexShrink: 1 },
+  enVivo: { width: 6, height: 6, borderRadius: 3 },
+  objetivo: { fontFamily: lumeFuente.regular, fontSize: 13, lineHeight: 18 },
+  objetivoValor: { fontFamily: lumeFuente.semibold, fontVariant: ['tabular-nums'] },
+  digitos: {
+    fontFamily: lumeFuente.condMedium,
+    fontSize: 80,
+    lineHeight: 84,
+    letterSpacing: -3.2,
+    includeFontPadding: false,
+    fontVariant: ['tabular-nums'],
+  },
+  barra: { height: 4, borderRadius: lumeRadius.xs, marginTop: 6 },
+  relleno: { position: 'absolute', left: 0, top: 0, bottom: 0, borderRadius: lumeRadius.xs },
+  marca: { position: 'absolute', top: -7, bottom: -7, width: 1, marginLeft: -0.5 },
+  punta: {
+    position: 'absolute',
+    top: -4,
+    left: -3,
+    width: 0,
+    height: 0,
+    borderLeftWidth: 3.5,
+    borderRightWidth: 3.5,
+    borderTopWidth: 4,
+    borderLeftColor: 'transparent',
+    borderRightColor: 'transparent',
+  },
+  nota: {
+    fontFamily: lumeFuente.regular,
+    fontSize: 13,
+    lineHeight: 18,
+    minHeight: 18,
+    fontVariant: ['tabular-nums'],
+  },
+  centrado: { textAlign: 'center' },
+  frenar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 10,
+    height: 54,
+    borderRadius: lumeRadius.lg,
+  },
+  frenarTexto: { fontFamily: lumeFuente.semibold, fontSize: 16, lineHeight: 20 },
+  // La nota arriba y el link abajo, centrados en el ancho de la tarjeta.
+  fila: { alignItems: 'center', gap: lumeSpace[1] },
+  link: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingVertical: 10, paddingHorizontal: 4 },
+  linkPresionado: { opacity: 0.6 },
+  linkTexto: { fontFamily: lumeFuente.semibold, fontSize: 14, lineHeight: 18 },
+});
