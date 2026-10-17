@@ -29,6 +29,8 @@ ejercicio, la grilla de la serie (`SerieComparativa`), la esfera del descanso
 en una hoja y el resumen (`ResumenSesion`).
 El wizard de crear rutina tambien, con el marco de `PasoWizard`: el nombre sobre
 una linea con sugerencias y la cantidad de dias en siete numeros.
+Y las dos pantallas de estado de cuenta (`account-recovery` y `profile-error`),
+que comparten el marco de `src/components/EstadoCuenta.tsx`.
 
 Las piezas compartidas se migran en su mismo archivo, no en copias: si una
 pantalla todavia vieja las usa, queda

@@ -6,29 +6,15 @@
    docs/specs/eliminacion-de-cuenta.md. */
 
 import React, { useState } from 'react';
-import { StyleSheet, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 
-import {
-  Button,
-  FrenciaText,
-  Icon,
-  radius,
-  space,
-  spacing,
-  useColors,
-  useThemedStyles,
-  type Palette,
-} from '@/design';
+import { EstadoCuenta } from '@/components/EstadoCuenta';
 import { useProfile } from '@/contexts/profile';
 import { useToast } from '@/contexts/toast';
 import { supabase } from '@/lib/supabase';
 import { cancelarEliminacionCuenta, fechaLarga, fechaPurga } from '@/lib/cuenta';
 
 export default function AccountRecoveryScreen() {
-  const colors = useColors();
-  const styles = useThemedStyles(makeStyles);
   const router = useRouter();
   const { profile, refresh } = useProfile();
   const { showToast } = useToast();
@@ -58,57 +44,17 @@ export default function AccountRecoveryScreen() {
   }
 
   return (
-    <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
-      <View style={styles.body}>
-        <View style={styles.iconWrap}>
-          <Icon name="clock" size={28} color={colors.dangerText} />
-        </View>
-
-        <FrenciaText role="dataLabel" color={colors.dangerText}>
-          Eliminación programada
-        </FrenciaText>
-
-        <FrenciaText role="title" style={styles.title}>
-          Tu cuenta se elimina el {purga}
-        </FrenciaText>
-
-        <FrenciaText role="bodySm" color={colors.textSecondary} style={styles.text}>
-          Pediste eliminar tu cuenta y la solicitud sigue vigente. Si la recuperás ahora, todo
-          queda como lo dejaste: rutinas, sesiones e historial.
-        </FrenciaText>
-        <FrenciaText role="bodySm" color={colors.textSecondary} style={styles.text}>
-          Pasada esa fecha, los datos se borran y no se pueden recuperar.
-        </FrenciaText>
-      </View>
-
-      <View style={styles.actions}>
-        <Button variant="primary" size="lg" fullWidth loading={recuperando} onPress={recuperar}>
-          Recuperar cuenta
-        </Button>
-        <Button variant="ghost" size="md" fullWidth disabled={recuperando} onPress={cerrarSesion}>
-          Cerrar sesión
-        </Button>
-      </View>
-    </SafeAreaView>
+    <EstadoCuenta
+      icono="clock"
+      peligro
+      rotulo="Eliminación programada"
+      titulo={`Tu cuenta se elimina el ${purga}`}
+      parrafos={[
+        'Pediste eliminar tu cuenta y la solicitud sigue vigente. Si la recuperás ahora, todo queda como lo dejaste: rutinas, sesiones e historial.',
+        'Pasada esa fecha, los datos se borran y no se pueden recuperar.',
+      ]}
+      accion={{ texto: 'Recuperar cuenta', cargando: recuperando, onPress: recuperar }}
+      salida={{ texto: 'Cerrar sesión', deshabilitada: recuperando, onPress: cerrarSesion }}
+    />
   );
 }
-
-const makeStyles = (colors: Palette) =>
-  StyleSheet.create({
-    safe: { flex: 1, backgroundColor: colors.bgApp, paddingHorizontal: spacing.padScreen },
-    body: { flex: 1, justifyContent: 'center', gap: space[4] },
-    iconWrap: {
-      width: 56,
-      height: 56,
-      borderRadius: radius.lg,
-      alignItems: 'center',
-      justifyContent: 'center',
-      backgroundColor: colors.surfaceCard,
-      borderWidth: 1,
-      borderColor: colors.borderSubtle,
-      marginBottom: space[2],
-    },
-    title: { marginTop: -space[2] },
-    text: { marginTop: -space[1] },
-    actions: { gap: space[2], paddingBottom: space[4] },
-  });
