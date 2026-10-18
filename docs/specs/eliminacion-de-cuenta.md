@@ -3,9 +3,10 @@
 Estado: propuesto
 Fecha: 2026-09-21
 
-No depende de ningun otro spec. Agrega una columna a `profiles`, dos RPCs y un
-job programado en Postgres. No toca rutinas ni sesiones: se apoya en que todas
-las tablas de `public` ya borran en cascada desde `auth.users`.
+No depende de ningun otro spec. Agrega una columna a `profiles`, dos RPCs, la
+Edge Function `purgar-cuentas` y un job programado en Postgres que la invoca.
+No toca rutinas ni sesiones: se apoya en que todas las tablas de `public` ya
+borran en cascada desde `auth.users`.
 
 ## 1. Problema
 
@@ -23,8 +24,9 @@ anios de historial de entrenamiento sin vuelta atras.
   recuperarla o volver a salir.
 - **Recuperar cuenta**: cancelar la solicitud dentro del periodo de gracia.
   La cuenta vuelve a estar como antes, con todos sus datos.
-- **Purga**: borrado definitivo, ejecutado por un job diario en la base
-  cuando la solicitud tiene mas de 30 dias. No es reversible.
+- **Purga**: borrado definitivo, ejecutado una vez por dia por la Edge
+  Function `purgar-cuentas` cuando la solicitud tiene mas de 30 dias. No es
+  reversible.
 
 ## 3. Modelo de datos
 
@@ -62,8 +64,10 @@ tabla tiene una fila por usuario.
 ## 4. Reglas de negocio
 
 1. **Solicitar es reversible; purgar no.** Nada se borra al solicitar. La
-   purga borra `auth.users` (y por cascada todo lo de `public`) y la fila del
-   avatar en `storage.objects`.
+   purga borra los archivos del avatar por la API de Storage (fila y archivo
+   fisico) y despues `auth.users`, que por cascada se lleva todo lo de
+   `public`. Si no puede borrar el avatar no borra el usuario: reintenta al
+   dia siguiente.
 2. **Durante la gracia la cuenta no se usa.** Con una solicitud pendiente el
    gate de auth manda siempre a la pantalla de recuperacion; no se llega a
    home, setup ni ninguna otra ruta. No hay "modo solo lectura".
@@ -93,9 +97,9 @@ tabla tiene una fila por usuario.
    servidor vivan en un solo lugar.
 9. **Las cuentas que nunca aceptan los textos legales se purgan solas.** Sin
    aceptar no se entra a la app, asi que a los 30 dias de creada la cuenta
-   solo guarda los datos del alta. `purgar_cuentas_sin_aceptacion()` (job
-   diario, 03:30 UTC) borra `auth.users` de las cuentas creadas desde el
-   26/09/2026 que no tienen ninguna fila en `aceptaciones_legales`. No toca
+   solo guarda los datos del alta. La misma purga diaria borra las cuentas
+   creadas desde el 26/09/2026, con mas de 30 dias, que no tienen ninguna fila
+   en `aceptaciones_legales` (motivo `sin_aceptacion`). No toca
    cuentas anteriores a esa fecha (nunca tuvieron la pantalla) ni a quien
    acepto una version vieja y todavia no la vigente. No usa periodo de gracia:
    la cuenta no tiene contenido propio que recuperar.
@@ -126,42 +130,62 @@ returns void language sql security invoker as $$
    where id = auth.uid();
 $$;
 
--- Purga: security definer porque borra de auth.users y storage.objects,
--- que el usuario final no puede tocar. Solo la llama pg_cron; se revoca
--- execute a los roles de la API.
-create or replace function public.purgar_cuentas_eliminadas()
-returns integer language plpgsql security definer set search_path = '' as $$
-declare
-  ids uuid[];
-  borradas integer;
-begin
-  select array_agg(id) into ids from public.profiles
-   where deletion_requested_at < now() - interval '30 days';
-  if ids is null then return 0; end if;
-
-  delete from storage.objects
-   where bucket_id = 'avatars'
-     and (storage.foldername(name))[1] = any(ids::text[]);
-
-  delete from auth.users where id = any(ids);
-  get diagnostics borradas = row_count;
-  return borradas;
-end;
-$$;
-revoke execute on function public.purgar_cuentas_eliminadas() from public, anon, authenticated;
-
--- Job diario a las 03:00 UTC.
-create extension if not exists pg_cron with schema pg_catalog;
-select cron.schedule('purgar-cuentas-eliminadas', '0 3 * * *',
-  $$select public.purgar_cuentas_eliminadas()$$);
 ```
 
-Limitacion conocida: borrar la fila de `storage.objects` deja el archivo
-huerfano en el almacenamiento de Supabase (una fila borrada desde SQL no
-dispara el borrado del objeto fisico). El bucket es privado y sin fila nadie
-puede firmar una URL, asi que no es un problema de privacidad; es solo espacio
-que no se recupera, del orden de decenas de KB por usuario. Si en algun momento
-molesta, la purga se muda a una edge function que use la API de Storage.
+### 5.1 Purga
+
+La primera version purgaba desde SQL (`purgar_cuentas_eliminadas()`, con un
+`delete from storage.objects`). Nunca llego a borrar nada: Supabase bloquea el
+borrado directo de esa tabla con el trigger `storage.protect_delete()`, que es
+por sentencia y deshacia tambien el borrado de `auth.users`. Ademas, borrar la
+fila deja el archivo fisico guardado, y una foto de la persona no puede
+sobrevivir a la eliminacion de su cuenta. Migracion
+`20261017120000_purga_de_cuentas_por_edge_function.sql`:
+
+- **Regla en un solo lugar.** `public.motivo_de_purga(user_id)` devuelve
+  `'eliminada'`, `'sin_aceptacion'` o null. `public.cuentas_a_purgar(limite)`
+  lista las candidatas con esa misma funcion, las mas viejas primero (100 por
+  corrida). Las dos solo las ejecuta `service_role`.
+- **Edge Function `supabase/functions/purgar-cuentas`.** Para cada candidata:
+  vuelve a llamar `motivo_de_purga` (pudo recuperar la cuenta en el medio),
+  borra todo `avatars/{userId}/` con la API de Storage y despues llama
+  `auth.admin.deleteUser`. Si un paso falla, saltea la cuenta y responde 500
+  con el detalle; se reintenta al dia siguiente.
+- **Job.** `purgar-cuentas`, todos los dias a las 03:00 UTC, invoca la funcion
+  con `pg_net`. Reemplaza los jobs `purgar-cuentas-eliminadas` y
+  `purgar-cuentas-sin-aceptacion`.
+- **Autorizacion.** La funcion corre con `verify_jwt = false` (las claves
+  `sb_secret_...` no son JWT) y solo acepta pedidos con el header
+  `x-purga-secret` igual al secreto `PURGA_CRON_SECRET`. Es un token propio de
+  la purga, no una clave de la API: si se filtra solo permite adelantar la
+  purga de cuentas que ya vencieron.
+- **Apple.** Antes de borrar, la funcion detecta si la cuenta tiene identidad
+  Apple y lo deja en el log. Revocar el token (exigencia de Apple) queda para
+  el hallazgo A5: requiere guardar el refresh token de Apple en el login,
+  porque Supabase no lo conserva.
+
+Puesta en marcha (una sola vez, en el proyecto remoto):
+
+1. Generar un token aleatorio largo (por ejemplo `openssl rand -hex 32`).
+2. Cargarlo como secreto de la funcion:
+   `npx supabase secrets set PURGA_CRON_SECRET=<token>`.
+3. Cargar en Vault, desde el SQL Editor, la URL del proyecto y el mismo token:
+   ```sql
+   select vault.create_secret('https://<ref>.supabase.co', 'project_url');
+   select vault.create_secret('<token>', 'purga_cron_secret');
+   ```
+4. Aplicar la migracion (`npx supabase db push`) y desplegar la funcion.
+
+Seguimiento: `pg_net` es asincronico, asi que el job figura exitoso apenas
+encola el pedido. El resultado real queda en los logs de la funcion y, por 6
+horas, en `net._http_response`:
+
+```sql
+select status_code, content, created
+from net._http_response
+order by created desc
+limit 5;
+```
 
 ## 6. Flujos de UI
 
@@ -208,4 +232,4 @@ No hay nada que hacer en la app.
   infraestructura de correo en el proyecto.
 - Exportar los datos antes de borrar.
 - Borrado inmediato sin periodo de gracia.
-- Limpieza del objeto fisico huerfano en Storage (ver limitacion en 5).
+- Revocar el token de Sign in with Apple al purgar (ver 5.1, hallazgo A5).

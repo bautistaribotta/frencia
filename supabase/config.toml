@@ -385,6 +385,11 @@ deno_version = 2
 # [edge_runtime.secrets]
 # secret_key = "env(SECRET_VALUE)"
 
+# Purga diaria de cuentas. La invoca pg_cron con un token propio en el header
+# x-purga-secret, no con un JWT. Ver docs/specs/eliminacion-de-cuenta.md.
+[functions.purgar-cuentas]
+verify_jwt = false
+
 [analytics]
 enabled = true
 port = 54327
