@@ -24,7 +24,12 @@ export function Dialogo({ visible, titulo, mensaje, onDescartar, children }: Dia
 
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onDescartar} statusBarTranslucent>
-      <Pressable style={[styles.velo, { backgroundColor: t.scrim }]} onPress={onDescartar}>
+      <Pressable
+        style={[styles.velo, { backgroundColor: t.scrim }]}
+        onPress={onDescartar}
+        accessibilityRole="button"
+        accessibilityLabel="Cerrar"
+      >
         {/* Frena el toque para que tocar la tarjeta no la cierre. */}
         <Pressable
           style={[
@@ -32,6 +37,7 @@ export function Dialogo({ visible, titulo, mensaje, onDescartar, children }: Dia
             { backgroundColor: t.surfaceRaisedOpaco, borderColor: t.glassLine, boxShadow: sombras.lg },
           ]}
           onPress={() => {}}
+          accessibilityRole="alert"
         >
           <View style={styles.textos}>
             {titulo ? <LumeText rol="subtitle">{titulo}</LumeText> : null}

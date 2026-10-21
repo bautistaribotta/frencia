@@ -41,7 +41,14 @@ export function TabBar({ items, value, onChange, fab, style }: TabBarProps) {
     const active = item.value === value;
     const fg = active ? colors.accent : colors.textTertiary;
     return (
-      <Pressable key={item.value} style={styles.tab} onPress={() => onChange?.(item.value)}>
+      <Pressable
+        key={item.value}
+        style={styles.tab}
+        onPress={() => onChange?.(item.value)}
+        accessibilityRole="tab"
+        accessibilityLabel={item.label}
+        accessibilityState={{ selected: active }}
+      >
         <Icon name={item.icon} size={24} color={fg} />
         <Text style={[styles.tabLabel, { color: fg }]}>{item.label}</Text>
       </Pressable>

@@ -216,19 +216,21 @@ export function AvisoTerminos() {
   );
 }
 
-/* Enlace de texto en signal-text (¿Olvidaste tu contraseña?, Creá una). */
+/* Enlace o accion de texto en signal-text (¿Olvidaste tu contraseña?, Creá una, Reenviar). */
 export function Enlace({
   children,
   onPress,
   semi = false,
+  rol = 'link',
 }: {
   children: React.ReactNode;
   onPress: () => void;
   semi?: boolean;
+  rol?: 'link' | 'button';
 }) {
   const { t } = useLume();
   return (
-    <Pressable hitSlop={10} onPress={onPress} accessibilityRole="link">
+    <Pressable hitSlop={10} onPress={onPress} accessibilityRole={rol}>
       {({ pressed }) => (
         <LumeText rol="bodySm" color={t.signalText} style={[semi && styles.semi, pressed && styles.presionado]}>
           {children}
@@ -244,11 +246,13 @@ export function PieEnlace({
   enlace,
   onPress,
   alFondo = false,
+  rol = 'link',
 }: {
   pregunta: string;
   enlace: string;
   onPress: () => void;
   alFondo?: boolean;
+  rol?: 'link' | 'button';
 }) {
   const { t } = useLume();
   return (
@@ -256,7 +260,7 @@ export function PieEnlace({
       <LumeText rol="bodySm" color={t.textSecondary}>
         {pregunta}{' '}
       </LumeText>
-      <Enlace semi onPress={onPress}>
+      <Enlace semi rol={rol} onPress={onPress}>
         {enlace}
       </Enlace>
     </View>

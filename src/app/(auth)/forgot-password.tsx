@@ -95,7 +95,7 @@ export default function ForgotPasswordScreen() {
           <LumeButton variant="primary" size="lg" fullWidth iconRight="arrow-right" onPress={goToLogin}>
             Volver al inicio de sesión
           </LumeButton>
-          <PieEnlace pregunta="¿No te llegó?" enlace="Reenviar" onPress={() => setSent(false)} />
+          <PieEnlace pregunta="¿No te llegó?" enlace="Reenviar" rol="button" onPress={() => setSent(false)} />
         </FormularioAcceso>
       ) : (
         <FormularioAcceso
