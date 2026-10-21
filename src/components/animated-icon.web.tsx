@@ -1,4 +1,2 @@
-/* En web no hay splash nativo que tapar: el overlay no se monta. */
-export function AnimatedSplashOverlay() {
-  return null;
-}
+/* Re-export para no tocar _layout.tsx mientras otro agente trabaja en paralelo. */
+export { AnimatedSplashOverlay } from './AnimatedSplashOverlay.web';
