@@ -246,12 +246,7 @@ function datosDeSerie(fila: FilaSerie): SerieCargada {
   };
 }
 
-/**
- * Escribe una serie. Es upsert contra el indice unico
- * (session_id, exercise_id, set_index): volver atras y corregir un peso
- * reescribe la fila en vez de duplicarla.
- */
-export async function guardarSerie(params: {
+export interface SeriePendiente {
   sessionId: string;
   exerciseId: string;
   setIndex: number;
@@ -264,30 +259,38 @@ export async function guardarSerie(params: {
   distanceM?: number | null;
   intensityKind: Medidor | null;
   intensityValue: number | null;
-}): Promise<boolean> {
-  const { error } = await supabase.from('session_sets').upsert(
-    {
-      session_id: params.sessionId,
-      exercise_id: params.exerciseId,
-      set_index: params.setIndex,
-      weight_kg: params.weightKg,
-      reps: params.reps,
-      duration_seconds: params.durationSeconds ?? null,
-      distance_m: params.distanceM ?? null,
-      intensity_kind: params.intensityKind,
-      intensity_value: params.intensityValue,
-      completed_at: new Date().toISOString(),
-    },
-    { onConflict: 'session_id,exercise_id,set_index' },
-  );
+}
+
+function aFilaSerie(params: SeriePendiente, completedAt = new Date().toISOString()) {
+  return {
+    session_id: params.sessionId,
+    exercise_id: params.exerciseId,
+    set_index: params.setIndex,
+    weight_kg: params.weightKg,
+    reps: params.reps,
+    duration_seconds: params.durationSeconds ?? null,
+    distance_m: params.distanceM ?? null,
+    intensity_kind: params.intensityKind,
+    intensity_value: params.intensityValue,
+    completed_at: completedAt,
+  };
+}
+
+/**
+ * Escribe una serie. Es upsert contra el indice unico
+ * (session_id, exercise_id, set_index): volver atras y corregir un peso
+ * reescribe la fila en vez de duplicarla.
+ */
+export async function guardarSerie(params: SeriePendiente): Promise<boolean> {
+  const { error } = await supabase
+    .from('session_sets')
+    .upsert(aFilaSerie(params), { onConflict: 'session_id,exercise_id,set_index' });
   return !error;
 }
 
 // --- Series pendientes de sincronizar ----------------------------------------
 // En el gimnasio la senal va y viene. Una serie que no se pudo escribir no se
 // pierde: queda en el telefono y se reintenta en el proximo paso o al terminar.
-
-export type SeriePendiente = Parameters<typeof guardarSerie>[0];
 
 function clavePendientes(sessionId: string): string {
   return `frencia.session.pendientes.${sessionId}`;
@@ -320,18 +323,24 @@ export async function encolarPendiente(serie: SeriePendiente): Promise<void> {
   await escribirPendientes(serie.sessionId, [...resto, serie]);
 }
 
-/** Reintenta escribir todo lo pendiente. Devuelve cuantas series siguen sin
- *  sincronizar; 0 significa que la sesion esta completa en la base. */
+/** Reintenta escribir todo lo pendiente en un solo lote. Devuelve cuantas
+ *  series siguen sin sincronizar; 0 significa que la sesion esta completa en
+ *  la base. */
 export async function sincronizarPendientes(sessionId: string): Promise<number> {
   const lista = await leerPendientes(sessionId);
   if (lista.length === 0) return 0;
 
-  const restantes: SeriePendiente[] = [];
-  for (const serie of lista) {
-    if (!(await guardarSerie(serie))) restantes.push(serie);
-  }
-  await escribirPendientes(sessionId, restantes);
-  return restantes.length;
+  const ahora = new Date().toISOString();
+  const { error } = await supabase
+    .from('session_sets')
+    .upsert(
+      lista.map((serie) => aFilaSerie(serie, ahora)),
+      { onConflict: 'session_id,exercise_id,set_index' },
+    );
+  if (error) return lista.length;
+
+  await escribirPendientes(sessionId, []);
+  return 0;
 }
 
 /** Guarda la serie y, si falla, la deja pendiente. */
