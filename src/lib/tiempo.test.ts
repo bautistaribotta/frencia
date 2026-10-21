@@ -3,7 +3,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 
-import { duracionCompacta, duracionSesion, indiceSemanaLunes, reloj } from './tiempo.ts';
+import { duracionCompacta, duracionSesion, fechaLarga, fechaSesion, indiceSemanaLunes, reloj } from './tiempo.ts';
 
 test('el reloj va en m:ss por debajo de una hora, sin cero inicial', () => {
   assert.equal(reloj(45), '0:45');
@@ -45,4 +45,10 @@ test('duracionSesion formatea en minutos u horas y redondea como minimo a 1 min'
 test('indiceSemanaLunes devuelve 0 para lunes y 6 para domingo', () => {
   assert.equal(indiceSemanaLunes(new Date(2026, 9, 19)), 0); // Lunes 19 oct 2026
   assert.equal(indiceSemanaLunes(new Date(2026, 9, 25)), 6); // Domingo 25 oct 2026
+});
+
+test('fechaLarga y fechaSesion formatean manualmente en espanol sin Intl', () => {
+  const d = new Date(2026, 9, 21, 15, 0, 0); // Miércoles 21 oct 2026
+  assert.equal(fechaLarga(d), '21 de octubre de 2026');
+  assert.equal(fechaSesion(d.getTime()), 'miércoles, 21 de octubre de 2026');
 });

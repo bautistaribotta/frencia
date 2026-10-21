@@ -8,10 +8,22 @@ export const MESES_LARGO = [
   'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
   'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre',
 ];
+const SEMANA_LARGO_MINUSCULA = ['lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado', 'domingo'];
 
 /** Indice del dia de la semana con base lunes (0 = lunes ... 6 = domingo). */
 export function indiceSemanaLunes(d: Date): number {
   return (d.getDay() + 6) % 7;
+}
+
+/** "21 de octubre de 2026" — formateo manual sin depender de Intl en Hermes. */
+export function fechaLarga(fecha: Date): string {
+  return `${fecha.getDate()} de ${MESES_LARGO[fecha.getMonth()].toLowerCase()} de ${fecha.getFullYear()}`;
+}
+
+/** "miércoles, 21 de octubre de 2026" — formateo manual sin depender de Intl en Hermes. */
+export function fechaSesion(epochMs: number): string {
+  const d = new Date(epochMs);
+  return `${SEMANA_LARGO_MINUSCULA[indiceSemanaLunes(d)]}, ${fechaLarga(d)}`;
 }
 
 /** Reloj para grillas y campos: m:ss por debajo de una hora y h:mm:ss desde

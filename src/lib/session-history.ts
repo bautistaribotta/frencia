@@ -10,10 +10,10 @@ import {
 import { supabase } from './supabase';
 import type { SesionTerminada } from './history';
 import type { Medidor } from './session';
-import { duracionSesion } from './tiempo';
+import { duracionSesion, fechaSesion } from './tiempo';
 import { esUuid } from './validacion';
 
-export { duracionSesion };
+export { duracionSesion, fechaSesion };
 
 /** Una serie tal como se guardo. Lo que el ejercicio no registra es null. */
 export interface SerieRealizada {
@@ -132,10 +132,4 @@ export async function cargarDetalleSesion(
   } catch {
     return { estado: 'error' };
   }
-}
-
-export function fechaSesion(epochMs: number): string {
-  return new Date(epochMs).toLocaleDateString('es-AR', {
-    weekday: 'long', day: 'numeric', month: 'long', year: 'numeric',
-  });
 }

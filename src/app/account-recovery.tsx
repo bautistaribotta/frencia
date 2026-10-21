@@ -12,7 +12,8 @@ import { EstadoCuenta } from '@/components/EstadoCuenta';
 import { useProfile } from '@/contexts/profile';
 import { useToast } from '@/contexts/toast';
 import { supabase } from '@/lib/supabase';
-import { cancelarEliminacionCuenta, fechaLarga, fechaPurga } from '@/lib/cuenta';
+import { cancelarEliminacionCuenta, fechaPurga } from '@/lib/cuenta';
+import { fechaLarga } from '@/lib/tiempo';
 
 export default function AccountRecoveryScreen() {
   const router = useRouter();

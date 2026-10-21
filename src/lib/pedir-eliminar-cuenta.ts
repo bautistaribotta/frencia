@@ -10,7 +10,8 @@ import { useCallback, useState } from 'react';
 import { useToast } from '@/contexts/toast';
 import { alerta } from '@/lib/alerta';
 import { supabase } from '@/lib/supabase';
-import { DIAS_DE_GRACIA, fechaLarga, fechaPurga, solicitarEliminacionCuenta } from '@/lib/cuenta';
+import { DIAS_DE_GRACIA, fechaPurga, solicitarEliminacionCuenta } from '@/lib/cuenta';
+import { fechaLarga } from '@/lib/tiempo';
 
 export function usePedirEliminarCuenta() {
   const { showToast } = useToast();
