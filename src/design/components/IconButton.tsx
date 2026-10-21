@@ -5,13 +5,13 @@ import React, { useMemo } from 'react';
 import { Pressable, type PressableProps, StyleSheet, type ViewStyle } from 'react-native';
 import { radius, motion, type Palette } from '../theme';
 import { useColors } from '../theme-context';
-import { Icon } from '../Icon';
+import { Icon, type IconName } from '../Icon';
 
 type Variant = 'primary' | 'surface' | 'ghost';
 type Size = 'sm' | 'md' | 'lg';
 
 export interface IconButtonProps extends Omit<PressableProps, 'children' | 'style'> {
-  icon: string;
+  icon: IconName;
   variant?: Variant;
   size?: Size;
   round?: boolean;

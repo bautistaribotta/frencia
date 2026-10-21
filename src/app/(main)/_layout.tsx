@@ -11,7 +11,7 @@ import React, { useCallback } from 'react';
 import { Tabs, useRouter } from 'expo-router';
 import type { BottomTabBarProps } from 'expo-router/tabs';
 
-import { LumeTabBar } from '@/design/lume';
+import { LumeTabBar, type LumeTabItem } from '@/design/lume';
 
 // El value de cada item es el nombre del archivo de la pantalla, que es como
 // las identifica el navegador. Con cuatro tabs quedan dos de cada lado del
@@ -21,7 +21,7 @@ const TABS = [
   { value: 'routines', label: 'Rutinas', icon: 'layers' },
   { value: 'history', label: 'Historial', icon: 'history' },
   { value: 'profile', label: 'Perfil', icon: 'user' },
-];
+] satisfies LumeTabItem[];
 
 function FrenciaTabBar({ state, navigation }: BottomTabBarProps) {
   const router = useRouter();

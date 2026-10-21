@@ -9,14 +9,14 @@
 import React from 'react';
 import { StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
 
-import { Icon } from '../Icon';
+import { Icon, type IconName } from '../Icon';
 import { useLume } from './useLume';
 import { LumeText } from './LumeText';
 import { lumeFuente } from './tipografia';
 import { lumeRadius } from './tokens';
 
 export interface LumeMetricPillProps {
-  icon?: string;
+  icon?: IconName;
   label?: string;
   value: React.ReactNode;
   tone?: 'neutral' | 'signal' | 'intensity';

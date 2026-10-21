@@ -9,13 +9,13 @@
 import React, { forwardRef, useState } from 'react';
 import { StyleSheet, TextInput, View, type TextInputProps } from 'react-native';
 
-import { Icon } from '../Icon';
+import { Icon, type IconName } from '../Icon';
 import { useLume } from './useLume';
 import { lumeFuente } from './tipografia';
 import { lumeLayout, lumeRadius } from './tokens';
 
 export interface CampoProps extends TextInputProps {
-  icono: string;
+  icono: IconName;
   // Algo al final del campo (el ojo de la contraseña).
   final?: React.ReactNode;
   iconoAcento?: boolean;

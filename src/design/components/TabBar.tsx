@@ -8,15 +8,15 @@ import { Pressable, StyleSheet, Text, View, type ViewStyle } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { mono, tracking, type Palette } from '../theme';
 import { useColors, useThemedStyles } from '../theme-context';
-import { Icon } from '../Icon';
+import { Icon, type IconName } from '../Icon';
 
 export interface TabItem {
   value: string;
   label: string;
-  icon: string;
+  icon: IconName;
 }
 export interface TabFab {
-  icon?: string;
+  icon?: IconName;
   label?: string;
   onPress?: () => void;
 }

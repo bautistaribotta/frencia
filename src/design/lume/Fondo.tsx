@@ -20,7 +20,6 @@ import Animated, {
   Easing,
   cancelAnimation,
   interpolate,
-  runOnJS,
   useAnimatedStyle,
   useSharedValue,
   withRepeat,
@@ -28,6 +27,7 @@ import Animated, {
   withTiming,
   type SharedValue,
 } from 'react-native-reanimated';
+import { scheduleOnRN } from 'react-native-worklets';
 
 import { useLume } from './useLume';
 import { lumeMotion } from './tokens';
@@ -92,7 +92,7 @@ export function Fondo({ posicion = 'cumbre', intensidad = 'pleno', animado = fal
     recorrido.set(0);
     recorrido.set(
       withTiming(1, { duration: lumeMotion.recorrido, easing: Easing.inOut(Easing.cubic) }, (terminado) => {
-        if (terminado) runOnJS(llegar)(hacia);
+        if (terminado) scheduleOnRN(llegar, hacia);
       }),
     );
   }, [hacia, recorrido, llegar]);
@@ -108,7 +108,7 @@ export function Fondo({ posicion = 'cumbre', intensidad = 'pleno', animado = fal
     fundido.set(0);
     fundido.set(
       withTiming(1, { duration: lumeMotion.fundido, easing: Easing.out(Easing.cubic) }, (terminado) => {
-        if (terminado) runOnJS(setSaliente)(null);
+        if (terminado) scheduleOnRN(setSaliente, null);
       }),
     );
   }, [saliente, fundido]);

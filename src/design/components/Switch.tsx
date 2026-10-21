@@ -1,8 +1,9 @@
 /* Frencia · Switch — RN port of components/feedback/Switch.jsx
    iOS toggle switch with animated thumb. */
 
-import React, { useEffect, useRef } from 'react';
-import { Animated, Pressable, StyleSheet, type ViewStyle } from 'react-native';
+import React, { useEffect } from 'react';
+import { Pressable, StyleSheet, type ViewStyle } from 'react-native';
+import Animated, { interpolateColor, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 import { radius, motion } from '../theme';
 import { useColors, useShadows } from '../theme-context';
 
@@ -16,29 +17,20 @@ export interface SwitchProps {
 export function Switch({ checked = false, onChange, disabled = false, style }: SwitchProps) {
   const colors = useColors();
   const shadows = useShadows();
-  const t = useRef(new Animated.Value(checked ? 1 : 0)).current;
+  const t = useSharedValue(checked ? 1 : 0);
 
   useEffect(() => {
-    Animated.timing(t, {
-      toValue: checked ? 1 : 0,
-      duration: motion.durBase,
-      useNativeDriver: false,
-    }).start();
+    t.set(withTiming(checked ? 1 : 0, { duration: motion.durBase }));
   }, [checked, t]);
 
-  const translateX = t.interpolate({ inputRange: [0, 1], outputRange: [3, 23] });
-  const trackColor = t.interpolate({
-    inputRange: [0, 1],
-    outputRange: [colors.surfaceChip, colors.accent],
-  });
-  const borderColor = t.interpolate({
-    inputRange: [0, 1],
-    outputRange: [colors.borderSubtle, colors.accent],
-  });
-  const thumbColor = t.interpolate({
-    inputRange: [0, 1],
-    outputRange: [colors.switchThumb, colors.switchThumbActive],
-  });
+  const pista = useAnimatedStyle(() => ({
+    backgroundColor: interpolateColor(t.get(), [0, 1], [colors.surfaceChip, colors.accent]),
+    borderColor: interpolateColor(t.get(), [0, 1], [colors.borderSubtle, colors.accent]),
+  }));
+  const perilla = useAnimatedStyle(() => ({
+    backgroundColor: interpolateColor(t.get(), [0, 1], [colors.switchThumb, colors.switchThumbActive]),
+    transform: [{ translateX: 3 + t.get() * 20 }],
+  }));
 
   return (
     <Pressable
@@ -48,10 +40,8 @@ export function Switch({ checked = false, onChange, disabled = false, style }: S
       onPress={() => !disabled && onChange?.(!checked)}
       style={style}
     >
-      <Animated.View
-        style={[styles.track, { backgroundColor: trackColor, borderColor }, disabled && styles.disabled]}
-      >
-        <Animated.View style={[styles.thumb, shadows.sm, { backgroundColor: thumbColor, transform: [{ translateX }] }]} />
+      <Animated.View style={[styles.track, pista, disabled && styles.disabled]}>
+        <Animated.View style={[styles.thumb, shadows.sm, perilla]} />
       </Animated.View>
     </Pressable>
   );

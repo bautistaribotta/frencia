@@ -23,12 +23,12 @@ import React, { useCallback, useMemo, useState } from 'react';
 import { Platform, Pressable, StyleSheet, View, type LayoutChangeEvent } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
-  runOnJS,
   useAnimatedStyle,
   useSharedValue,
   withTiming,
   type SharedValue,
 } from 'react-native-reanimated';
+import { scheduleOnRN } from 'react-native-worklets';
 import * as Haptics from 'expo-haptics';
 import { MarqueeText } from '@/components/MarqueeText';
 
@@ -180,7 +180,7 @@ function Row({
           from.value = index;
           over.value = index;
           dragY.value = 0;
-          runOnJS(tick)();
+          scheduleOnRN(tick);
         })
         .onUpdate((e) => {
           dragY.value = e.translationY;
@@ -189,7 +189,7 @@ function Row({
           const target = Math.max(0, Math.min(count - 1, raw));
           if (target !== over.value) {
             over.value = target;
-            runOnJS(tick)();
+            scheduleOnRN(tick);
           }
         })
         .onEnd((_e, success) => {
@@ -198,13 +198,13 @@ function Row({
           if (f < 0) return;
           if (!success) {
             // Gesto cancelado: volvemos al orden actual sin tocar nada.
-            runOnJS(commit)(f, f);
+            scheduleOnRN(commit, f, f);
             return;
           }
           // La fila cae en el hueco antes de avisar el orden nuevo, asi el
           // salto entre la posicion del dedo y la definitiva no se ve.
           dragY.value = withTiming((t - f) * step, { duration: lumeMotion.durFast }, (done) => {
-            if (done) runOnJS(commit)(f, t);
+            if (done) scheduleOnRN(commit, f, t);
           });
         }),
     [draggable, index, count, step, from, over, dragY, commit],
@@ -223,7 +223,7 @@ function Row({
           apretada.value = 0;
         })
         .onEnd((_e, success) => {
-          if (success && onPress) runOnJS(onPress)(index);
+          if (success && onPress) scheduleOnRN(onPress, index);
         }),
     [onPress, index, apretada],
   );

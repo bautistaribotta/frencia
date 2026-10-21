@@ -23,15 +23,15 @@ import { Platform, StyleSheet, View } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
   interpolate,
-  runOnJS,
   useAnimatedStyle,
   useSharedValue,
   withTiming,
   Extrapolation,
 } from 'react-native-reanimated';
+import { scheduleOnRN } from 'react-native-worklets';
 import * as Haptics from 'expo-haptics';
 
-import { Icon } from '@/design';
+import { Icon, type IconName } from '@/design';
 import { lumeMotion, lumePalette, lumeRadius, useLume } from '@/design/lume';
 
 // Ancho que descubre cada accion cuando la fila queda abierta en reposo... solo
@@ -53,7 +53,7 @@ function golpe(estilo: Haptics.ImpactFeedbackStyle) {
 }
 
 export interface AccionDeslizable {
-  icon: string;
+  icon: IconName;
   /** accent para acciones reversibles, danger para las destructivas. */
   tono: 'accent' | 'danger';
   /** Nombre de la accion para el lector de pantalla. */
@@ -110,7 +110,7 @@ export function SwipeableRow({
           const cruzo = Math.abs(v) >= UMBRAL ? 1 : 0;
           if (cruzo !== armado.value) {
             armado.value = cruzo;
-            if (cruzo === 1) runOnJS(golpe)(Haptics.ImpactFeedbackStyle.Medium);
+            if (cruzo === 1) scheduleOnRN(golpe, Haptics.ImpactFeedbackStyle.Medium);
           }
         })
         .onEnd(() => {
@@ -123,9 +123,9 @@ export function SwipeableRow({
           tx.value = withTiming(0, { duration: lumeMotion.durBase });
           if (!paso) return;
           if (haciaDerecha) {
-            if (onDerecha) runOnJS(onDerecha)();
+            if (onDerecha) scheduleOnRN(onDerecha);
           } else if (onIzquierda) {
-            runOnJS(onIzquierda)();
+            scheduleOnRN(onIzquierda);
           }
         }),
     [tx, armado, hayDerecha, hayIzquierda, onDerecha, onIzquierda],
@@ -144,7 +144,7 @@ export function SwipeableRow({
           apretada.value = 0;
         })
         .onEnd((_e, success) => {
-          if (success) runOnJS(onPress)();
+          if (success) scheduleOnRN(onPress);
         }),
     [onPress, apretada],
   );

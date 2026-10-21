@@ -10,14 +10,14 @@
 import React from 'react';
 import { Pressable, StyleSheet, type StyleProp, type ViewStyle } from 'react-native';
 
-import { Icon } from '../Icon';
+import { Icon, type IconName } from '../Icon';
 import { useLume } from './useLume';
 import { lumeMotion, lumeRadius } from './tokens';
 
 export type VarianteBotonIcono = 'primary' | 'surface' | 'ghost';
 
 export interface LumeIconButtonProps {
-  icon: string;
+  icon: IconName;
   variant?: VarianteBotonIcono;
   size?: 'sm' | 'md' | 'lg';
   round?: boolean;

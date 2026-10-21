@@ -73,7 +73,7 @@ import {
 } from 'lucide-react-native';
 import { useColors } from './theme-context';
 
-const REGISTRY: Record<string, LucideIcon> = {
+const REGISTRY = {
   activity: Activity,
   'alert-circle': AlertCircle,
   'alert-triangle': AlertTriangle,
@@ -135,7 +135,7 @@ const REGISTRY: Record<string, LucideIcon> = {
   user: User,
   x: X,
   zap: Zap,
-};
+} satisfies Record<string, LucideIcon>;
 
 export type IconName = keyof typeof REGISTRY;
 
@@ -149,7 +149,7 @@ export interface IconProps {
 /** Renders a Lucide icon by kebab name. Unknown names render nothing. */
 export function Icon({ name, size = 20, color, strokeWidth = 2 }: IconProps) {
   const colors = useColors();
-  const Cmp = REGISTRY[name];
+  const Cmp: LucideIcon | undefined = REGISTRY[name as IconName];
   if (!Cmp) {
     if (__DEV__) console.warn(`[Frencia] Icon "${name}" not in registry — add it to Icon.tsx`);
     return null;

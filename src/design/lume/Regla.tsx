@@ -19,7 +19,8 @@ import {
   type NativeSyntheticEvent,
   type ScrollView,
 } from 'react-native';
-import Animated, { runOnJS, useAnimatedScrollHandler, useSharedValue } from 'react-native-reanimated';
+import Animated, { useAnimatedScrollHandler, useSharedValue } from 'react-native-reanimated';
+import { scheduleOnRN } from 'react-native-worklets';
 import Svg, { Polygon } from 'react-native-svg';
 import * as Haptics from 'expo-haptics';
 
@@ -101,7 +102,7 @@ export function Regla({
       const i = Math.max(0, Math.min(total, Math.round(e.contentOffset.x / ESP)));
       if (i !== centrado.value) {
         centrado.value = i;
-        runOnJS(mover)(i);
+        scheduleOnRN(mover, i);
       }
     },
   });

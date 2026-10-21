@@ -5,9 +5,9 @@ import React from 'react';
 import { Pressable, StyleSheet, Text, View, type ViewStyle } from 'react-native';
 import { radius, sans, type Palette, type Shadows } from '../theme';
 import { useColors, useThemedStyles } from '../theme-context';
-import { Icon } from '../Icon';
+import { Icon, type IconName } from '../Icon';
 
-export type SegOption = string | { value: string; label: string; icon?: string };
+export type SegOption = string | { value: string; label: string; icon?: IconName };
 
 export interface SegmentedControlProps {
   options: SegOption[];

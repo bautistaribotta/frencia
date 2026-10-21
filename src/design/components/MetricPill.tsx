@@ -5,13 +5,13 @@ import React, { useMemo } from 'react';
 import { StyleSheet, Text, View, type ViewStyle } from 'react-native';
 import { mono, radius, tracking, type Palette } from '../theme';
 import { useColors, useThemedStyles } from '../theme-context';
-import { Icon } from '../Icon';
+import { Icon, type IconName } from '../Icon';
 
 type Tone = 'neutral' | 'green' | 'orange';
 type Layout = 'stack' | 'inline';
 
 export interface MetricPillProps {
-  icon?: string;
+  icon?: IconName;
   label?: string;
   value: React.ReactNode;
   tone?: Tone;
