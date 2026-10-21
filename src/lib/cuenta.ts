@@ -21,12 +21,20 @@ export async function cancelarEliminacionCuenta(): Promise<boolean> {
   return !error;
 }
 
-/** Dia en que el job de purga borra la cuenta, a partir de la fecha de
- *  solicitud que devolvio el servidor. */
+/** Hora UTC a la que corre el job diario `purgar-cuentas` (pg_cron, '0 3 * * *'). */
+const HORA_UTC_PURGA = 3;
+
+/** Momento en que el job de purga borra la cuenta, a partir de la fecha de
+ *  solicitud que devolvio el servidor. La cuenta califica cuando se cumplen
+ *  exactamente 30 dias (motivo_de_purga compara con `<`), pero el job corre una
+ *  vez por dia: el borrado real es la primera corrida despues de ese momento,
+ *  que puede caer hasta un dia mas tarde. */
 export function fechaPurga(solicitadaEn: Date): Date {
-  const d = new Date(solicitadaEn);
-  d.setDate(d.getDate() + DIAS_DE_GRACIA);
-  return d;
+  const califica = solicitadaEn.getTime() + DIAS_DE_GRACIA * 24 * 60 * 60 * 1000;
+  const corrida = new Date(califica);
+  corrida.setUTCHours(HORA_UTC_PURGA, 0, 0, 0);
+  if (corrida.getTime() <= califica) corrida.setUTCDate(corrida.getUTCDate() + 1);
+  return corrida;
 }
 
 /** "21 de octubre de 2026" */
