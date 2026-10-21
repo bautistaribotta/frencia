@@ -2,6 +2,7 @@
   "expo": {
     "name": "Frencia",
     "slug": "frencia",
+    "owner": "bauribotta",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/app-icon-light.png",
@@ -25,7 +26,9 @@
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
       "predictiveBackGestureEnabled": false,
-      "blockedPermissions": ["com.google.android.gms.permission.AD_ID"]
+      "blockedPermissions": [
+        "com.google.android.gms.permission.AD_ID"
+      ]
     },
     "web": {
       "output": "static",
@@ -50,7 +53,8 @@
       [
         "expo-image-picker",
         {
-          "photosPermission": "Frencia necesita acceso a tus fotos para elegir tu foto de perfil."
+          "photosPermission": "Frencia necesita acceso a tus fotos para elegir tu foto de perfil.",
+          "microphonePermission": false
         }
       ],
       "expo-image",
@@ -64,7 +68,7 @@
     "extra": {
       "router": {},
       "eas": {
-        "projectId": "2cd6375b-fb98-4549-96da-4e2e8c418361"
+        "projectId": "b7d53930-7265-47af-adcd-fb21748689d2"
       }
     }
   }
