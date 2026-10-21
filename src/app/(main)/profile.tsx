@@ -5,13 +5,14 @@
    perfil; el tema (oscuro/claro) igual, via el contexto de tema. */
 
 import { useRouter } from 'expo-router';
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useRef, useState } from 'react';
 import { Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { useProfile, type Preferencias } from '@/contexts/profile';
+import { useSession } from '@/contexts/session';
 import { useToast } from '@/contexts/toast';
-import { pickAndUploadAvatar, signAvatarUrl, deleteAvatarFile } from '@/lib/avatar';
+import { pickAndUploadAvatar, deleteAvatarFile } from '@/lib/avatar';
 import { supabase } from '@/lib/supabase';
 import { useVolverArribaAlRetocar } from '@/lib/volver-arriba';
 
@@ -47,6 +48,7 @@ export default function ProfileScreen() {
   const router = useRouter();
   const scrollRef = useRef<ScrollView>(null);
   useVolverArribaAlRetocar(scrollRef);
+  const { user } = useSession();
   // Datos del perfil compartidos (saludo, avatar, preferencias) + reflejo de
   // cambios.
   const { displayName, profile, applyAvatar, savePreferencias } = useProfile();
@@ -64,9 +66,10 @@ export default function ProfileScreen() {
   const useLb = profile?.unidadPeso === 'lb';
   const useFeet = profile?.unidadAltura === 'ft';
   const useMiles = profile?.unidadDistancia === 'mi';
-  // Avatar: foto subida (prioridad) o semilla del avatar generado.
-  const [photo, setPhoto] = useState<string | undefined>(profile?.avatarUrl ?? undefined);
-  const [seed, setSeed] = useState<string | undefined>(profile?.avatarSeed ?? undefined);
+  // Avatar: foto subida (prioridad) o semilla del avatar generado, leidos del contexto.
+  const photo = profile?.avatarUrl ?? undefined;
+  const avatarPath = profile?.avatarPath ?? undefined;
+  const seed = profile?.avatarSeed ?? undefined;
   const [busy, setBusy] = useState(false);
   const [photoError, setPhotoError] = useState('');
   const [showOptions, setShowOptions] = useState(false);
@@ -74,31 +77,6 @@ export default function ProfileScreen() {
   // el image picker: presentar un modal nativo mientras otro se cierra deja
   // el picker sin aparecer y la promesa colgada.
   const [pendingPick, setPendingPick] = useState(false);
-
-  // Carga el avatar guardado del usuario al abrir el perfil.
-  useEffect(() => {
-    let cancelado = false;
-    (async () => {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-      if (!user) return;
-      const { data } = await supabase
-        .from('profiles')
-        .select('avatar_path, avatar_seed')
-        .eq('id', user.id)
-        .maybeSingle();
-      if (cancelado || !data) return;
-      if (data.avatar_seed) setSeed(data.avatar_seed);
-      if (data.avatar_path) {
-        const url = await signAvatarUrl(data.avatar_path);
-        if (!cancelado && url) setPhoto(url);
-      }
-    })();
-    return () => {
-      cancelado = true;
-    };
-  }, []);
 
   // Cierra el sheet y deja el picker pendiente. En iOS el picker se abre
   // recien en onDismiss del Modal; en Android se puede abrir directo.
@@ -115,23 +93,19 @@ export default function ProfileScreen() {
   async function uploadPhoto() {
     if (busy) return;
     setPhotoError('');
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
     if (!user) {
       setPhotoError('No pudimos identificar tu sesión.');
       return;
     }
     setBusy(true);
-    const { url, error, canceled } = await pickAndUploadAvatar(user.id);
+    const { url, path, error, canceled } = await pickAndUploadAvatar(user.id);
     setBusy(false);
     if (canceled) return;
     if (error || !url) {
       setPhotoError(error ?? 'No pudimos actualizar la foto.');
       return;
     }
-    setPhoto(url);
-    applyAvatar({ url });
+    applyAvatar({ url, path: path ?? null });
     showToast({ message: 'Foto de perfil actualizada', type: 'success' });
   }
 
@@ -140,9 +114,6 @@ export default function ProfileScreen() {
   async function generateAvatar() {
     if (busy) return;
     setPhotoError('');
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
     if (!user) {
       setPhotoError('No pudimos identificar tu sesión.');
       return;
@@ -160,18 +131,13 @@ export default function ProfileScreen() {
       setPhotoError('No pudimos generar el avatar.');
       return;
     }
-    setPhoto(undefined);
-    setSeed(nuevaSeed);
-    applyAvatar({ url: null, seed: nuevaSeed });
+    applyAvatar({ url: null, path: null, seed: nuevaSeed });
   }
 
   // Elimina la foto subida y vuelve al avatar generado por semilla.
   async function removePhoto() {
     if (busy) return;
     setPhotoError('');
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
     if (!user) {
       setPhotoError('No pudimos identificar tu sesión.');
       return;
@@ -191,9 +157,7 @@ export default function ProfileScreen() {
       setPhotoError('No pudimos eliminar la foto.');
       return;
     }
-    setPhoto(undefined);
-    setSeed(semilla);
-    applyAvatar({ url: null, seed: semilla });
+    applyAvatar({ url: null, path: null, seed: semilla });
   }
 
   // El contexto aplica el cambio en el acto y lo persiste; si no pudo, ya lo
@@ -259,7 +223,7 @@ export default function ProfileScreen() {
               accessibilityRole="button"
               accessibilityLabel="Cambiar foto de perfil"
             >
-              <LumeAvatar name={seed ?? displayName} src={photo} size="lg" ring />
+              <LumeAvatar name={seed ?? displayName} src={photo} cacheKey={avatarPath} size="lg" ring />
               <View style={[styles.camara, { backgroundColor: t.accent, borderColor: t.surfaceCardOpaco }]}>
                 <Icon name="camera" size={13} color={t.textOnAccent} strokeWidth={2} />
               </View>
@@ -367,7 +331,7 @@ export default function ProfileScreen() {
       >
         {/* Vista previa grande del avatar actual, refleja los cambios en vivo */}
         <View style={styles.vista}>
-          <LumeAvatar name={seed ?? displayName} src={photo} size="xl" ring />
+          <LumeAvatar name={seed ?? displayName} src={photo} cacheKey={avatarPath} size="xl" ring />
         </View>
         <LumeText rol="subtitle" style={styles.hojaTitulo}>
           Foto de perfil

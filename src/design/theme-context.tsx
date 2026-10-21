@@ -25,6 +25,8 @@ import React, {
 import { useColorScheme } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
+import { useProfile } from '@/contexts/profile';
+import { useSession } from '@/contexts/session';
 import { supabase } from '@/lib/supabase';
 import { themes, type Palette, type ThemeMode } from './tokens/colors';
 import { shadows, type Shadows } from './tokens/radius';
@@ -65,83 +67,68 @@ function isPreference(v: unknown): v is ThemePreference {
 }
 
 export function FrenciaThemeProvider({ children }: { children: React.ReactNode }) {
-  const [preference, setPreferenceState] = useState<ThemePreference>('system');
-  // Optimista: asumimos sesion hasta que Supabase diga lo contrario, asi la
-  // preferencia guardada aplica desde el primer frame sin parpadeo.
-  const [signedIn, setSignedIn] = useState(true);
+  const { user, initializing } = useSession();
+  const { profile, applyTema } = useProfile();
+  const [cachedPreference, setCachedPreference] = useState<ThemePreference>('system');
+  // Optimista mientras SessionProvider resuelve la sesion inicial, asi la
+  // preferencia guardada en AsyncStorage aplica desde el primer frame sin parpadeo.
+  const signedIn = initializing || !!user;
+  const remoto = temaToPreference(profile?.tema);
+  const preference: ThemePreference = signedIn ? (remoto ?? cachedPreference) : 'system';
   const systemScheme = useColorScheme();
   const systemMode: ThemeMode = systemScheme === 'light' ? 'light' : 'dark';
 
-  // Lee el tema guardado en Supabase para el usuario y lo aplica.
-  const syncFromSupabase = useCallback(async () => {
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    if (!user) return;
-    const { data } = await supabase
-      .from('profiles')
-      .select('tema')
-      .eq('id', user.id)
-      .maybeSingle();
-    const remoto = temaToPreference(data?.tema);
-    if (!remoto) return;
-    setPreferenceState(remoto);
-    AsyncStorage.setItem(STORAGE_KEY, remoto).catch(() => {});
-  }, []);
-
-  // Carga inicial: primero AsyncStorage (sincroniza al instante), luego
-  // Supabase como fuente de verdad si ya hay sesion.
+  // Mientras se resuelve la sesion inicial o hay sesion activa, leemos primero
+  // de AsyncStorage para aplicar al instante. Cuando SessionProvider confirma
+  // que no hay sesion (!initializing && !user), limpiamos AsyncStorage y
+  // volvemos al sistema para que el login no herede la preferencia anterior.
   useEffect(() => {
     let cancelado = false;
+    if (!signedIn) {
+      AsyncStorage.removeItem(STORAGE_KEY)
+        .then(() => {
+          if (!cancelado) setCachedPreference('system');
+        })
+        .catch(() => {});
+      return () => {
+        cancelado = true;
+      };
+    }
     (async () => {
       try {
         const saved = await AsyncStorage.getItem(STORAGE_KEY);
-        if (!cancelado && isPreference(saved)) setPreferenceState(saved);
+        if (!cancelado && isPreference(saved)) setCachedPreference(saved);
       } catch {
         // ignoramos: cae al default (sistema)
       }
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
-      if (cancelado) return;
-      setSignedIn(!!session);
-      if (session) await syncFromSupabase();
     })();
-
-    // Al iniciar sesion traemos el tema de la cuenta (login en caliente); al
-    // cerrarla volvemos al sistema para que el login no herede la preferencia.
-    const { data: sub } = supabase.auth.onAuthStateChange((event) => {
-      if (event === 'SIGNED_IN') {
-        setSignedIn(true);
-        syncFromSupabase();
-      } else if (event === 'SIGNED_OUT') {
-        setSignedIn(false);
-        setPreferenceState('system');
-        AsyncStorage.removeItem(STORAGE_KEY).catch(() => {});
-      }
-    });
-
     return () => {
       cancelado = true;
-      sub.subscription.unsubscribe();
     };
-  }, [syncFromSupabase]);
+  }, [signedIn]);
 
-  // Fija la preferencia: estado + AsyncStorage + Supabase (optimista, sin bloquear).
-  const setPreference = useCallback((next: ThemePreference) => {
-    setPreferenceState(next);
-    AsyncStorage.setItem(STORAGE_KEY, next).catch(() => {});
-    (async () => {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-      if (!user) return;
-      await supabase
+  // Sincroniza en AsyncStorage la preferencia remota que trae ProfileProvider.
+  useEffect(() => {
+    if (!remoto) return;
+    AsyncStorage.setItem(STORAGE_KEY, remoto).catch(() => {});
+  }, [remoto]);
+
+  // Fija la preferencia: estado local + perfil en memoria + AsyncStorage + Supabase.
+  const userId = user?.id;
+  const setPreference = useCallback(
+    (next: ThemePreference) => {
+      const nuevoTema = PREFERENCE_TO_TEMA[next];
+      setCachedPreference(next);
+      applyTema(nuevoTema);
+      AsyncStorage.setItem(STORAGE_KEY, next).catch(() => {});
+      if (!userId) return;
+      void supabase
         .from('profiles')
-        .update({ tema: PREFERENCE_TO_TEMA[next] })
-        .eq('id', user.id);
-    })();
-  }, []);
+        .update({ tema: nuevoTema })
+        .eq('id', userId);
+    },
+    [applyTema, userId],
+  );
 
   const mode: ThemeMode = signedIn && preference !== 'system' ? preference : systemMode;
 

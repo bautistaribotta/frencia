@@ -229,6 +229,7 @@ export default function HomeScreen() {
               <LumeAvatar
                 name={profile?.avatarSeed ?? displayName}
                 src={profile?.avatarUrl ?? undefined}
+                cacheKey={profile?.avatarPath}
                 size="md"
                 ring
               />

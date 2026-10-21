@@ -35,6 +35,7 @@ const FIRMA_SEGUNDOS = 60 * 60 * 24 * 7;
 
 interface UploadResult {
   url?: string;
+  path?: string;
   error?: string;
   canceled?: boolean;
 }
@@ -179,7 +180,7 @@ export async function pickAndUploadAvatar(userId: string): Promise<UploadResult>
       return { error: 'Subimos la imagen pero no pudimos mostrarla. Volve a entrar al perfil.' };
     }
 
-    return { url };
+    return { url, path };
   } catch {
     return { error: 'No pudimos procesar la imagen.' };
   }

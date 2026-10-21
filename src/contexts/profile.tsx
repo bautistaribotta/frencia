@@ -36,8 +36,11 @@ export interface ProfileData {
   altura: number | null;
   peso: number | null;
   avatarUrl: string | null;
+  avatarPath: string | null;
   avatarSeed: string | null;
   onboardingCompleted: boolean;
+  // Preferencia de tema guardada en profiles ('sistema' | 'oscuro' | 'claro').
+  tema: string | null;
   // Medidor de esfuerzo preferido. Decide la escala al cargar ejercicios.
   medidorEsfuerzo: 'rir' | 'rpe';
   // Unidad en la que se muestra y se escribe el peso. Lo guardado es siempre
@@ -104,7 +107,8 @@ interface ProfileContextValue {
   loadError: boolean;
   // Relee el perfil. Devuelve false si la lectura fallo.
   refresh: () => Promise<boolean>;
-  applyAvatar: (next: { url?: string | null; seed?: string | null }) => void;
+  applyAvatar: (next: { url?: string | null; path?: string | null; seed?: string | null }) => void;
+  applyTema: (tema: string) => void;
   // Cambia una o mas preferencias: primero en el contexto, para que toda la
   // app recalcule pesos y alturas en el mismo render que el switch, y despues
   // en profiles. Si la escritura falla vuelve al valor anterior y devuelve
@@ -123,6 +127,7 @@ const ProfileContext = createContext<ProfileContextValue>({
   loadError: false,
   refresh: async () => false,
   applyAvatar: () => {},
+  applyTema: () => {},
   savePreferencias: async () => false,
   aceptarLegales: async () => false,
 });
@@ -189,7 +194,7 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
       const res = await conLimite(
         supabase
           .from('profiles')
-          .select('name, surname, username, fecha_nacimiento, sexo, altura, peso, avatar_path, avatar_seed, onboarding_completed, medidor_esfuerzo, unidad_peso, unidad_altura, unidad_distancia, deletion_requested_at, aceptaciones_legales(version_terminos, version_privacidad)')
+          .select('name, surname, username, fecha_nacimiento, sexo, altura, peso, avatar_path, avatar_seed, onboarding_completed, tema, medidor_esfuerzo, unidad_peso, unidad_altura, unidad_distancia, deletion_requested_at, aceptaciones_legales(version_terminos, version_privacidad)')
           .eq('id', current.id)
           // De las aceptaciones solo importa la ultima.
           .order('aceptada_el', { referencedTable: 'aceptaciones_legales', ascending: false })
@@ -228,8 +233,10 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
             peso: data.peso,
             // Se completa despues, ver abajo.
             avatarUrl: null,
+            avatarPath: data.avatar_path,
             avatarSeed: data.avatar_seed,
             onboardingCompleted: data.onboarding_completed ?? false,
+            tema: data.tema,
             medidorEsfuerzo: data.medidor_esfuerzo === 'rpe' ? 'rpe' : 'rir',
             unidadPeso: data.unidad_peso === 'lb' ? 'lb' : 'kg',
             unidadAltura: data.unidad_altura === 'ft' ? 'ft' : 'cm',
@@ -268,9 +275,7 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
   const userId = user?.id;
   useEffect(() => {
     if (!userId) {
-      setProfile(null);
-      setLoadedFor(null);
-      setLoadError(false);
+      ultimoUsuario.current = null;
       return;
     }
     let cancelado = false;
@@ -294,17 +299,22 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
     };
   }, [userId, refresh]);
 
+  // Sin sesion activa descartamos el perfil anterior en el mismo render, sin
+  // esperar a un efecto.
+  const activeProfile = userId && loadedFor === userId ? profile : userId ? profile : null;
+  const activeLoadError = userId ? loadError : false;
   // Hay sesion pero todavia no leimos el perfil de ese usuario. Sin sesion no
   // hay nada que esperar.
   const loading = userId ? loadedFor !== userId : false;
 
   const applyAvatar = useCallback(
-    (next: { url?: string | null; seed?: string | null }) => {
+    (next: { url?: string | null; path?: string | null; seed?: string | null }) => {
       setProfile((prev) => {
         if (!prev) return prev;
         return {
           ...prev,
           avatarUrl: next.url !== undefined ? next.url : prev.avatarUrl,
+          avatarPath: next.path !== undefined ? next.path : prev.avatarPath,
           avatarSeed: next.seed !== undefined ? next.seed : prev.avatarSeed,
         };
       });
@@ -312,13 +322,17 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
     [],
   );
 
+  const applyTema = useCallback((tema: string) => {
+    setProfile((prev) => (prev ? { ...prev, tema } : prev));
+  }, []);
+
   const savePreferencias = useCallback(
     async (next: Partial<Preferencias>): Promise<boolean> => {
-      if (!profile || !userId) return false;
+      if (!activeProfile || !userId) return false;
       const claves = Object.keys(next) as (keyof Preferencias)[];
       // Solo se revierten las claves que se tocaron: otro cambio en vuelo sobre
       // una preferencia distinta no tiene por que perderse si este falla.
-      const anterior = Object.fromEntries(claves.map((k) => [k, profile[k]])) as Partial<Preferencias>;
+      const anterior = Object.fromEntries(claves.map((k) => [k, activeProfile[k]])) as Partial<Preferencias>;
       setProfile((prev) => (prev ? { ...prev, ...next } : prev));
 
       const patch = Object.fromEntries(claves.map((k) => [COLUMNA_PREFERENCIA[k], next[k]]));
@@ -329,7 +343,7 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
       }
       return true;
     },
-    [profile, userId],
+    [activeProfile, userId],
   );
 
   const aceptarLegales = useCallback(async (): Promise<boolean> => {
@@ -345,25 +359,26 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
     return true;
   }, []);
 
-  const displayName = profile?.name?.trim() || 'Atleta';
+  const displayName = activeProfile?.name?.trim() || 'Atleta';
   const legalesVigentes =
-    profile?.aceptacionLegal?.terminos === TERMINOS_VERSION &&
-    profile.aceptacionLegal.privacidad === PRIVACIDAD_VERSION;
+    activeProfile?.aceptacionLegal?.terminos === TERMINOS_VERSION &&
+    activeProfile.aceptacionLegal.privacidad === PRIVACIDAD_VERSION;
 
   return (
     <ProfileContext.Provider
       value={{
-        profile,
+        profile: activeProfile,
         loading,
         displayName,
         // Sin fila de perfil es un primer ingreso. Con la lectura fallida no se
         // sabe, y mandar al setup pisaria los datos de una cuenta existente.
-        needsOnboarding: profile ? !profile.onboardingCompleted : !loadError,
+        needsOnboarding: activeProfile ? !activeProfile.onboardingCompleted : !activeLoadError,
         // Mismo criterio: con la lectura fallida no se sabe, y decide el error.
-        needsLegalAcceptance: profile ? !legalesVigentes : !loadError,
-        loadError,
+        needsLegalAcceptance: activeProfile ? !legalesVigentes : !activeLoadError,
+        loadError: activeLoadError,
         refresh,
         applyAvatar,
+        applyTema,
         savePreferencias,
         aceptarLegales,
       }}

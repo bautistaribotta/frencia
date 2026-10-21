@@ -1,5 +1,5 @@
 /* Frencia · Layout raiz (Expo Router).
-   Monta los providers globales (gestos, safe-area, tema, sesion, perfil),
+   Monta los providers globales (gestos, safe-area, sesion, perfil, tema),
    define el Stack de navegacion y aplica el gate de autenticacion que
    decide entre el flujo de auth, el setup inicial y la app. */
 
@@ -30,20 +30,20 @@ export default function RootLayout() {
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
-      <FrenciaThemeProvider>
-        <SafeAreaProvider>
-          <SessionProvider>
-            <ProfileProvider>
+      <SafeAreaProvider>
+        <SessionProvider>
+          <ProfileProvider>
+            <FrenciaThemeProvider>
               <ToastProvider>
                 <AnimatedSplashOverlay />
                 <AlertaProvider>
                   <RootNavigator />
                 </AlertaProvider>
               </ToastProvider>
-            </ProfileProvider>
-          </SessionProvider>
-        </SafeAreaProvider>
-      </FrenciaThemeProvider>
+            </FrenciaThemeProvider>
+          </ProfileProvider>
+        </SessionProvider>
+      </SafeAreaProvider>
     </GestureHandlerRootView>
   );
 }
