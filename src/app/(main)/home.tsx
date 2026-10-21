@@ -1,6 +1,6 @@
 /* Frencia · Inicio — pantalla principal (Lume).
-   Sin rutinas: una frase, una accion y los primeros pasos, que se
-   desbloquean en orden.
+   Sin rutinas: una frase, la accion de crear la primera rutina y la guia
+   de primeros pasos.
    Con rutinas: cada dia de la rutina activa es una tarjeta de vidrio con su
    tira de semana y Empezar. Solo el proximo dia lleva Empezar en lume (y su
    tarjeta en vidrio fuerte); los demas, en vidrio. Las rutinas se releen cada

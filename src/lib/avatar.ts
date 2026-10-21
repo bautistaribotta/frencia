@@ -67,7 +67,8 @@ async function leerBytes(uri: string): Promise<ArrayBuffer> {
  * lo que no sean pixeles se pierde. Eso incluye el EXIF, y en el EXIF de una
  * foto de celular viaja la geolocalizacion exacta de donde fue tomada, la
  * fecha, el modelo del telefono y a veces el numero de serie. Nada de eso
- * tiene por que terminar en un bucket publico.
+ * tiene por que salir del dispositivo ni guardarse en el bucket (aunque sea
+ * privado) o viajar en las URLs firmadas.
  *
  * Al decodificar tambien se aplica la orientacion del EXIF, asi que la foto
  * queda derecha en los pixeles y no depende de una etiqueta que acabamos de

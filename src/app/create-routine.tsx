@@ -13,8 +13,9 @@
    un fundido.
    El armado de un dia es DayEditor, la misma vista que usa la edicion de un dia
    ya creado.
-   Todo se acumula en memoria y recien al finalizar se persiste en una sola
-   tanda (rutina + dias + weekdays + ejercicios), asi cancelar no deja basura. */
+   Todo se acumula en memoria durante el wizard y recien al finalizar se
+   persiste en la base (rutina, dias, weekdays y ejercicios en consultas
+   sucesivas), asi cancelar antes de confirmar no deja filas sueltas. */
 
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
