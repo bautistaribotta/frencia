@@ -199,9 +199,13 @@ export interface SeriePendiente {
   distanceM?: number | null;
   intensityKind: Medidor | null;
   intensityValue: number | null;
+  /** Cuando el usuario hizo la serie (ISO). Se fija al intentar guardarla, asi
+   *  una serie que sube mas tarde desde la cola conserva su hora real. Las que
+   *  quedaron pendientes antes de este campo no lo traen. */
+  completedAt?: string;
 }
 
-function aFilaSerie(params: SeriePendiente, completedAt = new Date().toISOString()) {
+function aFilaSerie(params: SeriePendiente) {
   return {
     session_id: params.sessionId,
     exercise_id: params.exerciseId,
@@ -212,7 +216,7 @@ function aFilaSerie(params: SeriePendiente, completedAt = new Date().toISOString
     distance_m: params.distanceM ?? null,
     intensity_kind: params.intensityKind,
     intensity_value: params.intensityValue,
-    completed_at: completedAt,
+    completed_at: params.completedAt ?? new Date().toISOString(),
   };
 }
 
@@ -270,11 +274,10 @@ export async function sincronizarPendientes(sessionId: string): Promise<number> 
   const lista = await leerPendientes(sessionId);
   if (lista.length === 0) return 0;
 
-  const ahora = new Date().toISOString();
   const { error } = await supabase
     .from('session_sets')
     .upsert(
-      lista.map((serie) => aFilaSerie(serie, ahora)),
+      lista.map(aFilaSerie),
       { onConflict: 'session_id,exercise_id,set_index' },
     );
   if (error) return lista.length;
@@ -287,8 +290,9 @@ export async function sincronizarPendientes(sessionId: string): Promise<number> 
 export async function guardarSerieConRespaldo(
   serie: SeriePendiente,
 ): Promise<'guardada' | 'pendiente'> {
-  if (await guardarSerie(serie)) return 'guardada';
-  await encolarPendiente(serie);
+  const conHora = { ...serie, completedAt: serie.completedAt ?? new Date().toISOString() };
+  if (await guardarSerie(conHora)) return 'guardada';
+  await encolarPendiente(conHora);
   return 'pendiente';
 }
 
