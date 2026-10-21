@@ -12,7 +12,10 @@
         "light": "./assets/images/app-icon-light.png",
         "dark": "./assets/images/app-icon-dark.png"
       },
-      "bundleIdentifier": "com.frencia.fitness"
+      "bundleIdentifier": "com.frencia.fitness",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "android": {
       "package": "com.frencia.fitness",
