@@ -135,12 +135,6 @@ function parseNum(texto: string): number | null {
   return Number.isFinite(n) ? n : null;
 }
 
-function mmss(segundos: number): string {
-  const m = Math.floor(segundos / 60);
-  const s = segundos % 60;
-  return `${m}:${String(s).padStart(2, '0')}`;
-}
-
 /** Intensidad pelada para una celda: la columna ya dice si es RIR o RPE.
  *  null si no hay intensidad. */
 function valorIntensidad(kind: Medidor | null, value: number | null): string | null {
@@ -1218,10 +1212,10 @@ function RelojDescanso({
         <Text
           style={[styles.reloj, { color: finDelDescanso ? t.signalText : t.textPrimary }]}
         >
-          {mmss(restante)}
+          {reloj(restante)}
         </Text>
         <LumeText rol="bodySm" color={t.textTertiary} style={styles.deTotal}>
-          de {mmss(totalDescanso)}
+          de {reloj(totalDescanso)}
         </LumeText>
       </RestRing>
 
@@ -1481,11 +1475,12 @@ function textoEsfuerzo(kind: Medidor | null, value: number | null): string | nul
 
 // --- Serie a guardar ---------------------------------------------------------
 
-/** Lo que se escribe de una serie completa, o null si le falta algo. El
- *  cardio pide el tiempo, con distancia y RPE opcionales; el isometrico, el
- *  tiempo, con RPE opcional y peso opcional salvo que el plan lo prescriba; la
- *  fuerza, peso, reps y el esfuerzo con el medidor del perfil. */
-function datosAGuardar(
+/** Evalua la serie en un solo lugar: que campos le faltan (en palabras:
+ *  "el peso", "las reps") y, cuando esta completa, los datos listos para
+ *  guardar. El cardio pide el tiempo, con distancia y RPE opcionales; el
+ *  isometrico, el tiempo, con RPE opcional y peso opcional salvo que el plan
+ *  lo prescriba; la fuerza, peso, reps y el esfuerzo con el medidor del perfil. */
+function evaluarSerie(
   ej: EjercicioPlan,
   v: ValoresSerie,
   unidad: UnidadPeso,
@@ -1494,75 +1489,90 @@ function datosAGuardar(
 ) {
   if (esSerieUnica(ej.kind)) {
     const durationSeconds = ej.tracks.duration ? v.tiempo : null;
+    // El tiempo es obligatorio; la distancia y el RPE, opcionales.
+    if (ej.tracks.duration && !durationSeconds) {
+      return { falta: ['el tiempo'], datos: null };
+    }
     // Una distancia que redondea a 0 m cuenta como no cargada.
     const distanceM =
       (ej.tracks.distance && v.distancia
         ? distanciaACanonico(v.distancia, unidadDistancia)
         : 0) || null;
-    // El tiempo es obligatorio; la distancia y el RPE, opcionales.
-    if (ej.tracks.duration && !durationSeconds) return null;
     const rpe = ej.intensityKind === null ? null : parseNum(v.intensidad);
     return {
-      weightKg: null,
-      reps: null,
-      durationSeconds,
-      distanceM,
-      intensityKind: rpe === null ? null : ('rpe' as const),
-      intensityValue: rpe,
+      falta: [] as string[],
+      datos: {
+        weightKg: null,
+        reps: null,
+        durationSeconds,
+        distanceM,
+        intensityKind: rpe === null ? null : ('rpe' as const),
+        intensityValue: rpe,
+      },
     };
   }
 
-  if (ej.kind === 'isometrico') {
-    if (faltantes(ej, v, medidor).length > 0) return null;
-    const peso = ej.tracks.weight ? parseNum(v.peso) : null;
-    const rpe = ej.intensityKind === null ? null : parseNum(v.intensidad);
-    return {
-      // Sin peso (o en 0) la serie se hizo sin carga.
-      weightKg: peso !== null && peso > 0 ? pesoACanonico(peso, unidad) : null,
-      reps: null,
-      durationSeconds: ej.tracks.duration ? v.tiempo : null,
-      distanceM: null,
-      intensityKind: rpe === null ? null : ('rpe' as const),
-      intensityValue: rpe,
-    };
-  }
-
-  const peso = parseNum(v.peso);
-  const reps = parseNum(v.reps);
-  const intensidad = parseNum(v.intensidad);
-  if (peso === null || reps === null || intensidad === null) return null;
-  if (peso < 0 || reps <= 0) return null;
-  return {
-    weightKg: pesoACanonico(peso, unidad),
-    reps: Math.round(reps),
-    intensityKind: medidor,
-    intensityValue: intensidad,
-  };
-}
-
-/** Lo que le falta a la serie para poder guardarse, en palabras: "el peso",
- *  "las reps". Vacio = completa. Sigue las mismas reglas que datosAGuardar. */
-function faltantes(ej: EjercicioPlan, v: ValoresSerie, medidor: Medidor): string[] {
-  if (esSerieUnica(ej.kind)) {
-    return ej.tracks.duration && !v.tiempo ? ['el tiempo'] : [];
-  }
   if (ej.kind === 'isometrico') {
     const falta: string[] = [];
-    if (ej.tracks.duration && !v.tiempo) falta.push('el tiempo');
+    const durationSeconds = ej.tracks.duration ? v.tiempo : null;
+    if (ej.tracks.duration && !durationSeconds) falta.push('el tiempo');
     // El peso es opcional, salvo que el plan lo prescriba.
-    const peso = parseNum(v.peso);
+    const peso = ej.tracks.weight ? parseNum(v.peso) : null;
     if (ej.tracks.weight && ej.weightKg !== null && (peso === null || peso <= 0)) {
       falta.push('el peso');
     }
-    return falta;
+    if (falta.length > 0) return { falta, datos: null };
+    const rpe = ej.intensityKind === null ? null : parseNum(v.intensidad);
+    return {
+      falta,
+      datos: {
+        // Sin peso (o en 0) la serie se hizo sin carga.
+        weightKg: peso !== null && peso > 0 ? pesoACanonico(peso, unidad) : null,
+        reps: null,
+        durationSeconds,
+        distanceM: null,
+        intensityKind: rpe === null ? null : ('rpe' as const),
+        intensityValue: rpe,
+      },
+    };
   }
+
   const falta: string[] = [];
   const peso = parseNum(v.peso);
   const reps = parseNum(v.reps);
+  const intensidad = parseNum(v.intensidad);
   if (peso === null || peso < 0) falta.push('el peso');
   if (reps === null || reps <= 0) falta.push('las reps');
-  if (parseNum(v.intensidad) === null) falta.push(medidor === 'rir' ? 'el RIR' : 'el RPE');
-  return falta;
+  if (intensidad === null) falta.push(medidor === 'rir' ? 'el RIR' : 'el RPE');
+  if (falta.length > 0 || peso === null || reps === null || intensidad === null) {
+    return { falta, datos: null };
+  }
+  return {
+    falta,
+    datos: {
+      weightKg: pesoACanonico(peso, unidad),
+      reps: Math.round(reps),
+      intensityKind: medidor,
+      intensityValue: intensidad,
+    },
+  };
+}
+
+/** Lo que se escribe de una serie completa, o null si le falta algo. */
+function datosAGuardar(
+  ej: EjercicioPlan,
+  v: ValoresSerie,
+  unidad: UnidadPeso,
+  unidadDistancia: UnidadDistancia,
+  medidor: Medidor,
+) {
+  return evaluarSerie(ej, v, unidad, unidadDistancia, medidor).datos;
+}
+
+/** Lo que le falta a la serie para poder guardarse, en palabras: "el peso",
+ *  "las reps". Vacio = completa. */
+function faltantes(ej: EjercicioPlan, v: ValoresSerie, medidor: Medidor): string[] {
+  return evaluarSerie(ej, v, 'kg', 'km', medidor).falta;
 }
 
 /** "a", "a y b", "a, b y c". */
