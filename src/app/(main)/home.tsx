@@ -130,7 +130,7 @@ export default function HomeScreen() {
     const { data } = await supabase
       .from('routines')
       .select(
-        'id, name, training_days(id, name, position, training_day_weekdays(weekday), training_day_exercises(id))',
+        'id, name, training_days(id, name, position, training_day_weekdays(weekday), training_day_exercises(count))',
       )
       .eq('user_id', user.id)
       .is('archived_at', null)
@@ -150,7 +150,7 @@ export default function HomeScreen() {
                 weekdays: (d.training_day_weekdays ?? [])
                   .map((w) => w.weekday)
                   .sort((a, b) => a - b),
-                exerciseCount: (d.training_day_exercises ?? []).length,
+                exerciseCount: d.training_day_exercises?.[0]?.count ?? 0,
               })),
           }
         : null,

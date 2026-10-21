@@ -78,14 +78,14 @@ export type PaginaRutinas =
     }
   | { estado: 'error' };
 
-const COLUMNAS = 'id, name, archived_at, created_at, training_days(id)';
+const COLUMNAS = 'id, name, archived_at, created_at, training_days(count)';
 
 interface FilaRutina {
   id: string;
   name: string;
   archived_at: string | null;
   created_at: string;
-  training_days: { id: string }[] | null;
+  training_days: { count: number }[] | null;
 }
 
 function aResumen(r: FilaRutina): RutinaResumen {
@@ -95,7 +95,7 @@ function aResumen(r: FilaRutina): RutinaResumen {
     activa: r.archived_at === null,
     creadaEl: r.created_at,
     archivadaEl: r.archived_at,
-    dias: (r.training_days ?? []).length,
+    dias: r.training_days?.[0]?.count ?? 0,
   };
 }
 
@@ -217,7 +217,7 @@ export async function cargarRutina(routineId: string): Promise<RutinaDetalle | n
   const { data, error } = await supabase
     .from('routines')
     .select(
-      'id, name, archived_at, created_at, training_days(id, name, position, training_day_weekdays(weekday), training_day_exercises(id))',
+      'id, name, archived_at, created_at, training_days(id, name, position, training_day_weekdays(weekday), training_day_exercises(count))',
     )
     .eq('id', routineId)
     .maybeSingle();
@@ -237,7 +237,7 @@ export async function cargarRutina(routineId: string): Promise<RutinaDetalle | n
         id: d.id,
         name: d.name,
         weekdays: (d.training_day_weekdays ?? []).map((w) => w.weekday).sort((a, b) => a - b),
-        ejercicios: (d.training_day_exercises ?? []).length,
+        ejercicios: d.training_day_exercises?.[0]?.count ?? 0,
       })),
   };
 }
