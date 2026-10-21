@@ -183,7 +183,7 @@ export default function EditRoutineScreen() {
 
     if (!ok) {
       setGuardando(false);
-      showToast({ message: 'No pudimos guardar la rutina. Proba de nuevo.', type: 'error' });
+      showToast({ message: 'No pudimos guardar la rutina. Probá de nuevo.', type: 'error' });
       return;
     }
 

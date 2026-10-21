@@ -22,7 +22,7 @@ export function usePedirEliminarCuenta() {
     const solicitadaEn = await solicitarEliminacionCuenta();
     setEliminando(false);
     if (!solicitadaEn) {
-      showToast({ message: 'No pudimos procesar la solicitud. Proba de nuevo.', type: 'error' });
+      showToast({ message: 'No pudimos procesar la solicitud. Probá de nuevo.', type: 'error' });
       return;
     }
     alerta(

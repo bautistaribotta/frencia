@@ -143,7 +143,7 @@ export default function EditDayScreen() {
 
     if (!ok) {
       setGuardando(false);
-      showToast({ message: 'No pudimos guardar el día. Proba de nuevo.', type: 'error' });
+      showToast({ message: 'No pudimos guardar el día. Probá de nuevo.', type: 'error' });
       return;
     }
 
@@ -182,7 +182,7 @@ export default function EditDayScreen() {
       return;
     }
     if (res === 'error') {
-      showToast({ message: 'No pudimos eliminar el día. Proba de nuevo.', type: 'error' });
+      showToast({ message: 'No pudimos eliminar el día. Probá de nuevo.', type: 'error' });
       return;
     }
     showToast({ message: 'Día eliminado', type: 'success' });

@@ -110,7 +110,7 @@ export default function HistoryScreen() {
       historial.quitar(sesion.id);
       showToast({ message: 'Entrenamiento eliminado', type: 'success' });
     } else {
-      showToast({ message: 'No pudimos eliminar el entrenamiento. Proba de nuevo.', type: 'error' });
+      showToast({ message: 'No pudimos eliminar el entrenamiento. Probá de nuevo.', type: 'error' });
     }
   }
 

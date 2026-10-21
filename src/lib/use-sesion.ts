@@ -183,7 +183,7 @@ export function useSesion(trainingDayId: string, nombreParam: string | undefined
       const nueva = await crearSesion(user.id, trainingDayId);
       if (cancelado) return;
       if (!nueva) {
-        showToast({ message: 'No pudimos abrir la sesión. Proba de nuevo.', type: 'error' });
+        showToast({ message: 'No pudimos abrir la sesión. Probá de nuevo.', type: 'error' });
         dispatch({ tipo: 'fase', fase: 'sinEjercicios' });
         return;
       }
@@ -400,7 +400,7 @@ export function useSesion(trainingDayId: string, nombreParam: string | undefined
     dispatch({ tipo: 'fase', fase: 'cargando' });
 
     if (!(await descartarSesion(conflicto.id))) {
-      showToast({ message: 'No pudimos descartar la sesión. Proba de nuevo.', type: 'error' });
+      showToast({ message: 'No pudimos descartar la sesión. Probá de nuevo.', type: 'error' });
       dispatch({ tipo: 'fase', fase: 'conflicto' });
       return;
     }
@@ -417,7 +417,7 @@ export function useSesion(trainingDayId: string, nombreParam: string | undefined
 
     const nueva = await crearSesion(user.id, trainingDayId);
     if (!nueva) {
-      showToast({ message: 'No pudimos abrir la sesión. Proba de nuevo.', type: 'error' });
+      showToast({ message: 'No pudimos abrir la sesión. Probá de nuevo.', type: 'error' });
       dispatch({ tipo: 'fase', fase: 'sinEjercicios' });
       return;
     }

@@ -91,7 +91,7 @@ export default function EditProfileScreen() {
         ? { unidadAltura: unit === 'imperial' ? 'ft' : 'cm' }
         : { unidadPeso: unit === 'imperial' ? 'lb' : 'kg' },
     );
-    if (!ok) showToast({ message: 'No pudimos guardar la unidad. Proba de nuevo.', type: 'error' });
+    if (!ok) showToast({ message: 'No pudimos guardar la unidad. Probá de nuevo.', type: 'error' });
   }
 
   // Traemos los datos ya guardados para precompletar los inputs al editar.
@@ -186,7 +186,7 @@ export default function EditProfileScreen() {
     setLoading(false);
 
     if (!ok) {
-      setErrorMsg('No pudimos guardar tu perfil. Proba de nuevo.');
+      setErrorMsg('No pudimos guardar tu perfil. Probá de nuevo.');
       return;
     }
 

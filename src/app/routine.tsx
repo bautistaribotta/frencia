@@ -104,7 +104,7 @@ export default function RoutineScreen() {
       router.replace('/routines');
     } else {
       setBorrando(false);
-      showToast({ message: 'No pudimos eliminar la rutina. Proba de nuevo.', type: 'error' });
+      showToast({ message: 'No pudimos eliminar la rutina. Probá de nuevo.', type: 'error' });
     }
   }
 

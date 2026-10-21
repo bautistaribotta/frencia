@@ -110,7 +110,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
               <Pressable
                 onPress={dismiss}
                 accessibilityRole="button"
-                accessibilityLabel="Cerrar notificacion"
+                accessibilityLabel="Cerrar notificación"
                 style={styles.pressable}
               >
                 <Icon name={ICON_BY_TYPE[toast.type]} size={20} color={accentByType[toast.type]} />

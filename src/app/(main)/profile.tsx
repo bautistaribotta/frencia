@@ -158,7 +158,7 @@ export default function ProfileScreen() {
   // revirtio y aca solo queda avisar.
   async function cambiarPreferencia(next: Partial<Preferencias>) {
     const ok = await savePreferencias(next);
-    if (!ok) showToast({ message: 'No pudimos guardar el ajuste. Proba de nuevo.', type: 'error' });
+    if (!ok) showToast({ message: 'No pudimos guardar el ajuste. Probá de nuevo.', type: 'error' });
   }
 
   function toggleRpe(next: boolean) {
@@ -180,7 +180,7 @@ export default function ProfileScreen() {
   // Cierra la sesion. El cambio lo detecta SessionProvider y el gate del
   // layout raiz redirige al login automaticamente.
   async function handleSignOut() {
-    showToast({ message: 'Sesion cerrada', type: 'info' });
+    showToast({ message: 'Sesión cerrada', type: 'info' });
     await supabase.auth.signOut();
   }
 

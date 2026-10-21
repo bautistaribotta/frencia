@@ -140,7 +140,7 @@ export async function pickAndUploadAvatar(userId: string): Promise<UploadResult>
     );
 
     if (uploadError) {
-      return { error: 'No pudimos subir la imagen. Proba de nuevo.' };
+      return { error: 'No pudimos subir la imagen. Probá de nuevo.' };
     }
 
     const { error: profileError } = await supabase

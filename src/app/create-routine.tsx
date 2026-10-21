@@ -203,8 +203,8 @@ export default function CreateRoutineScreen() {
       showToast({
         message:
           resultado === 'error-rutina'
-            ? 'No pudimos crear la rutina. Proba de nuevo.'
-            : 'No pudimos crear los días. Proba de nuevo.',
+            ? 'No pudimos crear la rutina. Probá de nuevo.'
+            : 'No pudimos crear los días. Probá de nuevo.',
         type: 'error',
       });
       return;

@@ -32,7 +32,7 @@ export default function AccountRecoveryScreen() {
     const ok = await cancelarEliminacionCuenta();
     if (!ok) {
       setRecuperando(false);
-      showToast({ message: 'No pudimos recuperar la cuenta. Proba de nuevo.', type: 'error' });
+      showToast({ message: 'No pudimos recuperar la cuenta. Probá de nuevo.', type: 'error' });
       return;
     }
     await refresh();

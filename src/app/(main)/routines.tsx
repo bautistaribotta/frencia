@@ -98,7 +98,7 @@ export default function RoutinesScreen() {
       showToast({ message: `${rutina.name} está en curso`, type: 'success' });
       await lista.recargar();
     } else {
-      showToast({ message: 'No pudimos activar la rutina. Proba de nuevo.', type: 'error' });
+      showToast({ message: 'No pudimos activar la rutina. Probá de nuevo.', type: 'error' });
     }
     setOcupada(false);
   }
@@ -127,7 +127,7 @@ export default function RoutinesScreen() {
       lista.quitar(rutina.id);
       showToast({ message: 'Rutina eliminada', type: 'success' });
     } else {
-      showToast({ message: 'No pudimos eliminar la rutina. Proba de nuevo.', type: 'error' });
+      showToast({ message: 'No pudimos eliminar la rutina. Probá de nuevo.', type: 'error' });
     }
     setOcupada(false);
   }
