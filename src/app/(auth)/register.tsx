@@ -6,6 +6,7 @@
 import React, { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { useRouter } from 'expo-router';
+import type { AuthError } from '@supabase/supabase-js';
 
 import { supabase } from '@/lib/supabase';
 import { signInWithProvider, type OAuthProvider } from '@/lib/oauth';
@@ -25,6 +26,39 @@ import {
 
 import { Campo, LumeButton } from '@/design/lume';
 
+/** El correo ya tiene cuenta. Supabase usa uno u otro codigo segun la version
+ *  de Auth, y las mas viejas solo mandan el mensaje en ingles. */
+function esEmailTomado(error: AuthError): boolean {
+  return (
+    error.code === 'user_already_exists' ||
+    error.code === 'email_exists' ||
+    /already registered/i.test(error.message)
+  );
+}
+
+/** Traduce el error de signUp. `error.message` llega en ingles y nunca se
+ *  muestra tal cual. */
+function mensajeDeRegistro(error: AuthError): string {
+  if (error.name === 'AuthRetryableFetchError' || error.status === 0) {
+    return 'No pudimos conectarnos. Revisá tu conexión y probá de nuevo.';
+  }
+  if (error.status === 429 || error.code === 'over_request_rate_limit' || error.code === 'over_email_send_rate_limit') {
+    return 'Hiciste muchos intentos seguidos. Esperá unos minutos y probá de nuevo.';
+  }
+  switch (error.code) {
+    case 'weak_password':
+      return 'La contraseña es muy débil. Probá con una más larga, que mezcle letras y números.';
+    case 'email_address_invalid':
+    case 'validation_failed':
+      return 'Revisá el correo electrónico: no parece válido.';
+    case 'signup_disabled':
+    case 'email_provider_disabled':
+      return 'Por ahora no se pueden crear cuentas con correo.';
+    default:
+      return 'No pudimos crear la cuenta. Probá de nuevo en unos segundos.';
+  }
+}
+
 export default function RegisterScreen() {
   const router = useRouter();
   const [name, setName] = useState('');
@@ -35,8 +69,8 @@ export default function RegisterScreen() {
   const [loading, setLoading] = useState(false);
   const [oauthLoading, setOauthLoading] = useState<OAuthProvider | null>(null);
   const [errorMsg, setErrorMsg] = useState('');
-  // Supabase responde "User already registered" cuando el email ya tiene
-  // cuenta. Lo mostramos en castellano y ofrecemos recuperar la contraseña.
+  // Si el correo ya tiene cuenta, ademas del mensaje se ofrece recuperar la
+  // contraseña.
   const [emailTaken, setEmailTaken] = useState(false);
 
   const passwordsMatch = password.length >= 6 && password === confirm;
@@ -66,11 +100,11 @@ export default function RegisterScreen() {
     setLoading(false);
 
     if (error) {
-      if (/already registered/i.test(error.message)) {
+      if (esEmailTomado(error)) {
         setEmailTaken(true);
-        setErrorMsg('Email ya registrado.');
+        setErrorMsg('Ese correo ya tiene una cuenta.');
       } else {
-        setErrorMsg(error.message);
+        setErrorMsg(mensajeDeRegistro(error));
       }
       return;
     }
