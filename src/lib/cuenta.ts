@@ -4,6 +4,7 @@
    diario en Postgres purga las cuentas con mas de 30 dias de solicitud. */
 
 import { supabase } from './supabase';
+export { fechaLarga } from './tiempo';
 
 export const DIAS_DE_GRACIA = 30;
 
@@ -35,9 +36,4 @@ export function fechaPurga(solicitadaEn: Date): Date {
   corrida.setUTCHours(HORA_UTC_PURGA, 0, 0, 0);
   if (corrida.getTime() <= califica) corrida.setUTCDate(corrida.getUTCDate() + 1);
   return corrida;
-}
-
-/** "21 de octubre de 2026" */
-export function fechaLarga(fecha: Date): string {
-  return fecha.toLocaleDateString('es-AR', { day: 'numeric', month: 'long', year: 'numeric' });
 }
