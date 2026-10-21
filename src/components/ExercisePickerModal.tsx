@@ -298,6 +298,26 @@ function PickerContenido({
   );
   const filtroActivo = tipo ? TIPOS[tipo].label : (grupoActivo?.name ?? null);
 
+  // Clave de busqueda precalculada por ejercicio (nombre en espanol e ingles,
+  // musculo objetivo y, fuera de fuerza, etiqueta del tipo) para no normalizar
+  // todo el catalogo en cada tecla.
+  const clavesBusqueda = useMemo(
+    () =>
+      catalog.map((e) =>
+        foldText(
+          [
+            e.name,
+            e.nameEn,
+            e.primary?.name,
+            e.kind !== 'fuerza' ? TIPOS[e.kind].label : null,
+          ]
+            .filter(Boolean)
+            .join('\n'),
+        ),
+      ),
+    [catalog],
+  );
+
   // Busqueda instantanea: filtra el catalogo en memoria (sin acentos ni
   // mayusculas). Cero latencia, sin red por cada tecla. Mira tambien el nombre
   // en ingles, porque en el gimnasio se usan los dos ("jalon al pecho" y "lat
@@ -310,16 +330,12 @@ function PickerContenido({
   const results = useMemo(() => {
     const q = foldText(query.trim());
     return catalog.filter(
-      (e) =>
+      (e, i) =>
         (grupo === null || e.primary?.slug === grupo) &&
         (tipo === null || e.kind === tipo) &&
-        (q === '' ||
-          foldText(e.name).includes(q) ||
-          (e.nameEn !== null && foldText(e.nameEn).includes(q)) ||
-          (e.primary !== null && foldText(e.primary.name).includes(q)) ||
-          (e.kind !== 'fuerza' && foldText(TIPOS[e.kind].label).includes(q))),
+        (q === '' || clavesBusqueda[i].includes(q)),
     );
-  }, [query, grupo, tipo, catalog]);
+  }, [query, grupo, tipo, catalog, clavesBusqueda]);
 
   // Estable: lo usa el renderItem de la lista, que se memoiza contra el.
   const pickExercise = useCallback(
