@@ -90,11 +90,15 @@ tabla tiene una fila por usuario.
      la sesion.
 7. **Si la RPC falla, no se cierra la sesion** y se muestra el toast de error
    habitual ("No pudimos procesar la solicitud. Proba de nuevo.").
-8. **Toda la escritura pasa por RPC.** Las politicas RLS de `profiles`
-   permiten al usuario actualizar su propia fila, pero la columna se marca y
-   desmarca solo via `solicitar_eliminacion_cuenta()` y
-   `cancelar_eliminacion_cuenta()`, para que la regla 4 y el `now()` del
-   servidor vivan en un solo lugar.
+8. **Toda la escritura pasa por RPC.** `authenticated` solo tiene privilegio
+   de escritura sobre las columnas de `profiles` que edita la app, y
+   `deletion_requested_at` no esta entre ellas: la columna se marca y desmarca
+   solo via `solicitar_eliminacion_cuenta()` y `cancelar_eliminacion_cuenta()`
+   (security definer, siempre sobre la fila de quien llama), para que la regla
+   4 y el `now()` del servidor vivan en un solo lugar y nadie pueda adelantar
+   su propia purga. Tampoco se puede borrar la fila de `profiles` desde la
+   API: la purga parte de esa tabla. Ver la migracion
+   `20261021120000_endurecer_profiles.sql`.
 9. **Las cuentas que nunca aceptan los textos legales se purgan solas.** Sin
    aceptar no se entra a la app, asi que a los 30 dias de creada la cuenta
    solo guarda los datos del alta. La misma purga diaria borra las cuentas
@@ -113,8 +117,9 @@ comment on column public.profiles.deletion_requested_at is
   'Fecha en que el usuario pidio eliminar la cuenta. null = cuenta normal. '
   'La purga corre 30 dias despues via pg_cron.';
 
--- RPCs: corren como el usuario logueado (security invoker), asi RLS sigue
--- aplicando y nadie puede marcar la fila de otro.
+-- RPCs: version original (security invoker). Desde
+-- 20261021120000_endurecer_profiles.sql son security definer, porque
+-- authenticated ya no puede escribir la columna directo.
 create or replace function public.solicitar_eliminacion_cuenta()
 returns timestamptz language sql security invoker as $$
   update public.profiles
