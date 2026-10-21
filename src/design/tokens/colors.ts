@@ -103,6 +103,7 @@ const darkColors = {
 
   // Scrim: fondo que atenua el contenido detras de hojas y dialogos
   scrim: 'rgba(0, 0, 0, 0.6)',
+  fadeTransparent: 'rgba(22, 19, 23, 0)',
 
   // Accent — primary action (esmeralda)
   accent: palette.green500,
@@ -171,6 +172,7 @@ const lightColors: Palette = {
 
   // Scrim: fondo que atenua el contenido detras de hojas y dialogos
   scrim: 'rgba(0, 0, 0, 0.6)',
+  fadeTransparent: 'rgba(228, 231, 228, 0)',
 
   // Accent — primary action (verde medio)
   accent: palette.greenLight,
@@ -213,13 +215,37 @@ export const colors = darkColors;
 
 export type ColorToken = keyof typeof darkColors;
 
-/** Un color hex del tema con alpha. Para degradados que funden contra el
- *  fondo: interpolar hacia 'transparent' no sirve, porque es negro con alpha 0
- *  y en el tema claro el degradado saldria gris sucio. */
-export function withAlpha(hex: string, alpha: number): string {
-  const h = hex.replace('#', '');
-  const r = parseInt(h.slice(0, 2), 16);
-  const g = parseInt(h.slice(2, 4), 16);
-  const b = parseInt(h.slice(4, 6), 16);
-  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+/** Convierte un color del tema (hex de 3, 4, 6 u 8 digitos o rgb/rgba) a
+ *  `rgba(r, g, b, alpha)`. Para degradados que funden contra el fondo:
+ *  interpolar hacia 'transparent' no sirve, porque es negro con alpha 0 y en
+ *  el tema claro el degradado saldria gris sucio. */
+export function withAlpha(color: string, alpha: number): string {
+  const a = Math.max(0, Math.min(1, alpha));
+  const limpio = color.trim();
+
+  const matchRgb = /^rgba?\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)/i.exec(limpio);
+  if (matchRgb) {
+    return `rgba(${matchRgb[1]}, ${matchRgb[2]}, ${matchRgb[3]}, ${a})`;
+  }
+
+  const h = limpio.replace(/^#/, '');
+  if (h.length === 3 || h.length === 4) {
+    const r = parseInt(h[0] + h[0], 16);
+    const g = parseInt(h[1] + h[1], 16);
+    const b = parseInt(h[2] + h[2], 16);
+    if (!Number.isNaN(r) && !Number.isNaN(g) && !Number.isNaN(b)) {
+      return `rgba(${r}, ${g}, ${b}, ${a})`;
+    }
+  }
+
+  if (h.length === 6 || h.length === 8) {
+    const r = parseInt(h.slice(0, 2), 16);
+    const g = parseInt(h.slice(2, 4), 16);
+    const b = parseInt(h.slice(4, 6), 16);
+    if (!Number.isNaN(r) && !Number.isNaN(g) && !Number.isNaN(b)) {
+      return `rgba(${r}, ${g}, ${b}, ${a})`;
+    }
+  }
+
+  return color;
 }

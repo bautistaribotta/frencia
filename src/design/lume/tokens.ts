@@ -272,3 +272,9 @@ export const lumeMotion = {
 
 /* ---- Blur (BlurView de expo-blur) ---- */
 export const lumeBlur = { glass: 40, sheet: 60 } as const;
+
+/* ---- Mascara de fundido (MaskedView + LinearGradient) ----
+   La mascara solo mira el alfa: lleno se ve, vacio no. No son colores de la
+   interfaz. */
+export const MASCARA_LLENA = '#000000';
+export const MASCARA_VACIA = 'transparent';

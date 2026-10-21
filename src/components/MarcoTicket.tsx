@@ -11,7 +11,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import MaskedView from '@react-native-masked-view/masked-view';
 
 import { ANCHO_TICKET, MARGEN_CAPTURA } from '@/components/TicketSesion';
-import { lumeLayout, lumeSpace } from '@/design/lume';
+import { MASCARA_LLENA, MASCARA_VACIA, lumeLayout, lumeSpace } from '@/design/lume';
 
 export interface MarcoTicketProps {
   /** El boton de volver, alineado a la izquierda. */
@@ -21,11 +21,6 @@ export interface MarcoTicketProps {
   /** El ticket. */
   children: ReactNode;
 }
-
-// La mascara solo mira el alfa: lleno se ve, vacio no. No son colores de la
-// interfaz.
-const MASCARA_LLENA = '#000000';
-const MASCARA_VACIA = 'transparent';
 
 // Alto de los fundidos contra el encabezado y contra los botones.
 const FUNDIDO_ARRIBA = lumeSpace[7];
@@ -41,7 +36,7 @@ export function MarcoTicket({ encabezado, acciones, children }: MarcoTicketProps
         maskElement={
           <View style={styles.flex}>
             <LinearGradient colors={[MASCARA_VACIA, MASCARA_LLENA]} style={styles.fundidoArriba} />
-            <View style={[styles.flex, { backgroundColor: MASCARA_LLENA }]} />
+            <View style={styles.mascaraLlena} />
             <LinearGradient colors={[MASCARA_LLENA, MASCARA_VACIA]} style={styles.fundidoAbajo} />
           </View>
         }
@@ -75,6 +70,7 @@ const styles = StyleSheet.create({
     paddingBottom: FUNDIDO - MARGEN_CAPTURA.abajo,
   },
   fundidoArriba: { height: FUNDIDO_ARRIBA },
+  mascaraLlena: { flex: 1, backgroundColor: MASCARA_LLENA },
   fundidoAbajo: { height: FUNDIDO },
   acciones: {
     flexDirection: 'row',

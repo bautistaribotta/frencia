@@ -37,12 +37,17 @@ import {
   type TrainingDay,
 } from '@/lib/dia';
 
-import { Cargando, Fondo, LumeButton, LumeText, lumeLayout, lumeSpace, useLume } from '@/design/lume';
-
-// La mascara del fundido solo mira el alfa: lleno se ve, vacio no. No son
-// colores de la interfaz.
-const MASCARA_LLENA = '#000000';
-const MASCARA_VACIA = 'transparent';
+import {
+  Cargando,
+  Fondo,
+  LumeButton,
+  LumeText,
+  MASCARA_LLENA,
+  MASCARA_VACIA,
+  lumeLayout,
+  lumeSpace,
+  useLume,
+} from '@/design/lume';
 
 
 // Firma del dia para saber si hay cambios sin guardar. Compara lo que se
@@ -223,7 +228,7 @@ export default function EditDayScreen() {
                 style={styles.flex}
                 maskElement={
                   <View style={styles.flex}>
-                    <View style={[styles.flex, { backgroundColor: MASCARA_LLENA }]} />
+                    <View style={styles.mascaraLlena} />
                     <LinearGradient colors={[MASCARA_LLENA, MASCARA_VACIA]} style={styles.fundido} />
                   </View>
                 }
@@ -334,6 +339,7 @@ const styles = StyleSheet.create({
   ayuda: { marginBottom: lumeSpace[2], maxWidth: 320 },
   // Separado de los ejercicios para que no se lea como parte del editor.
   zonaEliminar: { marginTop: lumeSpace[10] },
+  mascaraLlena: { flex: 1, backgroundColor: MASCARA_LLENA },
   fundido: { height: lumeSpace[11] },
 
   nav: {

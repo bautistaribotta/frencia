@@ -84,6 +84,8 @@ import {
   Fondo,
   LumeButton,
   LumeText,
+  MASCARA_LLENA,
+  MASCARA_VACIA,
   Segmentado,
   Vidrio,
   lumeFuente,
@@ -93,11 +95,6 @@ import {
   lumeSpace,
   useLume,
 } from '@/design/lume';
-
-// La mascara del fundido solo mira el alfa: lleno se ve, vacio no. No son
-// colores de la interfaz.
-const MASCARA_LLENA = '#000000';
-const MASCARA_VACIA = 'transparent';
 
 
 /** Ejercicio ya elegido, venga del catalogo o de un dia armado. */
@@ -796,7 +793,7 @@ function PickerContenido({
                 maskElement={
                   <View style={styles.flex}>
                     <LinearGradient colors={[MASCARA_VACIA, MASCARA_LLENA]} style={styles.fundido} />
-                    <View style={[styles.flex, { backgroundColor: MASCARA_LLENA }]} />
+                    <View style={styles.mascaraLlena} />
                   </View>
                 }
               >
@@ -1027,6 +1024,7 @@ const styles = StyleSheet.create({
   // La lista va de borde a borde y repone el margen en su contenido: si no,
   // el scroll recorta el fondo de la fila desplegada, que se sale del texto.
   listWrap: { flex: 1, marginHorizontal: -lumeLayout.padScreen },
+  mascaraLlena: { flex: 1, backgroundColor: MASCARA_LLENA },
   fundido: { height: lumeSpace[7] },
   // El padding de arriba iguala la altura del fundido: en reposo la primera
   // fila se ve entera, y al scrollear las filas se funden ahi en vez de
