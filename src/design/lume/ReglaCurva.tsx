@@ -13,7 +13,8 @@
 import React, { useState } from 'react';
 import { Platform, StyleSheet, View } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
-import { runOnJS, useSharedValue } from 'react-native-reanimated';
+import { useSharedValue } from 'react-native-reanimated';
+import { scheduleOnRN } from 'react-native-worklets';
 import Svg, { G, Line, Path, Text as SvgText } from 'react-native-svg';
 import * as Haptics from 'expo-haptics';
 
@@ -112,22 +113,22 @@ export function ReglaCurva({
     .onUpdate((e) => {
       const c = Math.max(min, Math.min(max, inicio.get() - (e.translationX / pxPorGrado / grados) * paso));
       posicion.set(c);
-      runOnJS(setContinuo)(c);
+      scheduleOnRN(setContinuo, c);
       const p = ajustar(c);
       if (p !== ultimoPaso.get()) {
         ultimoPaso.set(p);
-        runOnJS(onChange)(p);
+        scheduleOnRN(onChange, p);
       }
       const entero = Math.round(c);
       if (entero !== ultimoEntero.get()) {
         ultimoEntero.set(entero);
-        runOnJS(hapticoLiviano)();
+        scheduleOnRN(hapticoLiviano);
       }
     })
     .onFinalize(() => {
       const p = ajustar(posicion.get());
       posicion.set(p);
-      runOnJS(setContinuo)(p);
+      scheduleOnRN(setContinuo, p);
     });
 
   // Marcas y numeros visibles alrededor de la posicion actual.

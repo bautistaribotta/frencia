@@ -22,12 +22,12 @@ import {
 import Animated, {
   Extrapolation,
   interpolate,
-  runOnJS,
   useAnimatedScrollHandler,
   useAnimatedStyle,
   useSharedValue,
   type SharedValue,
 } from 'react-native-reanimated';
+import { scheduleOnRN } from 'react-native-worklets';
 import * as Haptics from 'expo-haptics';
 
 import { useLume } from './useLume';
@@ -91,7 +91,7 @@ export function Rueda({
       const i = Math.round(e.contentOffset.y / RUEDA_ITEM);
       if (i !== centrado.value) {
         centrado.value = i;
-        runOnJS(tic)();
+        scheduleOnRN(tic);
       }
     },
   });
