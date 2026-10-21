@@ -5,20 +5,29 @@
    6 o mas. "Cada serie cuenta." */
 
 import React, { useState } from 'react';
-import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { StyleSheet, View } from 'react-native';
 import { useRouter } from 'expo-router';
 
 import { supabase } from '@/lib/supabase';
 import { signInWithProvider, type OAuthProvider } from '@/lib/oauth';
-import { AvisoTerminos, BotonesSociales, Divisor, Enlace, Entrando, Marca, PieEnlace } from '@/components/Acceso';
+import {
+  AvisoTerminos,
+  BotonOjo,
+  BotonesSociales,
+  CamposAcceso,
+  Divisor,
+  Enlace,
+  Entrando,
+  ErrorAcceso,
+  FormularioAcceso,
+  Marca,
+  PantallaAcceso,
+  PieEnlace,
+} from '@/components/Acceso';
 
-import { Icon } from '@/design';
-import { Campo, Fondo, LumeButton, LumeText, lumeLayout, lumeSpace, useLume } from '@/design/lume';
+import { Campo, LumeButton, lumeSpace } from '@/design/lume';
 
 export default function LoginScreen() {
-  const { t } = useLume();
-  const insets = useSafeAreaInsets();
   const router = useRouter();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -92,112 +101,64 @@ export default function LoginScreen() {
   }
 
   return (
-    <View style={styles.pantalla}>
-      <Fondo posicion="flanco" animado />
-      <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-        <ScrollView
-          contentContainerStyle={[
-            styles.scroll,
-            { paddingBottom: insets.bottom + lumeSpace[7] },
-          ]}
-          keyboardShouldPersistTaps="handled"
-          showsVerticalScrollIndicator={false}
+    <PantallaAcceso overlay={entering ? <Entrando /> : null}>
+      <Marca />
+
+      <FormularioAcceso titulo="Entrá a tu cuenta" bajada="Seguí registrando cada serie donde la dejaste.">
+        <CamposAcceso>
+          <Campo
+            icono="mail"
+            placeholder="Correo electrónico"
+            value={email}
+            onChangeText={setEmail}
+            keyboardType="email-address"
+            autoCapitalize="none"
+            autoComplete="email"
+            inputMode="email"
+          />
+          <Campo
+            icono="lock"
+            placeholder="Contraseña"
+            value={password}
+            onChangeText={setPassword}
+            secureTextEntry={!showPass}
+            autoCapitalize="none"
+            autoComplete="password"
+            onSubmitEditing={handleLogin}
+            final={<BotonOjo visible={showPass} onToggle={() => setShowPass((s) => !s)} />}
+          />
+        </CamposAcceso>
+
+        <View style={styles.olvido}>
+          <Enlace onPress={() => router.push({ pathname: '/forgot-password', params: { email: email.trim() } })}>
+            ¿Olvidaste tu contraseña?
+          </Enlace>
+        </View>
+
+        <LumeButton
+          variant="primary"
+          size="lg"
+          fullWidth
+          iconRight="arrow-right"
+          disabled={!canSubmit}
+          loading={loading}
+          onPress={handleLogin}
         >
-          <Marca />
+          Ingresar
+        </LumeButton>
 
-          <View style={styles.form}>
-            <LumeText rol="title" accessibilityRole="header" style={styles.titulo}>
-              Entrá a tu cuenta
-            </LumeText>
-            <LumeText rol="bodySm" color={t.textSecondary}>
-              Seguí registrando cada serie donde la dejaste.
-            </LumeText>
+        <ErrorAcceso mensaje={errorMsg} />
 
-            <View style={styles.campos}>
-              <Campo
-                icono="mail"
-                placeholder="Correo electrónico"
-                value={email}
-                onChangeText={setEmail}
-                keyboardType="email-address"
-                autoCapitalize="none"
-                autoComplete="email"
-                inputMode="email"
-              />
-              <Campo
-                icono="lock"
-                placeholder="Contraseña"
-                value={password}
-                onChangeText={setPassword}
-                secureTextEntry={!showPass}
-                autoCapitalize="none"
-                autoComplete="password"
-                onSubmitEditing={handleLogin}
-                final={
-                  <Pressable
-                    hitSlop={10}
-                    onPress={() => setShowPass((s) => !s)}
-                    accessibilityRole="button"
-                    accessibilityLabel={showPass ? 'Ocultar contraseña' : 'Mostrar contraseña'}
-                  >
-                    <Icon name={showPass ? 'eye-off' : 'eye'} size={20} color={t.textTertiary} strokeWidth={1.75} />
-                  </Pressable>
-                }
-              />
-            </View>
+        <Divisor texto="o continuá con" />
+        <BotonesSociales cargando={oauthLoading} onPress={handleOAuth} />
+        <AvisoTerminos />
+      </FormularioAcceso>
 
-            <View style={styles.olvido}>
-              <Enlace onPress={() => router.push({ pathname: '/forgot-password', params: { email: email.trim() } })}>
-                ¿Olvidaste tu contraseña?
-              </Enlace>
-            </View>
-
-            <LumeButton
-              variant="primary"
-              size="lg"
-              fullWidth
-              iconRight="arrow-right"
-              disabled={!canSubmit}
-              loading={loading}
-              onPress={handleLogin}
-            >
-              Ingresar
-            </LumeButton>
-
-            {errorMsg ? (
-              <LumeText rol="bodySm" color={t.dangerText} accessibilityLiveRegion="polite">
-                {errorMsg}
-              </LumeText>
-            ) : null}
-
-            <Divisor texto="o continuá con" />
-            <BotonesSociales cargando={oauthLoading} onPress={handleOAuth} />
-            <AvisoTerminos />
-          </View>
-
-          <View style={styles.pie}>
-            <PieEnlace pregunta="¿No tenés cuenta?" enlace="Creá una" onPress={() => router.push('/register')} />
-          </View>
-        </ScrollView>
-      </KeyboardAvoidingView>
-
-      {entering ? <Entrando /> : null}
-    </View>
+      <PieEnlace alFondo pregunta="¿No tenés cuenta?" enlace="Creá una" onPress={() => router.push('/register')} />
+    </PantallaAcceso>
   );
 }
 
 const styles = StyleSheet.create({
-  pantalla: { flex: 1 },
-  flex: { flex: 1 },
-  // La marca y el formulario van arriba; el pie baja al borde inferior y el
-  // espacio que sobra queda entre los botones y el pie.
-  scroll: {
-    flexGrow: 1,
-    paddingHorizontal: lumeLayout.padScreen,
-  },
-  form: { gap: lumeSpace[5] },
-  pie: { marginTop: 'auto', paddingTop: lumeSpace[7] },
-  titulo: { marginBottom: -lumeSpace[3] },
-  campos: { gap: lumeSpace[3], marginTop: lumeSpace[3] },
   olvido: { alignSelf: 'flex-end', marginTop: -lumeSpace[2] },
 });

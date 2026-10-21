@@ -5,16 +5,16 @@
    nueva (tras el deep link) queda para mas adelante. */
 
 import React, { useState } from 'react';
-import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { makeRedirectUri } from 'expo-auth-session';
 
 import { supabase } from '@/lib/supabase';
-import { PieEnlace } from '@/components/Acceso';
+import { CamposAcceso, ErrorAcceso, FormularioAcceso, PantallaAcceso, PieEnlace } from '@/components/Acceso';
 
 import { Icon } from '@/design';
-import { Campo, Fondo, LumeButton, LumeText, Vidrio, lumeFuente, lumeLayout, lumeSpace, useLume } from '@/design/lume';
+import { Campo, LumeButton, LumeText, Vidrio, lumeFuente, lumeLayout, lumeSpace, useLume } from '@/design/lume';
 
 // URL a la que vuelve el link del correo. Expo Go -> exp://... ;
 // build nativo -> frencia://reset-password. Hay que darla de alta en
@@ -65,108 +65,80 @@ export default function ForgotPasswordScreen() {
   }
 
   return (
-    <View style={styles.pantalla}>
-      <Fondo posicion="flanco" animado />
+    <PantallaAcceso
+      centrado
+      encabezado={
+        <View style={[styles.atras, { top: insets.top + lumeSpace[3] }]}>
+          <LumeButton variant="ghost" size="sm" icon="chevron-left" onPress={goToLogin}>
+            Atrás
+          </LumeButton>
+        </View>
+      }
+    >
+      <Vidrio radio={15} style={styles.sello}>
+        <Icon name={sent ? 'mail-check' : 'key-round'} size={26} color={t.textPrimary} strokeWidth={1.75} />
+      </Vidrio>
 
-      <View style={[styles.atras, { top: insets.top + lumeSpace[3] }]}>
-        <LumeButton variant="ghost" size="sm" icon="chevron-left" onPress={goToLogin}>
-          Atrás
-        </LumeButton>
-      </View>
-
-      <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-        <ScrollView
-          contentContainerStyle={[
-            styles.scroll,
-            { paddingTop: insets.top + lumeSpace[11], paddingBottom: insets.bottom + lumeSpace[7] },
-          ]}
-          keyboardShouldPersistTaps="handled"
-          showsVerticalScrollIndicator={false}
+      {sent ? (
+        <FormularioAcceso
+          titulo="Revisá tu correo"
+          bajada={
+            <>
+              Te enviamos un enlace a{' '}
+              <LumeText rol="bodySm" style={styles.semi}>
+                {email.trim()}
+              </LumeText>{' '}
+              para que elijas una contraseña nueva. Si no lo ves, mirá en spam.
+            </>
+          }
         >
-          <Vidrio radio={15} style={styles.sello}>
-            <Icon name={sent ? 'mail-check' : 'key-round'} size={26} color={t.textPrimary} strokeWidth={1.75} />
-          </Vidrio>
+          <LumeButton variant="primary" size="lg" fullWidth iconRight="arrow-right" onPress={goToLogin}>
+            Volver al inicio de sesión
+          </LumeButton>
+          <PieEnlace pregunta="¿No te llegó?" enlace="Reenviar" onPress={() => setSent(false)} />
+        </FormularioAcceso>
+      ) : (
+        <FormularioAcceso
+          titulo="Recuperá tu contraseña"
+          bajada="Escribí tu correo y te enviamos un enlace para elegir una nueva."
+        >
+          <CamposAcceso>
+            <Campo
+              icono="mail"
+              placeholder="Correo electrónico"
+              value={email}
+              onChangeText={setEmail}
+              keyboardType="email-address"
+              autoCapitalize="none"
+              autoComplete="email"
+              inputMode="email"
+              autoFocus={!params.email}
+              returnKeyType="send"
+              onSubmitEditing={handleSend}
+            />
+          </CamposAcceso>
 
-          {sent ? (
-            <View style={styles.form}>
-              <LumeText rol="title" accessibilityRole="header" style={styles.titulo}>
-                Revisá tu correo
-              </LumeText>
-              <LumeText rol="bodySm" color={t.textSecondary}>
-                Te enviamos un enlace a{' '}
-                <LumeText rol="bodySm" style={styles.semi}>
-                  {email.trim()}
-                </LumeText>{' '}
-                para que elijas una contraseña nueva. Si no lo ves, mirá en spam.
-              </LumeText>
-              <LumeButton variant="primary" size="lg" fullWidth iconRight="arrow-right" onPress={goToLogin}>
-                Volver al inicio de sesión
-              </LumeButton>
-              <PieEnlace pregunta="¿No te llegó?" enlace="Reenviar" onPress={() => setSent(false)} />
-            </View>
-          ) : (
-            <View style={styles.form}>
-              <LumeText rol="title" accessibilityRole="header" style={styles.titulo}>
-                Recuperá tu contraseña
-              </LumeText>
-              <LumeText rol="bodySm" color={t.textSecondary}>
-                Escribí tu correo y te enviamos un enlace para elegir una nueva.
-              </LumeText>
+          <ErrorAcceso mensaje={errorMsg} />
 
-              <View style={styles.campos}>
-                <Campo
-                  icono="mail"
-                  placeholder="Correo electrónico"
-                  value={email}
-                  onChangeText={setEmail}
-                  keyboardType="email-address"
-                  autoCapitalize="none"
-                  autoComplete="email"
-                  inputMode="email"
-                  autoFocus={!params.email}
-                  returnKeyType="send"
-                  onSubmitEditing={handleSend}
-                />
-              </View>
-
-              {errorMsg ? (
-                <LumeText rol="bodySm" color={t.dangerText} accessibilityLiveRegion="polite">
-                  {errorMsg}
-                </LumeText>
-              ) : null}
-
-              <LumeButton
-                variant="primary"
-                size="lg"
-                fullWidth
-                iconRight="arrow-right"
-                disabled={!canSubmit}
-                loading={loading}
-                onPress={handleSend}
-              >
-                Enviar enlace
-              </LumeButton>
-            </View>
-          )}
-        </ScrollView>
-      </KeyboardAvoidingView>
-    </View>
+          <LumeButton
+            variant="primary"
+            size="lg"
+            fullWidth
+            iconRight="arrow-right"
+            disabled={!canSubmit}
+            loading={loading}
+            onPress={handleSend}
+          >
+            Enviar enlace
+          </LumeButton>
+        </FormularioAcceso>
+      )}
+    </PantallaAcceso>
   );
 }
 
 const styles = StyleSheet.create({
-  pantalla: { flex: 1 },
-  flex: { flex: 1 },
   atras: { position: 'absolute', left: lumeLayout.padScreen - 10, zIndex: 1 },
-  scroll: {
-    flexGrow: 1,
-    justifyContent: 'center',
-    gap: lumeSpace[10],
-    paddingHorizontal: lumeLayout.padScreen,
-  },
   sello: { width: 64, height: 64, alignItems: 'center', justifyContent: 'center' },
-  form: { gap: lumeSpace[5] },
-  titulo: { marginBottom: -lumeSpace[3] },
-  campos: { gap: lumeSpace[3], marginTop: lumeSpace[3] },
   semi: { fontFamily: lumeFuente.semibold },
 });

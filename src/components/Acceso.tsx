@@ -5,11 +5,12 @@
    el design system. */
 
 import React from 'react';
-import { Image, Pressable, StyleSheet, View } from 'react-native';
+import { Image, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 
-import { Cargando, Fondo, LumeButton, LumeText, lumeFuente, lumeSpace, useLume } from '@/design/lume';
+import { Icon } from '@/design';
+import { Cargando, Fondo, LumeButton, LumeText, lumeFuente, lumeLayout, lumeSpace, useLume } from '@/design/lume';
 import type { OAuthProvider } from '@/lib/oauth';
 
 import AppleLogo from '@/assets/icons/apple.svg';
@@ -21,6 +22,100 @@ const LETRAS = require('../../assets/images/lume/marca-letras.png');
 const PUNTO = require('../../assets/images/lume/marca-punto.png');
 const ANCHO_MARCA = 168;
 const ALTO_MARCA = (ANCHO_MARCA * 268) / 1004;
+
+/* Marco comun de las tres pantallas de acceso: fondo flanco animado, teclado y
+   scroll con margen inferior de safe area. */
+export function PantallaAcceso({
+  centrado = false,
+  encabezado,
+  overlay,
+  children,
+}: {
+  centrado?: boolean;
+  encabezado?: React.ReactNode;
+  overlay?: React.ReactNode;
+  children: React.ReactNode;
+}) {
+  const insets = useSafeAreaInsets();
+  return (
+    <View style={styles.pantalla}>
+      <Fondo posicion="flanco" animado />
+      {encabezado}
+      <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+        <ScrollView
+          contentContainerStyle={[
+            styles.scroll,
+            centrado && styles.scrollCentrado,
+            {
+              paddingTop: centrado ? insets.top + lumeSpace[11] : 0,
+              paddingBottom: insets.bottom + lumeSpace[7],
+            },
+          ]}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+        >
+          {children}
+        </ScrollView>
+      </KeyboardAvoidingView>
+      {overlay}
+    </View>
+  );
+}
+
+/* Cabecera y contenedor del formulario de acceso: titulo, bajada y cuerpo. */
+export function FormularioAcceso({
+  titulo,
+  bajada,
+  children,
+}: {
+  titulo: string;
+  bajada: React.ReactNode;
+  children: React.ReactNode;
+}) {
+  const { t } = useLume();
+  return (
+    <View style={styles.form}>
+      <LumeText rol="title" accessibilityRole="header" style={styles.titulo}>
+        {titulo}
+      </LumeText>
+      <LumeText rol="bodySm" color={t.textSecondary}>
+        {bajada}
+      </LumeText>
+      {children}
+    </View>
+  );
+}
+
+/* Pila de campos de texto dentro del formulario de acceso. */
+export function CamposAcceso({ children }: { children: React.ReactNode }) {
+  return <View style={styles.campos}>{children}</View>;
+}
+
+/* Boton para mostrar u ocultar la contraseña al final de un Campo. */
+export function BotonOjo({ visible, onToggle }: { visible: boolean; onToggle: () => void }) {
+  const { t } = useLume();
+  return (
+    <Pressable
+      hitSlop={10}
+      onPress={onToggle}
+      accessibilityRole="button"
+      accessibilityLabel={visible ? 'Ocultar contraseña' : 'Mostrar contraseña'}
+    >
+      <Icon name={visible ? 'eye-off' : 'eye'} size={20} color={t.textTertiary} strokeWidth={1.75} />
+    </Pressable>
+  );
+}
+
+/* Mensaje de error del formulario en dangerText. */
+export function ErrorAcceso({ mensaje, live = true }: { mensaje?: string; live?: boolean }) {
+  const { t } = useLume();
+  if (!mensaje) return null;
+  return (
+    <LumeText rol="bodySm" color={t.dangerText} accessibilityLiveRegion={live ? 'polite' : undefined}>
+      {mensaje}
+    </LumeText>
+  );
+}
 
 /* La marca del acceso: solo el nombre FRENCIA., sin icono ni lema, centrado
    arriba de todo con un margen fijo bajo la barra de estado y cerca del
@@ -144,10 +239,20 @@ export function Enlace({
 }
 
 /* Pie con la pregunta y el enlace a la otra pantalla. */
-export function PieEnlace({ pregunta, enlace, onPress }: { pregunta: string; enlace: string; onPress: () => void }) {
+export function PieEnlace({
+  pregunta,
+  enlace,
+  onPress,
+  alFondo = false,
+}: {
+  pregunta: string;
+  enlace: string;
+  onPress: () => void;
+  alFondo?: boolean;
+}) {
   const { t } = useLume();
   return (
-    <View style={styles.pie}>
+    <View style={[styles.pie, alFondo && styles.pieAlFondo]}>
       <LumeText rol="bodySm" color={t.textSecondary}>
         {pregunta}{' '}
       </LumeText>
@@ -170,6 +275,21 @@ export function Entrando() {
 }
 
 const styles = StyleSheet.create({
+  pantalla: { flex: 1 },
+  flex: { flex: 1 },
+  // La marca y el formulario van arriba; el pie baja al borde inferior y el
+  // espacio que sobra queda entre los botones y el pie.
+  scroll: {
+    flexGrow: 1,
+    paddingHorizontal: lumeLayout.padScreen,
+  },
+  scrollCentrado: {
+    justifyContent: 'center',
+    gap: lumeSpace[10],
+  },
+  form: { gap: lumeSpace[5] },
+  titulo: { marginBottom: -lumeSpace[3] },
+  campos: { gap: lumeSpace[3], marginTop: lumeSpace[3] },
   // El nombre va 50 px mas abajo del margen base y 40 px arriba del titulo:
   // el bloque mide lo mismo, asi que el formulario no se mueve.
   marca: { alignSelf: 'stretch', alignItems: 'center', paddingBottom: lumeSpace[9] },
@@ -183,5 +303,6 @@ const styles = StyleSheet.create({
   semi: { fontFamily: lumeFuente.semibold },
   presionado: { opacity: 0.6 },
   pie: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center' },
+  pieAlFondo: { marginTop: 'auto', paddingTop: lumeSpace[7] },
   entrando: { alignItems: 'center', justifyContent: 'center' },
 });
