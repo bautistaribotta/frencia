@@ -8,7 +8,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 
-import { AnimatedSplashOverlay } from '@/components/animated-icon';
+import { AnimatedSplashOverlay } from '@/components/AnimatedSplashOverlay';
 import { FrenciaThemeProvider, useColors, useFrenciaFonts, useTheme } from '@/design';
 import { useLumeFonts } from '@/design/lume';
 import { SessionProvider, useSession } from '@/contexts/session';
