@@ -4,10 +4,11 @@
    por eso usa la tipografia mono. La barra de seleccion la dibuja el contenedor
    (ver MeasurePicker), aca solo va la columna de numeros. */
 
-import React, { useEffect, useRef } from 'react';
+import React, { memo, useEffect, useRef, useState } from 'react';
 import {
   Platform,
   StyleSheet,
+  View,
   type ScrollView,
   type NativeScrollEvent,
   type NativeSyntheticEvent,
@@ -35,6 +36,11 @@ function tick() {
 
 type Align = 'center' | 'left' | 'right';
 
+// Ventana de virtualizacion alrededor del centro actual para evitar montar
+// cientos de items con worklets de Reanimated al mismo tiempo.
+const WINDOW_RADIUS = 12;
+const WINDOW_STEP = 4;
+
 export interface WheelPickerProps {
   values: (string | number)[];
   index: number;
@@ -56,21 +62,40 @@ export function WheelPicker({
 }: WheelPickerProps) {
   const styles = useThemedStyles(makeStyles);
   const scrollRef = useRef<ScrollView>(null);
-  const scrollY = useSharedValue(index * itemHeight);
-  const centered = useSharedValue(index);
+  const maxIndex = Math.max(0, values.length - 1);
+  const safeIndex = Math.max(0, Math.min(maxIndex, index));
+  const scrollY = useSharedValue(safeIndex * itemHeight);
+  const centered = useSharedValue(safeIndex);
+  const windowPos = useSharedValue(safeIndex);
+  const [windowCenter, setWindowCenter] = useState(safeIndex);
+  const [lastIndex, setLastIndex] = useState(safeIndex);
   const inited = useRef(false);
+  const isLong = values.length > WINDOW_RADIUS * 2 + 1;
+
+  if (safeIndex !== lastIndex) {
+    setLastIndex(safeIndex);
+    setWindowCenter(safeIndex);
+  }
+
+  const safeCenter = Math.max(0, Math.min(maxIndex, windowCenter));
+  const fromIndex = Math.max(0, safeCenter - WINDOW_RADIUS);
+  const toIndex = Math.min(maxIndex, safeCenter + WINDOW_RADIUS);
 
   const height = itemHeight * visibleCount;
   const pad = (height - itemHeight) / 2;
 
   const onScroll = useAnimatedScrollHandler({
     onScroll: (e) => {
-      scrollY.value = e.contentOffset.y;
+      scrollY.set(e.contentOffset.y);
       // Vibra al cambiar el numero centrado, no en cada frame.
       const i = Math.round(e.contentOffset.y / itemHeight);
-      if (i !== centered.value) {
-        centered.value = i;
+      if (i !== centered.get()) {
+        centered.set(i);
         runOnJS(tick)();
+      }
+      if (isLong && Math.abs(i - windowPos.get()) >= WINDOW_STEP) {
+        windowPos.set(i);
+        runOnJS(setWindowCenter)(i);
       }
     },
   });
@@ -79,21 +104,26 @@ export function WheelPicker({
   function settle(e: NativeSyntheticEvent<NativeScrollEvent>) {
     const y = e.nativeEvent.contentOffset.y;
     const i = Math.max(0, Math.min(values.length - 1, Math.round(y / itemHeight)));
+    if (isLong) {
+      windowPos.set(i);
+      setWindowCenter(i);
+    }
     if (i !== index) onIndexChange(i);
   }
 
   // Sincroniza la posicion cuando el indice cambia desde afuera (ej. cambio
   // de unidad recalcula el valor).
   useEffect(() => {
+    windowPos.set(safeIndex);
     if (!inited.current) return;
-    scrollRef.current?.scrollTo({ y: index * itemHeight, animated: true });
-  }, [index, itemHeight]);
+    scrollRef.current?.scrollTo({ y: safeIndex * itemHeight, animated: true });
+  }, [safeIndex, itemHeight, windowPos]);
 
   // Posicion inicial sin animacion, una sola vez, cuando ya hay contenido.
   function onContentSizeChange() {
     if (inited.current) return;
     inited.current = true;
-    scrollRef.current?.scrollTo({ y: index * itemHeight, animated: false });
+    scrollRef.current?.scrollTo({ y: safeIndex * itemHeight, animated: false });
   }
 
   return (
@@ -112,22 +142,27 @@ export function WheelPicker({
       onContentSizeChange={onContentSizeChange}
       contentContainerStyle={{ paddingVertical: pad }}
     >
-      {values.map((v, i) => (
-        <WheelItem
-          key={`${v}-${i}`}
-          label={String(v)}
-          i={i}
-          scrollY={scrollY}
-          itemHeight={itemHeight}
-          align={align}
-          textStyle={styles.text}
-        />
-      ))}
+      <View style={{ height: values.length * itemHeight, paddingTop: fromIndex * itemHeight }}>
+        {values.slice(fromIndex, toIndex + 1).map((v, idx) => {
+          const i = fromIndex + idx;
+          return (
+            <WheelItem
+              key={i}
+              label={String(v)}
+              i={i}
+              scrollY={scrollY}
+              itemHeight={itemHeight}
+              align={align}
+              textStyle={styles.text}
+            />
+          );
+        })}
+      </View>
     </Animated.ScrollView>
   );
 }
 
-function WheelItem({
+const WheelItem = memo(function WheelItem({
   label,
   i,
   scrollY,
@@ -143,7 +178,7 @@ function WheelItem({
   textStyle: TextStyle;
 }) {
   const animStyle = useAnimatedStyle(() => {
-    const pos = scrollY.value / itemHeight;
+    const pos = scrollY.get() / itemHeight;
     const dist = Math.abs(pos - i);
     const opacity = interpolate(dist, [0, 1, 2, 3], [1, 0.4, 0.18, 0.07], Extrapolation.CLAMP);
     const scale = interpolate(dist, [0, 1, 2], [1, 0.82, 0.7], Extrapolation.CLAMP);
@@ -158,7 +193,7 @@ function WheelItem({
       <Animated.Text style={[textStyle, { textAlign }]}>{label}</Animated.Text>
     </Animated.View>
   );
-}
+});
 
 const makeStyles = (colors: Palette) =>
   StyleSheet.create({

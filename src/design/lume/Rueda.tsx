@@ -10,7 +10,7 @@
    cualquier parte del escenario, no solo encima del numero.
    ============================================================ */
 
-import React, { useEffect, useRef } from 'react';
+import React, { memo, useEffect, useRef, useState } from 'react';
 import {
   Platform,
   StyleSheet,
@@ -39,6 +39,11 @@ import { lumeRadius, lumeSpace } from './tokens';
 export const RUEDA_ITEM = 44;
 const VISIBLES = 7;
 const ALTO = RUEDA_ITEM * VISIBLES;
+// Ventana de virtualizacion alrededor del centro actual: evita montar cientos
+// de nodos con worklets de Reanimated (ej. las 375 libras del selector de peso)
+// manteniendo el alto total del contenido intacto para el snap nativo.
+const RADIO_VENTANA = 12;
+const PASO_VENTANA = 4;
 
 // Tic suave cada vez que un numero pasa por el centro.
 function tic() {
@@ -80,32 +85,56 @@ export function Rueda({
   const { izq, der } = ALCANCE[alcance];
   const { t } = useLume();
   const ref = useRef<ScrollView>(null);
-  const y = useSharedValue(indice * RUEDA_ITEM);
-  const centrado = useSharedValue(indice);
+  const maxIndice = Math.max(0, valores.length - 1);
+  const indiceSeguro = Math.max(0, Math.min(maxIndice, indice));
+  const y = useSharedValue(indiceSeguro * RUEDA_ITEM);
+  const centrado = useSharedValue(indiceSeguro);
+  const ventana = useSharedValue(indiceSeguro);
+  const [centroVentana, setCentroVentana] = useState(indiceSeguro);
+  const [ultimoIndice, setUltimoIndice] = useState(indiceSeguro);
   const listo = useRef(false);
   const pad = (ALTO - RUEDA_ITEM) / 2;
+  const esLarga = valores.length > RADIO_VENTANA * 2 + 1;
+
+  if (indiceSeguro !== ultimoIndice) {
+    setUltimoIndice(indiceSeguro);
+    setCentroVentana(indiceSeguro);
+  }
+
+  const centroSeguro = Math.max(0, Math.min(maxIndice, centroVentana));
+  const desde = Math.max(0, centroSeguro - RADIO_VENTANA);
+  const hasta = Math.min(maxIndice, centroSeguro + RADIO_VENTANA);
 
   const onScroll = useAnimatedScrollHandler({
     onScroll: (e) => {
-      y.value = e.contentOffset.y;
+      y.set(e.contentOffset.y);
       const i = Math.round(e.contentOffset.y / RUEDA_ITEM);
-      if (i !== centrado.value) {
-        centrado.value = i;
+      if (i !== centrado.get()) {
+        centrado.set(i);
         runOnJS(tic)();
+      }
+      if (esLarga && Math.abs(i - ventana.get()) >= PASO_VENTANA) {
+        ventana.set(i);
+        runOnJS(setCentroVentana)(i);
       }
     },
   });
 
   function asentar(e: NativeSyntheticEvent<NativeScrollEvent>) {
     const i = Math.max(0, Math.min(valores.length - 1, Math.round(e.nativeEvent.contentOffset.y / RUEDA_ITEM)));
+    if (esLarga) {
+      ventana.set(i);
+      setCentroVentana(i);
+    }
     if (i !== indice) onIndice(i);
   }
 
   // Si el indice cambia desde afuera, la rueda lo sigue.
   useEffect(() => {
+    ventana.set(indiceSeguro);
     if (!listo.current) return;
-    ref.current?.scrollTo({ y: indice * RUEDA_ITEM, animated: true });
-  }, [indice]);
+    ref.current?.scrollTo({ y: indiceSeguro * RUEDA_ITEM, animated: true });
+  }, [indiceSeguro, ventana]);
 
   return (
     <Animated.ScrollView
@@ -121,21 +150,36 @@ export function Rueda({
       onContentSizeChange={() => {
         if (listo.current) return;
         listo.current = true;
-        ref.current?.scrollTo({ y: indice * RUEDA_ITEM, animated: false });
+        ref.current?.scrollTo({ y: indiceSeguro * RUEDA_ITEM, animated: false });
       }}
       contentContainerStyle={{ paddingVertical: pad, paddingLeft: izq, paddingRight: der }}
     >
-      {valores.map((v, i) => (
-        <Item key={`${v}-${i}`} texto={String(v)} i={i} y={y} alinear={alinear} color={t.textPrimary} />
-      ))}
+      <View style={{ height: valores.length * RUEDA_ITEM, paddingTop: desde * RUEDA_ITEM }}>
+        {valores.slice(desde, hasta + 1).map((v, idx) => {
+          const i = desde + idx;
+          return <Item key={i} texto={String(v)} i={i} y={y} alinear={alinear} color={t.textPrimary} />;
+        })}
+      </View>
     </Animated.ScrollView>
   );
 }
 
-function Item({ texto, i, y, alinear, color }: { texto: string; i: number; y: SharedValue<number>; alinear: Alinear; color: string }) {
+const Item = memo(function Item({
+  texto,
+  i,
+  y,
+  alinear,
+  color,
+}: {
+  texto: string;
+  i: number;
+  y: SharedValue<number>;
+  alinear: Alinear;
+  color: string;
+}) {
   // Tamaños del kit: 34 el elegido, 25 / 21 / 18 los vecinos.
   const estilo = useAnimatedStyle(() => {
-    const d = Math.abs(y.value / RUEDA_ITEM - i);
+    const d = Math.abs(y.get() / RUEDA_ITEM - i);
     return {
       opacity: interpolate(d, [0, 1, 2, 3], [1, 0.48, 0.26, 0.14], Extrapolation.CLAMP),
       transform: [{ scale: interpolate(d, [0, 1, 2, 3], [1, 25 / 34, 21 / 34, 18 / 34], Extrapolation.CLAMP) }],
@@ -149,7 +193,7 @@ function Item({ texto, i, y, alinear, color }: { texto: string; i: number; y: Sh
       </LumeText>
     </Animated.View>
   );
-}
+});
 
 /* Escenario: la banda de seleccion en vidrio fuerte, las ruedas encima y la
    unidad al costado. */
