@@ -10,7 +10,7 @@ import type { SerieRegistrada } from './session.ts';
 import type { EjercicioRealizado } from './session-history.ts';
 import { distanciaCompacta, type UnidadDistancia } from './distancia.ts';
 import { mostrarPeso, type UnidadPeso } from './peso.ts';
-import { reloj } from './tiempo.ts';
+import { MESES_MAYUS, reloj } from './tiempo.ts';
 
 /** Lo minimo del plan que hace falta para nombrar y ordenar los ejercicios. */
 export interface EjercicioDelPlan {
@@ -131,8 +131,6 @@ export function mejorMarca(
   return tiempo !== null ? reloj(tiempo) : '';
 }
 
-const MESES = ['ENE', 'FEB', 'MAR', 'ABR', 'MAY', 'JUN', 'JUL', 'AGO', 'SEP', 'OCT', 'NOV', 'DIC'];
-
 /** Fecha y hora de arranque del ticket: "9 OCT 2026" y "07:42". Armado a mano
  *  porque toLocaleDateString cambia de formato entre motores ("oct." u "oct"). */
 export function fechaTicket(epochMs: number): { fecha: string; hora: string } {
@@ -140,7 +138,7 @@ export function fechaTicket(epochMs: number): { fecha: string; hora: string } {
   const hh = String(d.getHours()).padStart(2, '0');
   const mm = String(d.getMinutes()).padStart(2, '0');
   return {
-    fecha: `${d.getDate()} ${MESES[d.getMonth()]} ${d.getFullYear()}`,
+    fecha: `${d.getDate()} ${MESES_MAYUS[d.getMonth()]} ${d.getFullYear()}`,
     hora: `${hh}:${mm}`,
   };
 }

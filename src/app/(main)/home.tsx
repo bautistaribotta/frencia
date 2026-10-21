@@ -17,9 +17,11 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect, useRouter } from 'expo-router';
 
 import { useProfile } from '@/contexts/profile';
+import { SEMANA_CORTA, SEMANA_NOMBRES } from '@/lib/dia';
 import { cargarFechasEntrenadas } from '@/lib/history';
 import { calcularRacha, fechaLocal, type Racha } from '@/lib/streak';
 import { supabase } from '@/lib/supabase';
+import { indiceSemanaLunes, MESES_CORTO } from '@/lib/tiempo';
 import { useVolverArribaAlRetocar } from '@/lib/volver-arriba';
 
 import { Icon } from '@/design';
@@ -52,14 +54,9 @@ const STEPS: Step[] = [
   { n: 3, title: 'Seguí tu progreso', sub: 'PR, volumen semanal y 1RM estimado', state: 'locked' },
 ];
 
-// Nombres cortos (resumen) y largos (saludo) de la semana. 0 = lunes.
-const SEMANA_CORTA = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
-const SEMANA_LARGA = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
-const MESES = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
-
 /** "Jueves · 12 jun", la fecha de hoy en la linea del saludo. */
 function fechaSaludo(d: Date): string {
-  return `${SEMANA_LARGA[(d.getDay() + 6) % 7]} · ${d.getDate()} ${MESES[d.getMonth()]}`;
+  return `${SEMANA_NOMBRES[indiceSemanaLunes(d)]} · ${d.getDate()} ${MESES_CORTO[d.getMonth()]}`;
 }
 
 /** El dia que toca antes, contando desde hoy (hoy incluido). Sin dias de la
@@ -198,7 +195,7 @@ export default function HomeScreen() {
   const openProfile = () => router.navigate('/profile');
   const onCreateRoutine = () => router.push('/create-routine');
   const hasRoutine = routine !== null && routine.days.length > 0;
-  const proximo = hasRoutine ? indiceProximo(routine.days, (new Date().getDay() + 6) % 7) : -1;
+  const proximo = hasRoutine ? indiceProximo(routine.days, indiceSemanaLunes(new Date())) : -1;
 
   return (
     <View style={styles.pantalla}>

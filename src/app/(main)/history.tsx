@@ -18,6 +18,8 @@ import { AvisoPie, CargaPestania, ErrorPestania, VacioPestania } from '@/compone
 import { eliminarSesion, haceCuanto, type SesionTerminada } from '@/lib/session';
 import { agruparHistorial, type MesHistorial } from '@/lib/history';
 import { crearHistorial } from '@/lib/history-store';
+import { SEMANA_CORTA } from '@/lib/dia';
+import { duracionSesion, indiceSemanaLunes, MESES_CORTO, MESES_LARGO } from '@/lib/tiempo';
 import { useVolverArribaAlRetocar } from '@/lib/volver-arriba';
 
 import { Icon } from '@/design';
@@ -33,17 +35,10 @@ import {
   useLume,
 } from '@/design/lume';
 
-const MESES = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
-const MESES_LARGO = [
-  'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
-  'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre',
-];
-const SEMANA = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
-
 /** "Jue 12 jun" y, si no es de este anio, "Jue 12 jun 2025". */
 function fechaCorta(epochMs: number): string {
   const d = new Date(epochMs);
-  const base = `${SEMANA[d.getDay()]} ${d.getDate()} ${MESES[d.getMonth()]}`;
+  const base = `${SEMANA_CORTA[indiceSemanaLunes(d)]} ${d.getDate()} ${MESES_CORTO[d.getMonth()]}`;
   return d.getFullYear() === new Date().getFullYear() ? base : `${base} ${d.getFullYear()}`;
 }
 
@@ -52,15 +47,6 @@ function tituloMes(epochMs: number): string {
   const d = new Date(epochMs);
   const nombre = MESES_LARGO[d.getMonth()];
   return d.getFullYear() === new Date().getFullYear() ? nombre : `${nombre} ${d.getFullYear()}`;
-}
-
-/** "48 min" o "1 h 12 min". Menos de un minuto se redondea a "1 min". */
-function duracion(startedAt: number, finishedAt: number): string {
-  const min = Math.max(1, Math.round((finishedAt - startedAt) / 60000));
-  if (min < 60) return `${min} min`;
-  const h = Math.floor(min / 60);
-  const resto = min % 60;
-  return resto === 0 ? `${h} h` : `${h} h ${resto} min`;
 }
 
 export default function HistoryScreen() {
@@ -227,7 +213,7 @@ export default function HistoryScreen() {
                 </View>
 
                 <View style={styles.tarjetaPie}>
-                  <LumeMetricPill icon="timer" label="Duración" value={duracion(s.startedAt, s.finishedAt)} />
+                  <LumeMetricPill icon="timer" label="Duración" value={duracionSesion(s.startedAt, s.finishedAt)} />
                   <View style={styles.verSeries}>
                     <LumeText rol="bodySm" color={t.textSecondary}>
                       Ver series

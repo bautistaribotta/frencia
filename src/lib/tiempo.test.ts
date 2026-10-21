@@ -3,7 +3,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 
-import { duracionCompacta, reloj } from './tiempo.ts';
+import { duracionCompacta, duracionSesion, indiceSemanaLunes, reloj } from './tiempo.ts';
 
 test('el reloj va en m:ss por debajo de una hora, sin cero inicial', () => {
   assert.equal(reloj(45), '0:45');
@@ -28,4 +28,21 @@ test('el resumen compacto usa segundos, minutos u horas segun el valor', () => {
 test('lo que no cae en minutos exactos se resume como reloj', () => {
   assert.equal(duracionCompacta(90), '1:30');
   assert.equal(duracionCompacta(3630), '1:00:30');
+});
+
+test('el reloj trunca decimales y acota negativos a cero', () => {
+  assert.equal(reloj(-5), '0:00');
+  assert.equal(reloj(45.9), '0:45');
+});
+
+test('duracionSesion formatea en minutos u horas y redondea como minimo a 1 min', () => {
+  assert.equal(duracionSesion(0, 10_000), '1 min');
+  assert.equal(duracionSesion(0, 48 * 60_000), '48 min');
+  assert.equal(duracionSesion(0, 60 * 60_000), '1 h');
+  assert.equal(duracionSesion(0, 72 * 60_000), '1 h 12 min');
+});
+
+test('indiceSemanaLunes devuelve 0 para lunes y 6 para domingo', () => {
+  assert.equal(indiceSemanaLunes(new Date(2026, 9, 19)), 0); // Lunes 19 oct 2026
+  assert.equal(indiceSemanaLunes(new Date(2026, 9, 25)), 6); // Domingo 25 oct 2026
 });

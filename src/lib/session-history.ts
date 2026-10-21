@@ -10,6 +10,10 @@ import {
 } from './exercises';
 import { supabase } from './supabase';
 import type { Medidor, SesionTerminada } from './session';
+import { duracionSesion } from './tiempo';
+import { esUuid } from './validacion';
+
+export { duracionSesion };
 
 /** Una serie tal como se guardo. Lo que el ejercicio no registra es null. */
 export interface SerieRealizada {
@@ -56,7 +60,6 @@ export type ResultadoDetalleSesion =
   | { estado: 'error' };
 
 const SERIES_PAGINA = 200;
-const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 /** Cabecera + paginas de series con el nombre del ejercicio en el mismo pedido.
  * El filtro de usuario se suma a RLS; solo se pueden abrir sesiones terminadas.
@@ -67,7 +70,7 @@ export async function cargarDetalleSesion(
   sessionId: string,
   signal?: AbortSignal,
 ): Promise<ResultadoDetalleSesion> {
-  if (!UUID.test(sessionId) || !userId) return { estado: 'no-encontrada' };
+  if (!esUuid(sessionId) || !userId) return { estado: 'no-encontrada' };
 
   try {
     if (signal?.aborted) return { estado: 'error' };
@@ -146,14 +149,6 @@ export async function cargarDetalleSesion(
   } catch {
     return { estado: 'error' };
   }
-}
-
-export function duracionSesion(startedAt: number, finishedAt: number): string {
-  const minutos = Math.max(1, Math.round((finishedAt - startedAt) / 60000));
-  if (minutos < 60) return `${minutos} min`;
-  const horas = Math.floor(minutos / 60);
-  const resto = minutos % 60;
-  return resto === 0 ? `${horas} h` : `${horas} h ${resto} min`;
 }
 
 export function fechaSesion(epochMs: number): string {

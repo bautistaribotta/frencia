@@ -13,6 +13,7 @@ import { useLume } from '../lume/useLume';
 import { lumeFuente } from '../lume/tipografia';
 import { lumeRadius, type LumePalette } from '../lume/tokens';
 import { Icon } from '../Icon';
+import { reloj } from '@/lib/tiempo';
 
 type Size = 'md' | 'lg';
 
@@ -28,14 +29,6 @@ export interface DurationFieldProps {
   size?: Size;
   fullWidth?: boolean;
   style?: ViewStyle;
-}
-
-function reloj(sec: number): string {
-  const h = Math.floor(sec / 3600);
-  const m = Math.floor((sec % 3600) / 60);
-  const s = sec % 60;
-  const ss = String(s).padStart(2, '0');
-  return h > 0 ? `${h}:${String(m).padStart(2, '0')}:${ss}` : `${m}:${ss}`;
 }
 
 function pasoLabel(step: number): string {

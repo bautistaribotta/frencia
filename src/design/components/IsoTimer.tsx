@@ -37,6 +37,7 @@ import { Vidrio } from '../lume/Vidrio';
 import { LumeButton } from '../lume/LumeButton';
 import { Icon } from '../Icon';
 import { DurationField } from './DurationField';
+import { reloj } from '@/lib/tiempo';
 
 export interface IsoTimerProps {
   /** Objetivo del plan, en segundos. Sin objetivo no hay barra y se muestra "—". */
@@ -53,14 +54,6 @@ export interface IsoTimerProps {
 }
 
 type Fase = 'idle' | 'midiendo' | 'hecho';
-
-function reloj(sec: number): string {
-  const s = Math.max(0, Math.floor(sec));
-  const h = Math.floor(s / 3600);
-  const m = Math.floor((s % 3600) / 60);
-  const ss = String(s % 60).padStart(2, '0');
-  return h > 0 ? `${h}:${String(m).padStart(2, '0')}:${ss}` : `${m}:${ss}`;
-}
 
 function vibrar(fuerte: boolean) {
   if (Platform.OS === 'web') return;

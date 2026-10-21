@@ -5,6 +5,8 @@
    Ver docs/specs/rutinas-y-dias.md */
 
 import { supabase } from './supabase';
+import { MESES_MAYUS } from './tiempo';
+import { esCursorValido } from './validacion';
 
 /** Una rutina en el listado. */
 export interface RutinaResumen {
@@ -30,21 +32,6 @@ export interface RutinaDetalle extends Omit<RutinaResumen, 'dias'> {
   dias: DiaResumen[];
 }
 
-const MESES = [
-  'ENE',
-  'FEB',
-  'MAR',
-  'ABR',
-  'MAY',
-  'JUN',
-  'JUL',
-  'AGO',
-  'SEP',
-  'OCT',
-  'NOV',
-  'DIC',
-];
-
 /**
  * "29 JUL 2026". Fecha local, que es el dia que el usuario vivio.
  *
@@ -57,7 +44,7 @@ const MESES = [
 export function fechaCorta(iso: string): string {
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return '';
-  return `${d.getDate()} ${MESES[d.getMonth()]} ${d.getFullYear()}`;
+  return `${d.getDate()} ${MESES_MAYUS[d.getMonth()]} ${d.getFullYear()}`;
 }
 
 export const RUTINAS_PAGINA = 20;
@@ -130,9 +117,7 @@ export async function cargarRutinas(
 
     if (cursor) {
       // Los valores se interpolan en sintaxis PostgREST; validar antes de usar.
-      if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(cursor.id) ||
-          !/^\d{4}-\d{2}-\d{2}T[\d:.]+(?:Z|[+-]\d{2}:\d{2})$/.test(cursor.creadaEl) ||
-          !Number.isFinite(Date.parse(cursor.creadaEl))) return { estado: 'error' };
+      if (!esCursorValido(cursor.id, cursor.creadaEl)) return { estado: 'error' };
       consulta
         .lte('created_at', cursor.creadaEl)
         .or(`created_at.lt.${cursor.creadaEl},and(created_at.eq.${cursor.creadaEl},id.lt.${cursor.id})`);
