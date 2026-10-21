@@ -13,21 +13,17 @@ import {
 } from './exercises';
 import { mostrarPeso, type UnidadPeso } from './peso';
 import { supabase } from './supabase';
-import { duracionCompacta } from './tiempo';
+import { duracionCompacta, reloj } from './tiempo';
 
 export type Medidor = 'rir' | 'rpe';
 
-/** Ejercicio de un dia. Vive en memoria mientras se lo edita.
+/** Un ejercicio tal como quedo planificado en el dia.
  *
  *  Que campos lleva depende de lo que registra el ejercicio (`tracks`): la
  *  fuerza prescribe reps, el cardio y el isometrico tiempo, el cardio ademas
  *  distancia. Lo que el ejercicio no registra va en null. El peso solo se
  *  planifica en isometricos, y es opcional. */
-export interface DayExercise {
-  // Identidad propia de la fila, estable aunque se reordene o se repita el
-  // mismo ejercicio en el dia. El indice no sirve como key: al arrastrar
-  // cambia, y React desmontaria la fila en pleno gesto.
-  uid: string;
+export interface EjercicioPlan {
   exerciseId: string;
   name: string;
   kind: TipoEjercicio;
@@ -43,6 +39,14 @@ export interface DayExercise {
   intensityValue: number | null;
   // Descanso fijo entre series, en segundos. null = sin temporizador.
   restSeconds: number | null;
+}
+
+/** Ejercicio de un dia. Vive en memoria mientras se lo edita. */
+export interface DayExercise extends EjercicioPlan {
+  // Identidad propia de la fila, estable aunque se reordene o se repita el
+  // mismo ejercicio en el dia. El indice no sirve como key: al arrastrar
+  // cambia, y React desmontaria la fila en pleno gesto.
+  uid: string;
 }
 
 /** El cardio se planifica y se registra como una sola serie continua, sin
@@ -129,9 +133,7 @@ export const DESCANSO_POR_DEFECTO = 120;
 /** Segundos a mm:ss, el formato con el que se lee un descanso. */
 export function restLabel(seconds: number | null): string {
   if (seconds === null) return 'Sin descanso';
-  const m = Math.floor(seconds / 60);
-  const s = seconds % 60;
-  return `${m}:${String(s).padStart(2, '0')}`;
+  return reloj(seconds);
 }
 
 /** Partes del resumen de un ejercicio ya agregado, para ExerciseSummary.
@@ -248,32 +250,13 @@ export async function cargarDia(trainingDayId: string): Promise<DiaCargado | nul
     if (w.weekday >= 0 && w.weekday <= 6) weekdays[w.weekday] = true;
   }
 
-  // El embed de una relacion to-one puede llegar como objeto o como array de
-  // uno segun la version del cliente; normalizamos.
-  const unoDe = <T,>(valor: T | T[] | null): T | null =>
-    Array.isArray(valor) ? (valor[0] ?? null) : valor;
-
   const exercises: DayExercise[] = ((data.training_day_exercises ?? []) as FilaPlan[])
     .slice()
     .sort((a, b) => a.position - b.position)
-    .map((fila) => {
-      const ejercicio = unoDe(fila.exercises);
-      const { kind, tracks } = tipoDeFila(ejercicio);
-      return {
-        uid: nextUid(),
-        exerciseId: fila.exercise_id,
-        name: ejercicio?.name ?? 'Ejercicio',
-        kind,
-        tracks,
-        sets: fila.sets ?? (esSerieUnica(kind) ? 1 : 3),
-        reps: tracks.reps ? (fila.reps ?? 10) : null,
-        durationSeconds: fila.duration_seconds,
-        distanceM: fila.distance_m,
-        weightKg: fila.weight_kg === null ? null : Number(fila.weight_kg),
-        ...intensidadDeFila(fila.intensity_kind, fila.intensity_value),
-        restSeconds: fila.rest_seconds,
-      };
-    });
+    .map((fila) => ({
+      uid: nextUid(),
+      ...ejercicioPlanDeFila(fila),
+    }));
 
   return {
     dia: { name: data.name, weekdays, exercises },
@@ -281,8 +264,14 @@ export async function cargarDia(trainingDayId: string): Promise<DiaCargado | nul
   };
 }
 
+// El embed de una relacion to-one puede llegar como objeto o como array de
+// uno segun la version del cliente; normalizamos.
+function unoDe<T>(valor: T | T[] | null): T | null {
+  return Array.isArray(valor) ? (valor[0] ?? null) : valor;
+}
+
 /** Un ejercicio del dia tal como llega de la base, con su ejercicio embebido. */
-interface FilaPlan {
+export interface FilaPlan {
   exercise_id: string;
   position: number;
   sets: number | null;
@@ -298,6 +287,25 @@ interface FilaPlan {
     | ({ name?: string } & FilaTipo)
     | ({ name?: string } & FilaTipo)[]
     | null;
+}
+
+/** Convierte una fila de training_day_exercises en el ejercicio del plan. */
+export function ejercicioPlanDeFila(fila: FilaPlan): EjercicioPlan {
+  const ejercicio = unoDe(fila.exercises);
+  const { kind, tracks } = tipoDeFila(ejercicio);
+  return {
+    exerciseId: fila.exercise_id,
+    name: ejercicio?.name ?? 'Ejercicio',
+    kind,
+    tracks,
+    sets: fila.sets ?? (esSerieUnica(kind) ? 1 : 3),
+    reps: tracks.reps ? (fila.reps ?? 10) : null,
+    durationSeconds: fila.duration_seconds,
+    distanceM: fila.distance_m,
+    weightKg: fila.weight_kg === null ? null : Number(fila.weight_kg),
+    ...intensidadDeFila(fila.intensity_kind, fila.intensity_value),
+    restSeconds: fila.rest_seconds,
+  };
 }
 
 /** Intensidad de una fila de la base. Sin medidor queda "sin intensidad". */

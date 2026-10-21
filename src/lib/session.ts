@@ -4,38 +4,17 @@
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-import { esSerieUnica, intensidadDeFila } from './dia';
 import {
-  COLUMNAS_TIPO,
-  tipoDeFila,
-  type DatosRegistrados,
-  type FilaTipo,
-  type TipoEjercicio,
-} from './exercises';
+  ejercicioPlanDeFila,
+  intensidadDeFila,
+  type EjercicioPlan,
+  type FilaPlan,
+  type Medidor,
+} from './dia';
+import { COLUMNAS_TIPO } from './exercises';
 import { supabase } from './supabase';
 
-export type Medidor = 'rir' | 'rpe';
-
-/** Un ejercicio tal como quedo planificado en el dia. Lo que el ejercicio no
- *  registra (`tracks`) llega en null. */
-export interface EjercicioPlan {
-  exerciseId: string;
-  name: string;
-  kind: TipoEjercicio;
-  tracks: DatosRegistrados;
-  /** Series planificadas. Es el punto de partida del wizard, no un limite. */
-  sets: number;
-  reps: number | null;
-  durationSeconds: number | null;
-  distanceM: number | null;
-  /** Peso por serie que prescribe el plan, en kg. Solo isometricos: si esta,
-   *  la sesion lo pide en cada serie. */
-  weightKg: number | null;
-  /** null = sin intensidad (cardio o isometrico sin RPE). */
-  intensityKind: Medidor | null;
-  intensityValue: number | null;
-  restSeconds: number | null;
-}
+export type { EjercicioPlan, Medidor } from './dia';
 
 /** Lo que se hizo en esta misma serie la vez anterior. Cada dato es null si el
  *  ejercicio no lo registra. */
@@ -151,39 +130,7 @@ export async function cargarPlan(trainingDayId: string): Promise<EjercicioPlan[]
 
   if (error || !data) return [];
 
-  return (data as unknown as FilaPlanSesion[]).map((fila) => {
-    // El embed de una relacion to-one puede llegar como objeto o como array de
-    // uno segun la version del cliente; normalizamos.
-    const ejercicio = Array.isArray(fila.exercises) ? fila.exercises[0] : fila.exercises;
-    const { kind, tracks } = tipoDeFila(ejercicio);
-    return {
-      exerciseId: fila.exercise_id,
-      name: ejercicio?.name ?? 'Ejercicio',
-      kind,
-      tracks,
-      sets: fila.sets ?? (esSerieUnica(kind) ? 1 : 3),
-      reps: tracks.reps ? (fila.reps ?? 10) : null,
-      durationSeconds: fila.duration_seconds,
-      distanceM: fila.distance_m,
-      weightKg: numero(fila.weight_kg),
-      ...intensidadDeFila(fila.intensity_kind, fila.intensity_value),
-      restSeconds: fila.rest_seconds,
-    };
-  });
-}
-
-/** Un ejercicio del plan tal como llega de la base, con su ejercicio embebido. */
-interface FilaPlanSesion {
-  exercise_id: string;
-  sets: number | null;
-  reps: number | null;
-  duration_seconds: number | null;
-  distance_m: number | null;
-  weight_kg: number | string | null;
-  intensity_kind: string | null;
-  intensity_value: number | string | null;
-  rest_seconds: number | null;
-  exercises: ({ name?: string } & FilaTipo) | ({ name?: string } & FilaTipo)[] | null;
+  return (data as unknown as FilaPlan[]).map(ejercicioPlanDeFila);
 }
 
 /**
