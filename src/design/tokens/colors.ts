@@ -67,8 +67,7 @@ export const palette = {
 } as const;
 
 /* ------------------------------------------------------------------
-   Tema oscuro (base). Mismas claves semanticas que el tema claro:
-   `colors` referencia esta paleta por defecto y para compatibilidad.
+   Tema oscuro (base). Mismas claves semanticas que el tema claro.
    NOTA: RN no parsea oklch, por eso los tokens usan hex/rgba.
    ------------------------------------------------------------------ */
 const darkColors = {
@@ -208,10 +207,6 @@ export const themes = { dark: darkColors, light: lightColors } as const;
 export type ThemeMode = keyof typeof themes;
 /** Cada token mapeado a string: ambas paletas comparten la misma forma. */
 export type Palette = { [K in keyof typeof darkColors]: string };
-
-/** Paleta por defecto (tema oscuro). Para uso fuera de React o como base.
- *  Dentro de componentes usar `useColors()` para que reaccione al tema. */
-export const colors = darkColors;
 
 export type ColorToken = keyof typeof darkColors;
 

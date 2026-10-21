@@ -1,7 +1,7 @@
 /* ============================================================
    Frencia Design System — React Native
    Single import surface:
-     import { Button, StatTile, colors, useFrenciaFonts } from '@/design';
+     import { Button, useColors, useFrenciaFonts } from '@/design';
    ============================================================ */
 
 // Tokens & theme
@@ -27,8 +27,6 @@ export { Button } from './components/Button';
 export type { ButtonProps } from './components/Button';
 export { IconButton } from './components/IconButton';
 export type { IconButtonProps } from './components/IconButton';
-export { Card } from './components/Card';
-export type { CardProps } from './components/Card';
 export { Badge } from './components/Badge';
 export type { BadgeProps } from './components/Badge';
 export { Tag } from './components/Tag';
@@ -39,8 +37,6 @@ export { FrenciaText } from './components/Text';
 export type { FrenciaTextProps } from './components/Text';
 
 // Components — data
-export { StatTile } from './components/StatTile';
-export type { StatTileProps } from './components/StatTile';
 export { MetricPill } from './components/MetricPill';
 export type { MetricPillProps } from './components/MetricPill';
 export { ProgressBar } from './components/ProgressBar';
@@ -49,14 +45,10 @@ export { Stepper } from './components/Stepper';
 export type { StepperProps } from './components/Stepper';
 export { WheelPicker } from './components/WheelPicker';
 export type { WheelPickerProps } from './components/WheelPicker';
-export { SetRow } from './components/SetRow';
-export type { SetRowProps } from './components/SetRow';
 
 // Components — log
 export { ExerciseSummary } from './components/ExerciseSummary';
 export type { ExerciseSummaryProps } from './components/ExerciseSummary';
-export { SeriesTable } from './components/SeriesTable';
-export type { SeriesTableProps, SeriesTableColumn } from './components/SeriesTable';
 export { DurationField } from './components/DurationField';
 export type { DurationFieldProps } from './components/DurationField';
 export { IsoTimer } from './components/IsoTimer';

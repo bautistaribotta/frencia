@@ -6,7 +6,7 @@ componentes, pero en `View`/`Text`/`StyleSheet` — usables directo en la app Ex
 ## Uso
 
 ```tsx
-import { Button, StatTile, Card, colors, spacing, useFrenciaFonts } from '@/design';
+import { Button, spacing, useColors, useFrenciaFonts } from '@/design';
 ```
 
 ### Fuentes (obligatorio)
@@ -15,7 +15,7 @@ Ya están cableadas en `src/app/_layout.tsx` con `useFrenciaFonts()` — la app 
 hasta que cargan. Si creás otro root, hacé lo mismo.
 
 ### Tokens
-- `colors` — aliases semánticos (`colors.accent`, `colors.surfaceCard`, `colors.textPrimary`…)
+- `useColors()` / `themes` — aliases semánticos (`colors.accent`, `colors.surfaceCard`, `colors.textPrimary`…)
 - `palette` — escala cruda (`palette.green500`, `palette.ink800`…)
 - `spacing` / `space` / `sizing` — grid 8px, gutters, alturas de control
 - `radius`, `shadows`, `motion` — bordes, elevación/glow (aprox. de CSS), duraciones.
@@ -27,20 +27,14 @@ hasta que cargan. Si creás otro root, hacé lo mismo.
 - `textRole`, `sans`, `mono`, `display` — roles de texto y familias por peso
 
 ### Componentes
-core: `Button` `IconButton` `Card` `Badge` `Tag` `Avatar` `FrenciaText`
-data: `StatTile` `MetricPill` `ProgressBar` `Stepper` `SetRow`
-log: `ExerciseSummary` `SeriesTable` `DurationField` `DistanceField` `NumberField` `IsoTimer` `ExerciseTypeTag`
+core: `Button` `IconButton` `Badge` `Tag` `Avatar` `FrenciaText`
+data: `MetricPill` `ProgressBar` `Stepper` `WheelPicker`
+log: `ExerciseSummary` `DurationField` `DistanceField` `NumberField` `IsoTimer` `ExerciseTypeTag`
 nav: `SegmentedControl` `TabBar`
 feedback: `Switch` `Checkbox`
 
 ```tsx
-<Card variant="green" hairline>
-  <StatTile label="VOLUMEN" value="6.39" unit="t" size="lg" tone="green" delta="+5 kg" />
-</Card>
-
 <Button variant="primary" icon="play" fullWidth>Empezar entrenamiento</Button>
-
-<SetRow index={1} load={82.5} reps={8} rir={2} state="done" onToggle={() => {}} />
 ```
 
 ### Iconos
