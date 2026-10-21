@@ -48,6 +48,22 @@ export default function RootLayout() {
   );
 }
 
+// El Stack ya define `animation: 'slide_from_right'` en screenOptions; cada
+// grupo de pantallas solo declara como responde al gesto de volver.
+const OPCIONES_GESTO_VOLVER = {
+  gestureEnabled: true,
+  fullScreenGestureEnabled: true,
+} as const;
+
+const OPCIONES_SIN_GESTO = {
+  gestureEnabled: false,
+} as const;
+
+const OPCIONES_BLOQUEO_FADE = {
+  animation: 'fade',
+  gestureEnabled: false,
+} as const;
+
 /* Navegacion + gate de auth. Vive dentro de los providers para poder leer
    sesion y perfil, y dentro del router para usar router/segments. */
 function RootNavigator() {
@@ -73,122 +89,38 @@ function RootNavigator() {
         {/* Card (no modal nativo) para que el toast del root quede por encima
             sin bloquear la interaccion. edit-profile entra desde la derecha y
             permite volver con swipe horizontal en toda la pantalla. */}
-        <Stack.Screen
-          name="edit-profile"
-          options={{
-            animation: 'slide_from_right',
-            gestureEnabled: true,
-            fullScreenGestureEnabled: true,
-          }}
-        />
+        <Stack.Screen name="edit-profile" options={OPCIONES_GESTO_VOLVER} />
         {/* Configuracion de la cuenta. Solo lectura por ahora: el gesto de
             volver no puede perder nada. */}
-        <Stack.Screen
-          name="settings"
-          options={{
-            animation: 'slide_from_right',
-            gestureEnabled: true,
-            fullScreenGestureEnabled: true,
-          }}
-        />
+        <Stack.Screen name="settings" options={OPCIONES_GESTO_VOLVER} />
         {/* Textos legales. Solo lectura, accesibles con o sin sesion. */}
-        <Stack.Screen
-          name="terms"
-          options={{
-            animation: 'slide_from_right',
-            gestureEnabled: true,
-            fullScreenGestureEnabled: true,
-          }}
-        />
-        <Stack.Screen
-          name="privacy"
-          options={{
-            animation: 'slide_from_right',
-            gestureEnabled: true,
-            fullScreenGestureEnabled: true,
-          }}
-        />
+        <Stack.Screen name="terms" options={OPCIONES_GESTO_VOLVER} />
+        <Stack.Screen name="privacy" options={OPCIONES_GESTO_VOLVER} />
         {/* Cuenta en periodo de gracia. Sin gesto de volver: no hay a donde
             volver, la unica salida es recuperar la cuenta o cerrar sesion. */}
-        <Stack.Screen
-          name="account-recovery"
-          options={{ animation: 'fade', gestureEnabled: false }}
-        />
+        <Stack.Screen name="account-recovery" options={OPCIONES_BLOQUEO_FADE} />
         {/* Aceptacion de los textos legales. Sin gesto de volver: no hay a
             donde volver, las salidas son aceptar o cerrar sesion. */}
-        <Stack.Screen
-          name="legal-consent"
-          options={{ animation: 'fade', gestureEnabled: false }}
-        />
+        <Stack.Screen name="legal-consent" options={OPCIONES_BLOQUEO_FADE} />
         {/* No se pudo leer el perfil. Sin gesto de volver por lo mismo: las
             salidas son reintentar o volver al login. */}
-        <Stack.Screen
-          name="profile-error"
-          options={{ animation: 'fade', gestureEnabled: false }}
-        />
+        <Stack.Screen name="profile-error" options={OPCIONES_BLOQUEO_FADE} />
         {/* Wizard de creacion de rutina. Sin gesto de volver: los pasos
             manejan el retroceso con su propio boton para no perder datos. */}
-        <Stack.Screen
-          name="create-routine"
-          options={{
-            animation: 'slide_from_right',
-            gestureEnabled: false,
-          }}
-        />
+        <Stack.Screen name="create-routine" options={OPCIONES_SIN_GESTO} />
         {/* Detalle de una rutina. Es solo lectura, asi que el gesto de volver
             no puede perder nada. */}
-        <Stack.Screen
-          name="routine"
-          options={{
-            animation: 'slide_from_right',
-            gestureEnabled: true,
-            fullScreenGestureEnabled: true,
-          }}
-        />
-        <Stack.Screen
-          name="session-history"
-          options={{
-            animation: 'slide_from_right',
-            gestureEnabled: true,
-            fullScreenGestureEnabled: true,
-          }}
-        />
-        <Stack.Screen
-          name="session-ticket"
-          options={{
-            animation: 'slide_from_right',
-            gestureEnabled: true,
-            fullScreenGestureEnabled: true,
-          }}
-        />
+        <Stack.Screen name="routine" options={OPCIONES_GESTO_VOLVER} />
+        <Stack.Screen name="session-history" options={OPCIONES_GESTO_VOLVER} />
+        <Stack.Screen name="session-ticket" options={OPCIONES_GESTO_VOLVER} />
         {/* Editar una rutina y editar un dia. Con gesto de volver: si hay
             cambios sin guardar, useDescartarAlSalir frena la salida y pregunta
             antes de descartarlos, igual que el boton Atras. */}
-        <Stack.Screen
-          name="edit-routine"
-          options={{
-            animation: 'slide_from_right',
-            gestureEnabled: true,
-            fullScreenGestureEnabled: true,
-          }}
-        />
-        <Stack.Screen
-          name="edit-day"
-          options={{
-            animation: 'slide_from_right',
-            gestureEnabled: true,
-            fullScreenGestureEnabled: true,
-          }}
-        />
+        <Stack.Screen name="edit-routine" options={OPCIONES_GESTO_VOLVER} />
+        <Stack.Screen name="edit-day" options={OPCIONES_GESTO_VOLVER} />
         {/* Sesion de entrenamiento. Sin gesto de volver por la misma razon que
             el wizard: los pasos manejan el retroceso con su propio boton. */}
-        <Stack.Screen
-          name="session"
-          options={{
-            animation: 'slide_from_right',
-            gestureEnabled: false,
-          }}
-        />
+        <Stack.Screen name="session" options={OPCIONES_SIN_GESTO} />
       </Stack>
     </>
   );
