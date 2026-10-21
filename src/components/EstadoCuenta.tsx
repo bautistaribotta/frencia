@@ -10,7 +10,7 @@ import React from 'react';
 import { StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { Icon } from '@/design';
+import { Icon, type IconName } from '@/design';
 import {
   Fondo,
   LumeButton,
@@ -23,12 +23,12 @@ import {
 } from '@/design/lume';
 
 export interface EstadoCuentaProps {
-  icono: string;
+  icono: IconName;
   peligro?: boolean;
   rotulo: string;
   titulo: string;
   parrafos: string[];
-  accion: { texto: string; icono?: string; cargando?: boolean; onPress: () => void };
+  accion: { texto: string; icono?: IconName; cargando?: boolean; onPress: () => void };
   salida: { texto: string; deshabilitada?: boolean; onPress: () => void };
 }
 

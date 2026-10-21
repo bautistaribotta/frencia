@@ -5,13 +5,13 @@ import React, { useMemo } from 'react';
 import { StyleSheet, Text, View, type ViewStyle, type TextStyle } from 'react-native';
 import { mono, radius, tracking, type Palette } from '../theme';
 import { useColors } from '../theme-context';
-import { Icon } from '../Icon';
+import { Icon, type IconName } from '../Icon';
 
 type Tone = 'neutral' | 'green' | 'green-solid' | 'orange' | 'orange-solid' | 'danger';
 
 export interface BadgeProps {
   tone?: Tone;
-  icon?: string;
+  icon?: IconName;
   children?: React.ReactNode;
   style?: ViewStyle;
 }

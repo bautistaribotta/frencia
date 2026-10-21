@@ -31,7 +31,7 @@ import Animated, {
 } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
 
-import { Icon } from '@/design';
+import { Icon, type IconName } from '@/design';
 import { lumeMotion, lumePalette, lumeRadius, useLume } from '@/design/lume';
 
 // Ancho que descubre cada accion cuando la fila queda abierta en reposo... solo
@@ -53,7 +53,7 @@ function golpe(estilo: Haptics.ImpactFeedbackStyle) {
 }
 
 export interface AccionDeslizable {
-  icon: string;
+  icon: IconName;
   /** accent para acciones reversibles, danger para las destructivas. */
   tono: 'accent' | 'danger';
   /** Nombre de la accion para el lector de pantalla. */

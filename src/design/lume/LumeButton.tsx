@@ -12,7 +12,7 @@
 import React from 'react';
 import { Pressable, StyleSheet, type StyleProp, type ViewStyle } from 'react-native';
 
-import { Icon } from '../Icon';
+import { Icon, type IconName } from '../Icon';
 import { useLume } from './useLume';
 import { LumeText } from './LumeText';
 import { lumeFuente } from './tipografia';
@@ -27,8 +27,8 @@ export interface LumeButtonProps {
   variant?: VarianteBoton;
   size?: TamanioBoton;
   fullWidth?: boolean;
-  icon?: string;
-  iconRight?: string;
+  icon?: IconName;
+  iconRight?: IconName;
   // Algo propio antes del texto (el logo de Apple o Google).
   leading?: React.ReactNode;
   loading?: boolean;

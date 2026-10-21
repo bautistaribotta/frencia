@@ -12,7 +12,7 @@ import {
 } from 'react-native';
 import { radius, sans, sizing, space, motion, type Palette } from '../theme';
 import { useColors } from '../theme-context';
-import { Icon } from '../Icon';
+import { Icon, type IconName } from '../Icon';
 import { Cargando } from '../lume/Cargando';
 
 type Variant = 'primary' | 'intensity' | 'secondary' | 'soft' | 'ghost' | 'danger';
@@ -22,8 +22,8 @@ export interface ButtonProps extends Omit<PressableProps, 'children' | 'style'> 
   variant?: Variant;
   size?: Size;
   fullWidth?: boolean;
-  icon?: string;
-  iconRight?: string;
+  icon?: IconName;
+  iconRight?: IconName;
   /** Nodo custom antes del label (ej. logo de marca SVG). Tiene prioridad sobre `icon`. */
   leading?: React.ReactNode;
   disabled?: boolean;

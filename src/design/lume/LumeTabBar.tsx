@@ -14,7 +14,7 @@ import React from 'react';
 import { Pressable, StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { Icon } from '../Icon';
+import { Icon, type IconName } from '../Icon';
 import { useLume } from './useLume';
 import { LumeText } from './LumeText';
 import { lumeFuente } from './tipografia';
@@ -23,11 +23,11 @@ import { lumeRadius } from './tokens';
 export interface LumeTabItem {
   value: string;
   label: string;
-  icon: string;
+  icon: IconName;
 }
 
 export interface LumeTabFab {
-  icon?: string;
+  icon?: IconName;
   label?: string;
   onPress?: () => void;
 }

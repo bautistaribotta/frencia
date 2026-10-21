@@ -10,7 +10,7 @@
 import React from 'react';
 import { StyleSheet, View } from 'react-native';
 
-import { Icon } from '@/design';
+import { Icon, type IconName } from '@/design';
 import {
   Cargando,
   LumeButton,
@@ -69,7 +69,7 @@ export function VacioPestania({
   texto,
   children,
 }: {
-  icono: string;
+  icono: IconName;
   titulo: string;
   texto: string;
   children?: React.ReactNode;

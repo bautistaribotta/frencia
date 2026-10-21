@@ -11,7 +11,7 @@
 import React from 'react';
 import { StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
 
-import { Icon } from '../Icon';
+import { Icon, type IconName } from '../Icon';
 import { useLume } from './useLume';
 import { LumeText } from './LumeText';
 import { lumeFuente } from './tipografia';
@@ -21,7 +21,7 @@ export type TonoBadge = 'neutral' | 'signal' | 'intensity' | 'danger';
 
 export interface LumeBadgeProps {
   tone?: TonoBadge;
-  icon?: string;
+  icon?: IconName;
   children?: React.ReactNode;
   style?: StyleProp<ViewStyle>;
 }
