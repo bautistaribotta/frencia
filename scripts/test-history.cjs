@@ -150,7 +150,10 @@ function controlador() {
     requests.push({ user, cursor, signal, ...pending });
     return pending.promise;
   };
-  const { crearHistorial } = cargarModulo('history-store', { './history': { cargarHistorial: consulta } });
+  const { crearHistorial } = cargarModulo('history-store', {
+    './history': { cargarHistorial: consulta },
+    './lista-paginada': cargarModulo('lista-paginada', {}),
+  });
   return { store: crearHistorial(USER), requests, crearHistorial };
 }
 async function iniciar(h) {
