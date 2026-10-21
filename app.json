@@ -19,7 +19,7 @@
       }
     },
     "android": {
-      "package": "com.frencia.fitness",
+      "package": "com.frencia",
       "adaptiveIcon": {
         "backgroundColor": "#F9F9F9",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
