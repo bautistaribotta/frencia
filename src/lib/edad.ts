@@ -15,9 +15,14 @@ export function edadAFechaNacimiento(edad: number): string | null {
 }
 
 // fecha_nacimiento (YYYY-MM-DD) -> edad cumplida en anios.
+// Se construye en hora local, como en streak.ts: `new Date('YYYY-MM-DD')` la
+// lee en UTC y al oeste de Greenwich cae el dia anterior (el 1 de enero pasa a
+// ser el 31 de diciembre y la edad sale un anio mas alta).
 export function fechaNacimientoAEdad(fecha: string | null): number | null {
   if (!fecha) return null;
-  const nacimiento = new Date(fecha);
+  const partes = /^(\d{4})-(\d{2})-(\d{2})$/.exec(fecha);
+  if (!partes) return null;
+  const nacimiento = new Date(Number(partes[1]), Number(partes[2]) - 1, Number(partes[3]));
   if (Number.isNaN(nacimiento.getTime())) return null;
   const hoy = new Date();
   let edad = hoy.getFullYear() - nacimiento.getFullYear();
