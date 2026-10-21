@@ -266,7 +266,7 @@ export default function SessionScreen() {
   // es una guia: el ajuste vale solo para ese descanso y el siguiente vuelve a
   // arrancar en lo que dice el plan.
   const [ajustesDescanso, setAjustesDescanso] = useState<Record<string, number>>({});
-  const [ahora, setAhora] = useState(() => Date.now());
+  const [descansoTerminado, setDescansoTerminado] = useState(false);
   const yaVibro = useRef<Set<string>>(new Set());
   // Se avisa una sola vez por sesion que hay series guardadas solo en el
   // telefono; repetirlo en cada paso sin senal seria puro ruido.
@@ -416,75 +416,19 @@ export default function SessionScreen() {
 
   /** Mueve al paso `i`. Al entrar a un descanso se fija su arranque, una sola
    *  vez: volver atras y avanzar de nuevo retoma la cuenta donde iba en vez de
-   *  reiniciarla. El reloj se pone en hora en el mismo momento para que el
-   *  primer cuadro no calcule contra un `ahora` viejo. */
+   *  reiniciarla. */
   function irAPaso(i: number) {
     setIndex(i);
     const destino = pasos[i];
     if (!destino || destino.tipo !== 'descanso') return;
     const k = claveDescanso(destino);
     const t = Date.now();
-    setAhora(t);
     setIniciosDescanso((prev) => (prev[k] ? prev : { ...prev, [k]: t }));
   }
 
-  // El reloj solo corre mientras se esta parado en un descanso. Cada medio
-  // segundo para que el numero no se atrase visiblemente respecto del segundo
-  // real que se muestra.
-  useEffect(() => {
-    if (!paso || paso.tipo !== 'descanso') return;
-    const id = setInterval(() => setAhora(Date.now()), 500);
-    return () => clearInterval(id);
-  }, [paso]);
-
-  let restante = 0;
-  // Duracion del descanso con los ajustes a mano ya aplicados. El aro se dibuja
-  // contra esto para que la parte llena siga siendo la proporcion real.
-  let totalDescanso = 0;
-  // Momento en que termina, para que el aro anime contra un instante fijo en
-  // vez de reaccionar al tick del texto.
-  let finDescanso = 0;
-  if (paso?.tipo === 'descanso' && ejercicioActual?.restSeconds) {
-    const k = claveDescanso(paso);
-    totalDescanso = ejercicioActual.restSeconds + (ajustesDescanso[k] ?? 0);
-    const inicio = iniciosDescanso[k];
-    restante = inicio
-      ? Math.max(0, totalDescanso - Math.floor((ahora - inicio) / 1000))
-      : totalDescanso;
-    finDescanso = inicio ? inicio + totalDescanso * 1000 : 0;
-  }
-
-  useEffect(() => {
-    if (!paso || paso.tipo !== 'descanso' || restante > 0) return;
-    const k = claveDescanso(paso);
-    if (yaVibro.current.has(k)) return;
-    yaVibro.current.add(k);
-    avisarFinDescanso();
-  }, [paso, restante]);
-
-  /** Suma o resta segundos al descanso que esta corriendo. */
-  function ajustarDescanso(delta: number) {
-    if (!paso || paso.tipo !== 'descanso') return;
-    const base = ejercicioActual?.restSeconds;
-    if (!base) return;
-    // Restar cuando ya no queda nada no hace nada: el descanso termino.
-    if (delta < 0 && restante === 0) return;
-
-    // El piso es lo que ya paso, no cero: restar 10 sobre 4 segundos termina el
-    // descanso y no deja una deuda que despues haya que compensar sumando.
-    const transcurrido = totalDescanso - restante;
-    const nuevo = Math.max(transcurrido, totalDescanso + delta);
-    if (nuevo === totalDescanso) return;
-
-    const k = claveDescanso(paso);
-    // Sumar tiempo despues de que sono devuelve el aviso del nuevo final.
-    if (delta > 0) yaVibro.current.delete(k);
-    setAjustesDescanso((prev) => ({ ...prev, [k]: nuevo - base }));
-
-    if (Platform.OS !== 'web') {
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
-    }
-  }
+  const cambiarAjusteDescanso = useCallback((clave: string, nuevoAjuste: number) => {
+    setAjustesDescanso((prev) => ({ ...prev, [clave]: nuevoAjuste }));
+  }, []);
 
   // --- Valores de la serie ---------------------------------------------------
 
@@ -796,12 +740,11 @@ export default function SessionScreen() {
     // cargar. Un descanso nunca es el ultimo paso: siempre le sigue una serie.
     const proximo = paso.tipo === 'descanso' ? pasos[index + 1] : undefined;
     const mismoEjercicio = proximo?.ejercicio === paso.ejercicio;
-    const finDelDescanso = paso.tipo === 'descanso' && restante === 0;
 
     const accion = ultimoPaso
       ? 'Terminar'
       : paso.tipo === 'descanso'
-        ? restante > 0
+        ? !descansoTerminado
           ? 'Saltar descanso'
           : mismoEjercicio
             ? 'Siguiente serie'
@@ -875,44 +818,16 @@ export default function SessionScreen() {
 
             {paso.tipo === 'descanso' ? (
               <View style={styles.descanso}>
-                <RestRing total={totalDescanso} finAt={finDescanso} restante={restante}>
-                  <LumeText rol="label" color={finDelDescanso ? t.signalText : t.textTertiary}>
-                    {finDelDescanso ? 'Listo' : 'Descanso'}
-                  </LumeText>
-                  <Text
-                    style={[styles.reloj, { color: finDelDescanso ? t.signalText : t.textPrimary }]}
-                  >
-                    {mmss(restante)}
-                  </Text>
-                  <LumeText rol="bodySm" color={t.textTertiary} style={styles.deTotal}>
-                    de {mmss(totalDescanso)}
-                  </LumeText>
-                </RestRing>
-
-                {/* El descanso del plan es una guia y el gimnasio no siempre
-                   la respeta. Restar no puede dejar el reloj en negativo, asi
-                   que con el descanso terminado solo queda sumar. */}
-                <View style={styles.ajustes}>
-                  <LumeButton
-                    variant="secondary"
-                    size="sm"
-                    icon="minus"
-                    disabled={restante === 0}
-                    onPress={() => ajustarDescanso(-PASO_AJUSTE)}
-                    accessibilityLabel={`Restar ${PASO_AJUSTE} segundos al descanso`}
-                  >
-                    {PASO_AJUSTE} s
-                  </LumeButton>
-                  <LumeButton
-                    variant="secondary"
-                    size="sm"
-                    icon="plus"
-                    onPress={() => ajustarDescanso(PASO_AJUSTE)}
-                    accessibilityLabel={`Sumar ${PASO_AJUSTE} segundos al descanso`}
-                  >
-                    {PASO_AJUSTE} s
-                  </LumeButton>
-                </View>
+                <RelojDescanso
+                  key={claveDescanso(paso)}
+                  clave={claveDescanso(paso)}
+                  base={ejercicioActual.restSeconds ?? 0}
+                  inicio={iniciosDescanso[claveDescanso(paso)]}
+                  ajuste={ajustesDescanso[claveDescanso(paso)] ?? 0}
+                  yaVibro={yaVibro}
+                  onAjustar={cambiarAjusteDescanso}
+                  onTerminadoChange={setDescansoTerminado}
+                />
 
                 {proximo && proximo.tipo === 'serie' ? (
                   <LoQueViene
@@ -1212,6 +1127,131 @@ export default function SessionScreen() {
 }
 
 // --- Piezas de la pantalla ---------------------------------------------------
+
+/** Esfera y controles del descanso. El reloj de medio segundo vive aca
+ *  adentro para no volver a dibujar toda la pantalla en cada tick, igual
+ *  que IsoTimer en las series isometricas. */
+function RelojDescanso({
+  clave,
+  base,
+  inicio,
+  ajuste,
+  yaVibro,
+  onAjustar,
+  onTerminadoChange,
+}: {
+  clave: string;
+  base: number;
+  inicio: number | undefined;
+  ajuste: number;
+  yaVibro: React.MutableRefObject<Set<string>>;
+  onAjustar: (clave: string, nuevoAjuste: number) => void;
+  onTerminadoChange: (terminado: boolean) => void;
+}) {
+  const { t } = useLume();
+  const [ahora, setAhora] = useState(() => Date.now());
+
+  // Cada medio segundo para que el numero no se atrase visiblemente respecto
+  // del segundo real que se muestra.
+  useEffect(() => {
+    const id = setInterval(() => setAhora(Date.now()), 500);
+    return () => clearInterval(id);
+  }, []);
+
+  // Duracion del descanso con los ajustes a mano ya aplicados. El aro se
+  // dibuja contra esto para que la parte llena siga siendo la proporcion real.
+  const totalDescanso = base > 0 ? base + ajuste : 0;
+  const restante =
+    base > 0
+      ? inicio
+        ? Math.max(0, totalDescanso - Math.floor((ahora - inicio) / 1000))
+        : totalDescanso
+      : 0;
+  // Momento en que termina, para que el aro anime contra un instante fijo en
+  // vez de reaccionar al tick del texto.
+  const finDescanso = base > 0 && inicio ? inicio + totalDescanso * 1000 : 0;
+  const finDelDescanso = restante === 0;
+
+  const avisarTerminado = useRef(onTerminadoChange);
+  useEffect(() => {
+    avisarTerminado.current = onTerminadoChange;
+  });
+  useEffect(() => {
+    avisarTerminado.current(finDelDescanso);
+    return () => avisarTerminado.current(false);
+  }, [finDelDescanso]);
+
+  useEffect(() => {
+    if (restante > 0) return;
+    if (yaVibro.current.has(clave)) return;
+    yaVibro.current.add(clave);
+    avisarFinDescanso();
+  }, [clave, restante, yaVibro]);
+
+  /** Suma o resta segundos al descanso que esta corriendo. */
+  function ajustarDescanso(delta: number) {
+    if (!base) return;
+    // Restar cuando ya no queda nada no hace nada: el descanso termino.
+    if (delta < 0 && restante === 0) return;
+
+    // El piso es lo que ya paso, no cero: restar 10 sobre 4 segundos termina
+    // el descanso y no deja una deuda que despues haya que compensar sumando.
+    const transcurrido = totalDescanso - restante;
+    const nuevo = Math.max(transcurrido, totalDescanso + delta);
+    if (nuevo === totalDescanso) return;
+
+    // Sumar tiempo despues de que sono devuelve el aviso del nuevo final.
+    if (delta > 0) yaVibro.current.delete(clave);
+    onAjustar(clave, nuevo - base);
+
+    if (Platform.OS !== 'web') {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
+    }
+  }
+
+  return (
+    <>
+      <RestRing total={totalDescanso} finAt={finDescanso} restante={restante}>
+        <LumeText rol="label" color={finDelDescanso ? t.signalText : t.textTertiary}>
+          {finDelDescanso ? 'Listo' : 'Descanso'}
+        </LumeText>
+        <Text
+          style={[styles.reloj, { color: finDelDescanso ? t.signalText : t.textPrimary }]}
+        >
+          {mmss(restante)}
+        </Text>
+        <LumeText rol="bodySm" color={t.textTertiary} style={styles.deTotal}>
+          de {mmss(totalDescanso)}
+        </LumeText>
+      </RestRing>
+
+      {/* El descanso del plan es una guia y el gimnasio no siempre la respeta.
+         Restar no puede dejar el reloj en negativo, asi que con el descanso
+         terminado solo queda sumar. */}
+      <View style={styles.ajustes}>
+        <LumeButton
+          variant="secondary"
+          size="sm"
+          icon="minus"
+          disabled={restante === 0}
+          onPress={() => ajustarDescanso(-PASO_AJUSTE)}
+          accessibilityLabel={`Restar ${PASO_AJUSTE} segundos al descanso`}
+        >
+          {PASO_AJUSTE} s
+        </LumeButton>
+        <LumeButton
+          variant="secondary"
+          size="sm"
+          icon="plus"
+          onPress={() => ajustarDescanso(PASO_AJUSTE)}
+          accessibilityLabel={`Sumar ${PASO_AJUSTE} segundos al descanso`}
+        >
+          {PASO_AJUSTE} s
+        </LumeButton>
+      </View>
+    </>
+  );
+}
 
 /** Las marcas de las series del ejercicio: hechas en tinta, la actual en lume
  *  con su brillo, las que faltan en la pista. */
