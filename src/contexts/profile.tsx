@@ -22,6 +22,7 @@ import { fechaNacimientoAEdad } from '@/lib/edad';
 import { signAvatarUrl } from '@/lib/avatar';
 import { TERMINOS_VERSION } from '@/lib/terminos';
 import { PRIVACIDAD_VERSION } from '@/lib/privacidad';
+import { conLimite } from '@/lib/validacion';
 import type { UnidadPeso } from '@/lib/peso';
 import type { UnidadAltura } from '@/lib/altura';
 import type { UnidadDistancia } from '@/lib/distancia';
@@ -75,20 +76,6 @@ const COLUMNA_PREFERENCIA: Record<keyof Preferencias, string> = {
 // la consulta puede no volver nunca, y la app quedaba en la pantalla de carga
 // sin salida. Pasado el limite se trata como un error de lectura.
 const LIMITE_LECTURA_MS = 8000;
-
-/** Resuelve con el resultado de la promesa, o con null si tarda mas que el
- *  limite. No la cancela: la respuesta tardia simplemente se ignora. */
-async function conLimite<T>(promesa: PromiseLike<T>): Promise<T | null> {
-  let timer: ReturnType<typeof setTimeout> | undefined;
-  const limite = new Promise<null>((resolve) => {
-    timer = setTimeout(() => resolve(null), LIMITE_LECTURA_MS);
-  });
-  try {
-    return await Promise.race([Promise.resolve(promesa), limite]);
-  } finally {
-    clearTimeout(timer);
-  }
-}
 
 interface ProfileContextValue {
   profile: ProfileData | null;
@@ -153,7 +140,7 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
   }, [profile]);
 
   const refresh = useCallback(async (): Promise<boolean> => {
-    const auth = await conLimite(supabase.auth.getUser());
+    const auth = await conLimite(supabase.auth.getUser(), LIMITE_LECTURA_MS);
 
     // Un error de lectura no es un perfil vacio. Si ya habia un perfil de este
     // usuario se conserva (un refresco fallido despues de editar no tiene por
@@ -200,6 +187,7 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
           .order('aceptada_el', { referencedTable: 'aceptaciones_legales', ascending: false })
           .limit(1, { referencedTable: 'aceptaciones_legales' })
           .maybeSingle(),
+        LIMITE_LECTURA_MS,
       );
       // Se paso del limite: ya se espero bastante, no se reintenta.
       if (!res) {

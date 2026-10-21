@@ -13,6 +13,7 @@ import { File } from 'expo-file-system';
 import { Platform } from 'react-native';
 
 import { supabase } from './supabase';
+import { withTimeout } from './validacion';
 
 // Lado maximo del avatar guardado. El tamano mas grande con el que se dibuja
 // es 120pt (Avatar size="xl"), o sea 360px en una pantalla 3x. 512 deja
@@ -38,23 +39,6 @@ interface UploadResult {
   path?: string;
   error?: string;
   canceled?: boolean;
-}
-
-// Corta la espera si la red se traba, para que la UI nunca quede colgada.
-function withTimeout<T>(promise: PromiseLike<T>, ms: number): Promise<T> {
-  return new Promise<T>((resolve, reject) => {
-    const timer = setTimeout(() => reject(new Error('timeout')), ms);
-    Promise.resolve(promise).then(
-      (value) => {
-        clearTimeout(timer);
-        resolve(value);
-      },
-      (err) => {
-        clearTimeout(timer);
-        reject(err);
-      },
-    );
-  });
 }
 
 /**

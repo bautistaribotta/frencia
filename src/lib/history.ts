@@ -1,6 +1,7 @@
 import { supabase } from './supabase';
 import type { SesionTerminada } from './session';
 import { fechaLocal, RACHA_TOPE_DIAS } from './streak';
+import { esCursorValido } from './validacion';
 
 export const HISTORIAL_PAGINA = 20;
 
@@ -39,9 +40,7 @@ export async function cargarHistorial(
 
     if (cursor) {
       // Los valores se interpolan en sintaxis PostgREST; validar antes de usar.
-      if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(cursor.id) ||
-          !/^\d{4}-\d{2}-\d{2}T[\d:.]+(?:Z|[+-]\d{2}:\d{2})$/.test(cursor.finishedAt) ||
-          !Number.isFinite(Date.parse(cursor.finishedAt))) return { estado: 'error' };
+      if (!esCursorValido(cursor.id, cursor.finishedAt)) return { estado: 'error' };
       consulta
         // Este limite explicito permite aprovechar el indice por usuario/fecha.
         .lte('finished_at', cursor.finishedAt)
