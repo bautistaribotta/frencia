@@ -21,6 +21,7 @@ import React, { useState } from 'react';
 import { KeyboardAvoidingView, Platform, Pressable, StyleSheet, TextInput, View } from 'react-native';
 
 import { supabase } from '@/lib/supabase';
+import { crearRutina, nombreRutinaActiva } from '@/lib/rutinas';
 import { useProfile } from '@/contexts/profile';
 import { useToast } from '@/contexts/toast';
 import { DayEditor } from '@/components/DayEditor';
@@ -28,7 +29,6 @@ import { ExercisePickerModal } from '@/components/ExercisePickerModal';
 import { ArchiveRoutineDialog } from '@/components/ArchiveRoutineDialog';
 import {
   aplicarEjercicio,
-  filaEjercicio,
   nuevoDia,
   type DayExercise,
   type Medidor,
@@ -172,20 +172,14 @@ export default function CreateRoutineScreen() {
       return;
     }
 
-    const { data: activa } = await supabase
-      .from('routines')
-      .select('name')
-      .eq('user_id', userId)
-      .is('archived_at', null)
-      .maybeSingle();
-
-    if (activa) {
+    const activa = await nombreRutinaActiva(userId);
+    if (activa !== null) {
       setSaving(false);
-      setRutinaActiva(activa.name);
+      setRutinaActiva(activa);
       return;
     }
 
-    await crearRutina(userId, true);
+    await crear(userId, true);
   }
 
   // Respuesta del dialogo. Cerrarlo sin elegir (tocar afuera o volver) no
@@ -198,80 +192,22 @@ export default function CreateRoutineScreen() {
       setSaving(false);
       return;
     }
-    await crearRutina(userId, activar);
+    await crear(userId, activar);
   }
 
-  async function crearRutina(userId: string, activar: boolean) {
-    if (activar) {
-      // Archivamos la anterior antes de insertar, o el indice unico parcial
-      // rechaza la nueva.
-      await supabase
-        .from('routines')
-        .update({ archived_at: new Date().toISOString() })
-        .eq('user_id', userId)
-        .is('archived_at', null);
-    }
-
-    const { data: routine, error } = await supabase
-      .from('routines')
-      .insert({
-        user_id: userId,
-        name: nombreLimpio,
-        // Nace archivada cuando el usuario quiso conservar la actual como activa.
-        archived_at: activar ? null : new Date().toISOString(),
-      })
-      .select('id')
-      .single();
-
-    if (error || !routine) {
-      setSaving(false);
-      showToast({ message: 'No pudimos crear la rutina. Proba de nuevo.', type: 'error' });
-      return;
-    }
-
-    // Los dias se insertan juntos; Supabase devuelve las filas en el mismo
-    // orden en que se enviaron, asi que los ids se pueden aparear por indice.
-    const { data: diasCreados, error: errorDias } = await supabase
-      .from('training_days')
-      .insert(
-        dias.map((d, i) => ({
-          routine_id: routine.id,
-          user_id: userId,
-          name: d.name.trim() || `Día ${i + 1}`,
-          position: i,
-        })),
-      )
-      .select('id');
-
-    if (errorDias || !diasCreados) {
-      setSaving(false);
-      showToast({ message: 'No pudimos crear los días. Proba de nuevo.', type: 'error' });
-      return;
-    }
-
-    // Dias de la semana y ejercicios de todos los dias, en dos tandas.
-    const weekdayRows = dias.flatMap((d, i) =>
-      d.weekdays
-        .map((on, w) => (on ? w : -1))
-        .filter((w) => w >= 0)
-        .map((weekday) => ({ training_day_id: diasCreados[i].id, weekday })),
-    );
-
-    const exerciseRows = dias.flatMap((d, i) =>
-      d.exercises.map((ex, pos) => ({
-        training_day_id: diasCreados[i].id,
-        ...filaEjercicio(ex, pos),
-      })),
-    );
-
-    if (weekdayRows.length > 0) {
-      await supabase.from('training_day_weekdays').insert(weekdayRows);
-    }
-    if (exerciseRows.length > 0) {
-      await supabase.from('training_day_exercises').insert(exerciseRows);
-    }
-
+  async function crear(userId: string, activar: boolean) {
+    const resultado = await crearRutina(userId, nombreLimpio, dias, activar);
     setSaving(false);
+    if (resultado !== 'ok') {
+      showToast({
+        message:
+          resultado === 'error-rutina'
+            ? 'No pudimos crear la rutina. Proba de nuevo.'
+            : 'No pudimos crear los días. Proba de nuevo.',
+        type: 'error',
+      });
+      return;
+    }
     showToast({
       message: activar ? 'Rutina creada' : 'Rutina creada y archivada',
       type: 'success',

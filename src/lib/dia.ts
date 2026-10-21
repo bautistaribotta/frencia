@@ -11,6 +11,7 @@ import {
   type FilaTipo,
   type TipoEjercicio,
 } from './exercises';
+import type { Tables } from './database.types';
 import { mostrarPeso, type UnidadPeso } from './peso';
 import { supabase } from './supabase';
 import { duracionCompacta, reloj } from './tiempo';
@@ -250,7 +251,7 @@ export async function cargarDia(trainingDayId: string): Promise<DiaCargado | nul
     if (w.weekday >= 0 && w.weekday <= 6) weekdays[w.weekday] = true;
   }
 
-  const exercises: DayExercise[] = ((data.training_day_exercises ?? []) as FilaPlan[])
+  const exercises: DayExercise[] = (data.training_day_exercises ?? [])
     .slice()
     .sort((a, b) => a.position - b.position)
     .map((fila) => ({
@@ -260,38 +261,29 @@ export async function cargarDia(trainingDayId: string): Promise<DiaCargado | nul
 
   return {
     dia: { name: data.name, weekdays, exercises },
-    rutina: unoDe(data.routines as { name?: string } | { name?: string }[] | null)?.name ?? '',
+    rutina: data.routines?.name ?? '',
   };
 }
 
-// El embed de una relacion to-one puede llegar como objeto o como array de
-// uno segun la version del cliente; normalizamos.
-function unoDe<T>(valor: T | T[] | null): T | null {
-  return Array.isArray(valor) ? (valor[0] ?? null) : valor;
-}
-
 /** Un ejercicio del dia tal como llega de la base, con su ejercicio embebido. */
-export interface FilaPlan {
-  exercise_id: string;
-  position: number;
-  sets: number | null;
-  reps: number | null;
-  duration_seconds: number | null;
-  distance_m: number | null;
-  // numeric llega como string desde PostgREST.
-  weight_kg: number | string | null;
-  intensity_kind: string | null;
-  intensity_value: number | string | null;
-  rest_seconds: number | null;
-  exercises:
-    | ({ name?: string } & FilaTipo)
-    | ({ name?: string } & FilaTipo)[]
-    | null;
-}
+export type FilaPlan = Pick<
+  Tables<'training_day_exercises'>,
+  | 'exercise_id'
+  | 'sets'
+  | 'reps'
+  | 'duration_seconds'
+  | 'distance_m'
+  | 'weight_kg'
+  | 'intensity_kind'
+  | 'intensity_value'
+  | 'rest_seconds'
+> & {
+  exercises: ({ name: string } & FilaTipo) | null;
+};
 
 /** Convierte una fila de training_day_exercises en el ejercicio del plan. */
 export function ejercicioPlanDeFila(fila: FilaPlan): EjercicioPlan {
-  const ejercicio = unoDe(fila.exercises);
+  const ejercicio = fila.exercises;
   const { kind, tracks } = tipoDeFila(ejercicio);
   return {
     exerciseId: fila.exercise_id,
@@ -302,7 +294,7 @@ export function ejercicioPlanDeFila(fila: FilaPlan): EjercicioPlan {
     reps: tracks.reps ? (fila.reps ?? 10) : null,
     durationSeconds: fila.duration_seconds,
     distanceM: fila.distance_m,
-    weightKg: fila.weight_kg === null ? null : Number(fila.weight_kg),
+    weightKg: fila.weight_kg,
     ...intensidadDeFila(fila.intensity_kind, fila.intensity_value),
     restSeconds: fila.rest_seconds,
   };

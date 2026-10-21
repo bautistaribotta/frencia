@@ -9,6 +9,7 @@ import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, View
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { supabase } from '@/lib/supabase';
+import { guardarDatosPersonales, leerDatosPersonales } from '@/lib/perfil';
 import { edadAFechaNacimiento, fechaNacimientoAEdad } from '@/lib/edad';
 import { mostrarAltura } from '@/lib/altura';
 import { mostrarPeso } from '@/lib/peso';
@@ -18,7 +19,7 @@ import { useDescartarAlSalir } from '@/lib/descartar-al-salir';
 import { Hoja } from '@/components/Hoja';
 import { MeasurePicker } from '@/components/MeasurePicker';
 
-import { Icon } from '@/design';
+import { Icon, type IconName } from '@/design';
 import {
   Campo,
   Cargando,
@@ -106,13 +107,9 @@ export default function EditProfileScreen() {
         return;
       }
 
-      const { data } = await supabase
-        .from('profiles')
-        .select('name, surname, fecha_nacimiento, sexo, altura, peso')
-        .eq('id', user.id)
-        .single();
-
+      const lectura = await leerDatosPersonales(user.id);
       if (!activo) return;
+      const data = lectura.estado === 'ok' ? lectura.datos : null;
 
       const edadCalc = data ? fechaNacimientoAEdad(data.fecha_nacimiento) : null;
       const cargados = [
@@ -177,21 +174,18 @@ export default function EditProfileScreen() {
       return;
     }
 
-    const { error } = await supabase
-      .from('profiles')
-      .update({
-        name: nombre.trim() === '' ? null : nombre.trim(),
-        surname: apellido.trim() === '' ? null : apellido.trim(),
-        fecha_nacimiento: edad.trim() === '' ? null : edadAFechaNacimiento(edadNum),
-        sexo: SEXO_OPTIONS.some((o) => o.value === sexo) ? sexo : null,
-        altura: altura.trim() === '' ? null : alturaNum,
-        peso: peso.trim() === '' ? null : pesoNum,
-      })
-      .eq('id', user.id);
+    const ok = await guardarDatosPersonales(user.id, {
+      name: nombre.trim() === '' ? null : nombre.trim(),
+      surname: apellido.trim() === '' ? null : apellido.trim(),
+      fecha_nacimiento: edad.trim() === '' ? null : edadAFechaNacimiento(edadNum),
+      sexo: SEXO_OPTIONS.some((o) => o.value === sexo) ? sexo : null,
+      altura: altura.trim() === '' ? null : alturaNum,
+      peso: peso.trim() === '' ? null : pesoNum,
+    });
 
     setLoading(false);
 
-    if (error) {
+    if (!ok) {
       setErrorMsg('No pudimos guardar tu perfil. Proba de nuevo.');
       return;
     }
@@ -361,7 +355,7 @@ function Grupo({ etiqueta, children }: { etiqueta: string; children: React.React
 
 /* ── Campo de seleccion: abre la rueda en vez de teclado ─── */
 interface CampoSelectorProps {
-  icono: string;
+  icono: IconName;
   etiqueta: string;
   valor: string;
   placeholder: string;

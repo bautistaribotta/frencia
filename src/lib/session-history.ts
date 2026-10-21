@@ -5,11 +5,11 @@ import {
   COLUMNAS_TIPO,
   tipoDeFila,
   type DatosRegistrados,
-  type FilaTipo,
   type TipoEjercicio,
 } from './exercises';
 import { supabase } from './supabase';
-import type { Medidor, SesionTerminada } from './session';
+import type { SesionTerminada } from './history';
+import type { Medidor } from './session';
 import { duracionSesion } from './tiempo';
 import { esUuid } from './validacion';
 
@@ -34,20 +34,6 @@ export interface EjercicioRealizado {
   kind: TipoEjercicio;
   tracks: DatosRegistrados;
   series: SerieRealizada[];
-}
-
-interface FilaSerieRealizada {
-  id: string;
-  exercise_id: string;
-  set_index: number;
-  weight_kg: number | string | null;
-  reps: number | null;
-  duration_seconds: number | null;
-  distance_m: number | null;
-  intensity_kind: string | null;
-  intensity_value: number | string | null;
-  completed_at: string;
-  exercises: ({ name?: string } & FilaTipo) | ({ name?: string } & FilaTipo)[] | null;
 }
 
 export interface SesionDetalle extends SesionTerminada {
@@ -100,12 +86,10 @@ export async function cargarDetalleSesion(
       if (signal) consulta.abortSignal(signal);
       const { data, error: errorSeries } = await consulta;
       if (errorSeries || !data) return { estado: 'error' };
-      const filas = data as unknown as FilaSerieRealizada[];
-
-      for (const fila of filas) {
+      for (const fila of data) {
         let grupo = grupos.get(fila.exercise_id);
         if (!grupo) {
-          const ejercicio = Array.isArray(fila.exercises) ? fila.exercises[0] : fila.exercises;
+          const ejercicio = fila.exercises;
           grupo = {
             exerciseId: fila.exercise_id,
             name: ejercicio?.name ?? 'Ejercicio',
@@ -125,7 +109,7 @@ export async function cargarDetalleSesion(
           completedAt: Date.parse(fila.completed_at),
         });
       }
-      if (filas.length < SERIES_PAGINA) break;
+      if (data.length < SERIES_PAGINA) break;
     }
 
     // Orden historico por primer registro; dentro de cada ejercicio, numero de serie.
@@ -135,12 +119,11 @@ export async function cargarDetalleSesion(
     const ejercicios = [...grupos.values()].sort((a, b) =>
       primerRegistro(a) - primerRegistro(b) || a.exerciseId.localeCompare(b.exerciseId),
     );
-    const dia = Array.isArray(sesion.training_days) ? sesion.training_days[0] : sesion.training_days;
     return {
       estado: 'ok',
       sesion: {
         id: sesion.id,
-        dayName: (dia as { name?: string } | null)?.name ?? null,
+        dayName: sesion.training_days?.name ?? null,
         startedAt: Date.parse(sesion.started_at),
         finishedAt: Date.parse(sesion.finished_at as string),
         ejercicios,

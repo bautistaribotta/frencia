@@ -13,6 +13,8 @@ import { useEffect, useState } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import { supabase } from '@/lib/supabase';
+import type { IconName } from '@/design';
+import type { Tables } from '@/lib/database.types';
 
 export interface MuscleGroup {
   slug: string;
@@ -35,7 +37,7 @@ export interface DatosRegistrados {
 
 /** Nombre e icono de cada tipo, segun el design system (tipos de ejercicio,
  *  seccion 09). Sin color propio. */
-export const TIPOS: Record<TipoEjercicio, { label: string; icon: string }> = {
+export const TIPOS: Record<TipoEjercicio, { label: string; icon: IconName }> = {
   fuerza: { label: 'Fuerza', icon: 'dumbbell' },
   isometrico: { label: 'Isométrico', icon: 'hourglass' },
   cardio: { label: 'Cardio', icon: 'heart-pulse' },
@@ -110,18 +112,10 @@ let memoryCache: Exercise[] | null = null;
 // el bucle la tomaria por la ultima y el resto del catalogo quedaria afuera.
 const CATALOGO_PAGINA = 1000;
 
-interface FilaEjercicio extends FilaTipo {
-  id: string;
-  name: string;
-  name_en: string | null;
-  equipment: string | null;
-  // Sin tipos generados, supabase-js tipa la relacion como arreglo aunque
-  // muscle_groups es muchos-a-uno y en runtime llega un objeto: se aceptan
-  // las dos formas.
-  exercise_muscles:
-    | { is_primary: boolean; muscle_groups: MuscleGroup | MuscleGroup[] | null }[]
-    | null;
-}
+type FilaEjercicio = Pick<Tables<'exercises'>, 'id' | 'name' | 'name_en' | 'equipment'> &
+  FilaTipo & {
+    exercise_muscles: { is_primary: boolean; muscle_groups: MuscleGroup | null }[] | null;
+  };
 
 function porPosicion(a: MuscleGroup, b: MuscleGroup) {
   return a.position - b.position;
@@ -131,7 +125,7 @@ function aEjercicio(e: FilaEjercicio): Exercise {
   const primarios: MuscleGroup[] = [];
   const secundarios: MuscleGroup[] = [];
   for (const m of e.exercise_muscles ?? []) {
-    const g = Array.isArray(m.muscle_groups) ? m.muscle_groups[0] : m.muscle_groups;
+    const g = m.muscle_groups;
     if (!g) continue;
     (m.is_primary ? primarios : secundarios).push(g);
   }
@@ -165,7 +159,7 @@ async function fetchAll(): Promise<Exercise[] | null> {
       .order('id')
       .range(desde, desde + CATALOGO_PAGINA - 1);
     if (error || !data) return null;
-    for (const e of data) todos.push(aEjercicio(e as unknown as FilaEjercicio));
+    for (const e of data) todos.push(aEjercicio(e));
     if (data.length < CATALOGO_PAGINA) break;
   }
   return todos;

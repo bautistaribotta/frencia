@@ -19,6 +19,8 @@ import { StyleSheet, View } from 'react-native';
 import { useRouter } from 'expo-router';
 
 import { supabase } from '@/lib/supabase';
+import type { TablesUpdate } from '@/lib/database.types';
+import { guardarSetup } from '@/lib/perfil';
 import { edadAFechaNacimiento } from '@/lib/edad';
 import { cmAPiesPulgadas, piesPulgadasACm } from '@/lib/altura';
 import { kgALb, lbAKg } from '@/lib/peso';
@@ -111,7 +113,7 @@ export default function SetupWizardScreen() {
     setGuardando(true);
     setError('');
 
-    const payload: Record<string, number | string | boolean> = {
+    const payload: TablesUpdate<'profiles'> = {
       // Preferencias de unidad: se guardan siempre, aunque se salte el dato.
       unidad_altura: unidadAltura === 'imperial' ? 'ft' : 'cm',
       unidad_peso: unidadPeso === 'imperial' ? 'lb' : 'kg',
@@ -136,18 +138,11 @@ export default function SetupWizardScreen() {
       return;
     }
 
-    // Upsert por id en vez de update: garantiza que la fila exista y, con
-    // .select(), confirma que se escribio. Un update sin select que matchea 0
-    // filas devuelve exito silencioso.
-    const { data, error: errorGuardar } = await supabase
-      .from('profiles')
-      .upsert({ id: user.id, ...payload }, { onConflict: 'id' })
-      .select('id')
-      .maybeSingle();
+    const ok = await guardarSetup(user.id, payload);
 
     setGuardando(false);
 
-    if (errorGuardar || !data) {
+    if (!ok) {
       setError('No pudimos guardar tus datos. Probá de nuevo.');
       return;
     }

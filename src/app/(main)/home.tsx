@@ -20,6 +20,7 @@ import { useProfile } from '@/contexts/profile';
 import { SEMANA_CORTA, SEMANA_NOMBRES } from '@/lib/dia';
 import { cargarFechasEntrenadas } from '@/lib/history';
 import { calcularRacha, fechaLocal, type Racha } from '@/lib/streak';
+import { cargarRutinaActiva, type DiaResumen, type RutinaDetalle } from '@/lib/rutinas';
 import { supabase } from '@/lib/supabase';
 import { indiceSemanaLunes, MESES_CORTO } from '@/lib/tiempo';
 import { useVolverArribaAlRetocar } from '@/lib/volver-arriba';
@@ -61,7 +62,7 @@ function fechaSaludo(d: Date): string {
 
 /** El dia que toca antes, contando desde hoy (hoy incluido). Sin dias de la
     semana asignados, el primero de la rutina. */
-function indiceProximo(days: TrainingDayCard[], hoy: number): number {
+function indiceProximo(days: DiaResumen[], hoy: number): number {
   let mejor = 0;
   let distancia = 8;
   days.forEach((d, i) => {
@@ -76,20 +77,6 @@ function indiceProximo(days: TrainingDayCard[], hoy: number): number {
   return mejor;
 }
 
-// Un dia de entrenamiento de la rutina activa, tal como se muestra en el home.
-interface TrainingDayCard {
-  id: string;
-  name: string;
-  weekdays: number[];
-  exerciseCount: number;
-}
-
-interface ActiveRoutine {
-  id: string;
-  name: string;
-  days: TrainingDayCard[];
-}
-
 export default function HomeScreen() {
   const { t, sombras } = useLume();
   const router = useRouter();
@@ -98,7 +85,7 @@ export default function HomeScreen() {
   const { displayName, profile } = useProfile();
   const first = displayName.split(' ')[0];
 
-  const [routine, setRoutine] = useState<ActiveRoutine | null>(null);
+  const [routine, setRoutine] = useState<RutinaDetalle | null>(null);
   const [loaded, setLoaded] = useState(false);
   const [racha, setRacha] = useState<Racha | null>(null);
   // Como en rutinas e historial: el RefreshControl solo se muestra cuando la
@@ -122,43 +109,14 @@ export default function HomeScreen() {
       }
       return;
     }
-    // Solo hay una rutina activa (archived_at nulo); traemos sus dias con
-    // los weekdays y la cuenta de ejercicios en una sola consulta.
-    const { data } = await supabase
-      .from('routines')
-      .select(
-        'id, name, training_days(id, name, position, training_day_weekdays(weekday), training_day_exercises(count))',
-      )
-      .eq('user_id', user.id)
-      .is('archived_at', null)
-      .maybeSingle();
+    const data = await cargarRutinaActiva(user.id);
     if (!vigente()) return;
-    setRoutine(
-      data
-        ? {
-            id: data.id,
-            name: data.name,
-            days: (data.training_days ?? [])
-              .slice()
-              .sort((a, b) => a.position - b.position)
-              .map((d) => ({
-                id: d.id,
-                name: d.name,
-                weekdays: (d.training_day_weekdays ?? [])
-                  .map((w) => w.weekday)
-                  .sort((a, b) => a - b),
-                exerciseCount: d.training_day_exercises?.[0]?.count ?? 0,
-              })),
-          }
-        : null,
-    );
+    setRoutine(data);
     setLoaded(true);
 
     // La racha se deriva de los weekdays de la rutina activa y de las
     // fechas con sesion terminada. Sin weekdays no hay contra que medir.
-    const weekdays = (data?.training_days ?? []).flatMap((d) =>
-      (d.training_day_weekdays ?? []).map((w) => w.weekday),
-    );
+    const weekdays = (data?.dias ?? []).flatMap((d) => d.weekdays);
     if (weekdays.length === 0) {
       setRacha(null);
       return;
@@ -194,8 +152,8 @@ export default function HomeScreen() {
   // vez de apilar otra copia encima.
   const openProfile = () => router.navigate('/profile');
   const onCreateRoutine = () => router.push('/create-routine');
-  const hasRoutine = routine !== null && routine.days.length > 0;
-  const proximo = hasRoutine ? indiceProximo(routine.days, indiceSemanaLunes(new Date())) : -1;
+  const hasRoutine = routine !== null && routine.dias.length > 0;
+  const proximo = hasRoutine ? indiceProximo(routine.dias, indiceSemanaLunes(new Date())) : -1;
 
   return (
     <View style={styles.pantalla}>
@@ -262,11 +220,11 @@ export default function HomeScreen() {
                   {routine.name}
                 </LumeText>
                 <LumeText rol="label" color={t.textTertiary}>
-                  {routine.days.length} {routine.days.length === 1 ? 'día' : 'días'}
+                  {routine.dias.length} {routine.dias.length === 1 ? 'día' : 'días'}
                 </LumeText>
               </View>
 
-              {routine.days.map((d, i) => {
+              {routine.dias.map((d, i) => {
                 const esProximo = i === proximo;
                 return (
                   <Vidrio key={d.id} nivel={esProximo ? 'fuerte' : 'normal'} style={styles.tarjeta}>
@@ -280,7 +238,7 @@ export default function HomeScreen() {
                         </LumeText>
                         <LumeText rol="label" color={t.textTertiary} numberOfLines={1}>
                           {esProximo ? <LumeText rol="label" color={t.signalText}>Próximo · </LumeText> : null}
-                          {d.exerciseCount} {d.exerciseCount === 1 ? 'ejercicio' : 'ejercicios'}
+                          {d.ejercicios} {d.ejercicios === 1 ? 'ejercicio' : 'ejercicios'}
                           {d.weekdays.length > 0
                             ? ` · ${d.weekdays.map((w) => SEMANA_CORTA[w]).join(', ')}`
                             : ''}

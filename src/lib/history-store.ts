@@ -1,6 +1,5 @@
-import { cargarHistorial, type CursorHistorial, type PaginaHistorial } from './history';
+import { cargarHistorial, type CursorHistorial, type PaginaHistorial, type SesionTerminada } from './history';
 import { crearListaPaginada, type EstadoPaginado } from './lista-paginada';
-import type { SesionTerminada } from './session';
 
 export interface EstadoHistorial extends EstadoPaginado<CursorHistorial> {
   sesiones: SesionTerminada[];

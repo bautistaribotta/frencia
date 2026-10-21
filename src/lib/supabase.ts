@@ -2,6 +2,7 @@
 // Persiste la sesion en AsyncStorage y la refresca sola.
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { createClient } from '@supabase/supabase-js';
+import type { Database } from './database.types';
 import 'react-native-url-polyfill/auto';
 import './webcrypto-polyfill';
 
@@ -23,7 +24,7 @@ const memoryStorage = {
   removeItem: async () => {},
 };
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey, {
   auth: {
     storage: isServer ? memoryStorage : AsyncStorage,
     autoRefreshToken: !isServer,

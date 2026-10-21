@@ -4,6 +4,9 @@
    activa y las archivadas de a paginas (sin tope de cantidad para premium).
    Ver docs/specs/rutinas-y-dias.md */
 
+import type { QueryData } from '@supabase/supabase-js';
+import type { Tables } from './database.types';
+import { filaEjercicio, type TrainingDay } from './dia';
 import { supabase } from './supabase';
 import { MESES_MAYUS } from './tiempo';
 import { esCursorValido } from './validacion';
@@ -67,13 +70,9 @@ export type PaginaRutinas =
 
 const COLUMNAS = 'id, name, archived_at, created_at, training_days(count)';
 
-interface FilaRutina {
-  id: string;
-  name: string;
-  archived_at: string | null;
-  created_at: string;
+type FilaRutina = Pick<Tables<'routines'>, 'id' | 'name' | 'archived_at' | 'created_at'> & {
   training_days: { count: number }[] | null;
-}
+};
 
 function aResumen(r: FilaRutina): RutinaResumen {
   return {
@@ -135,12 +134,12 @@ export async function cargarRutinas(
     const [pagina, activa] = await Promise.all([consulta, activaConsulta]);
     if (pagina.error || !pagina.data || activa?.error || signal?.aborted) return { estado: 'error' };
 
-    const filas = pagina.data as FilaRutina[];
+    const filas = pagina.data;
     const visibles = filas.slice(0, limite);
     const ultima = visibles[visibles.length - 1];
     return {
       estado: 'ok',
-      ...(activa ? { activa: activa.data ? aResumen(activa.data as FilaRutina) : null } : {}),
+      ...(activa ? { activa: activa.data ? aResumen(activa.data) : null } : {}),
       anteriores: visibles.map(aResumen),
       siguiente: filas.length > limite && ultima ? { id: ultima.id, creadaEl: ultima.created_at } : null,
     };
@@ -198,17 +197,14 @@ export async function eliminarRutina(routineId: string): Promise<boolean> {
 }
 
 /** Una rutina con sus dias en orden. null si no existe o no es del usuario. */
-export async function cargarRutina(routineId: string): Promise<RutinaDetalle | null> {
-  const { data, error } = await supabase
-    .from('routines')
-    .select(
-      'id, name, archived_at, created_at, training_days(id, name, position, training_day_weekdays(weekday), training_day_exercises(count))',
-    )
-    .eq('id', routineId)
-    .maybeSingle();
+const COLUMNAS_DETALLE =
+  'id, name, archived_at, created_at, training_days(id, name, position, training_day_weekdays(weekday), training_day_exercises(count))';
 
-  if (error || !data) return null;
+function consultaDetalle() {
+  return supabase.from('routines').select(COLUMNAS_DETALLE);
+}
 
+function aDetalle(data: QueryData<ReturnType<typeof consultaDetalle>>[number]): RutinaDetalle {
   return {
     id: data.id,
     name: data.name,
@@ -225,4 +221,104 @@ export async function cargarRutina(routineId: string): Promise<RutinaDetalle | n
         ejercicios: d.training_day_exercises?.[0]?.count ?? 0,
       })),
   };
+}
+
+export async function cargarRutina(routineId: string): Promise<RutinaDetalle | null> {
+  const { data, error } = await consultaDetalle().eq('id', routineId).maybeSingle();
+  if (error || !data) return null;
+  return aDetalle(data);
+}
+
+/** La rutina activa del usuario (archived_at nulo; hay una sola), con sus dias,
+ *  weekdays y cuenta de ejercicios en una sola consulta. null si no hay o si
+ *  falla la lectura. */
+export async function cargarRutinaActiva(userId: string): Promise<RutinaDetalle | null> {
+  const { data, error } = await consultaDetalle().eq('user_id', userId).is('archived_at', null).maybeSingle();
+  if (error || !data) return null;
+  return aDetalle(data);
+}
+
+/** Nombre de la rutina activa del usuario, o null si no tiene. */
+export async function nombreRutinaActiva(userId: string): Promise<string | null> {
+  const { data } = await supabase
+    .from('routines')
+    .select('name')
+    .eq('user_id', userId)
+    .is('archived_at', null)
+    .maybeSingle();
+  return data?.name ?? null;
+}
+
+export type ResultadoCrearRutina = 'ok' | 'error-rutina' | 'error-dias';
+
+/**
+ * Crea una rutina con sus dias, weekdays y ejercicios. Con `activar` archiva
+ * antes la activa; si no, la nueva nace archivada.
+ *
+ * Son escrituras sueltas, sin transaccion (ver A2 en la revision y el issue 18).
+ */
+export async function crearRutina(
+  userId: string,
+  nombre: string,
+  dias: TrainingDay[],
+  activar: boolean,
+): Promise<ResultadoCrearRutina> {
+  if (activar) {
+    // Archivamos la anterior antes de insertar, o el indice unico parcial
+    // rechaza la nueva.
+    await supabase
+      .from('routines')
+      .update({ archived_at: new Date().toISOString() })
+      .eq('user_id', userId)
+      .is('archived_at', null);
+  }
+
+  const { data: routine, error } = await supabase
+    .from('routines')
+    .insert({
+      user_id: userId,
+      name: nombre,
+      // Nace archivada cuando el usuario quiso conservar la actual como activa.
+      archived_at: activar ? null : new Date().toISOString(),
+    })
+    .select('id')
+    .single();
+  if (error || !routine) return 'error-rutina';
+
+  // Los dias se insertan juntos; Supabase devuelve las filas en el mismo
+  // orden en que se enviaron, asi que los ids se pueden aparear por indice.
+  const { data: diasCreados, error: errorDias } = await supabase
+    .from('training_days')
+    .insert(
+      dias.map((d, i) => ({
+        routine_id: routine.id,
+        user_id: userId,
+        name: d.name.trim() || `Día ${i + 1}`,
+        position: i,
+      })),
+    )
+    .select('id');
+  if (errorDias || !diasCreados) return 'error-dias';
+
+  // Dias de la semana y ejercicios de todos los dias, en dos tandas.
+  const weekdayRows = dias.flatMap((d, i) =>
+    d.weekdays
+      .map((on, w) => (on ? w : -1))
+      .filter((w) => w >= 0)
+      .map((weekday) => ({ training_day_id: diasCreados[i].id, weekday })),
+  );
+  const exerciseRows = dias.flatMap((d, i) =>
+    d.exercises.map((ex, pos) => ({
+      training_day_id: diasCreados[i].id,
+      ...filaEjercicio(ex, pos),
+    })),
+  );
+
+  if (weekdayRows.length > 0) {
+    await supabase.from('training_day_weekdays').insert(weekdayRows);
+  }
+  if (exerciseRows.length > 0) {
+    await supabase.from('training_day_exercises').insert(exerciseRows);
+  }
+  return 'ok';
 }

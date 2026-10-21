@@ -1,7 +1,15 @@
 import { supabase } from './supabase';
-import type { SesionTerminada } from './session';
 import { fechaLocal, RACHA_TOPE_DIAS } from './streak';
 import { esCursorValido } from './validacion';
+
+/** Una sesion terminada, resumida para el historial. */
+export interface SesionTerminada {
+  id: string;
+  /** Nombre del dia, o null si el dia se borro (la sesion sobrevive). */
+  dayName: string | null;
+  startedAt: number;
+  finishedAt: number;
+}
 
 export const HISTORIAL_PAGINA = 20;
 
@@ -55,15 +63,12 @@ export async function cargarHistorial(
     const ultima = visibles[visibles.length - 1];
     return {
       estado: 'ok',
-      sesiones: visibles.map((fila) => {
-        const dia = Array.isArray(fila.training_days) ? fila.training_days[0] : fila.training_days;
-        return {
-          id: fila.id,
-          dayName: (dia as { name?: string } | null)?.name ?? null,
-          startedAt: Date.parse(fila.started_at),
-          finishedAt: Date.parse(fila.finished_at as string),
-        };
-      }),
+      sesiones: visibles.map((fila) => ({
+        id: fila.id,
+        dayName: fila.training_days?.name ?? null,
+        startedAt: Date.parse(fila.started_at),
+        finishedAt: Date.parse(fila.finished_at as string),
+      })),
       siguiente: extra && ultima ? { id: ultima.id, finishedAt: ultima.finished_at as string } : null,
       proximaFecha: extra ? Date.parse(extra.finished_at as string) : null,
     };

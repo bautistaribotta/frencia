@@ -7,13 +7,13 @@
 import React from 'react';
 import { StyleSheet, Text, View, type ViewStyle } from 'react-native';
 
-import { Icon } from '../Icon';
+import { Icon, type IconName } from '../Icon';
 import { useLume } from '../lume/useLume';
 import { lumeFuente } from '../lume/tipografia';
 
 export interface ExerciseTypeTagProps {
   label: string;
-  icon: string;
+  icon: IconName;
   /** Datos que registra, ya abreviados: ["Tiempo", "Dist."]. */
   metrics?: string[];
   style?: ViewStyle;

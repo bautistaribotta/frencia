@@ -18,6 +18,7 @@ import React, {
 } from 'react';
 
 import { supabase } from '@/lib/supabase';
+import type { TablesUpdate } from '@/lib/database.types';
 import { fechaNacimientoAEdad } from '@/lib/edad';
 import { signAvatarUrl } from '@/lib/avatar';
 import { TERMINOS_VERSION } from '@/lib/terminos';
@@ -65,7 +66,7 @@ export interface ProfileData {
 // al instante en toda la app, sin esperar a releer el perfil.
 export type Preferencias = Pick<ProfileData, 'medidorEsfuerzo' | 'unidadPeso' | 'unidadAltura' | 'unidadDistancia'>;
 
-const COLUMNA_PREFERENCIA: Record<keyof Preferencias, string> = {
+const COLUMNA_PREFERENCIA: Record<keyof Preferencias, keyof TablesUpdate<'profiles'>> = {
   medidorEsfuerzo: 'medidor_esfuerzo',
   unidadPeso: 'unidad_peso',
   unidadAltura: 'unidad_altura',
@@ -323,7 +324,7 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
       const anterior = Object.fromEntries(claves.map((k) => [k, activeProfile[k]])) as Partial<Preferencias>;
       setProfile((prev) => (prev ? { ...prev, ...next } : prev));
 
-      const patch = Object.fromEntries(claves.map((k) => [COLUMNA_PREFERENCIA[k], next[k]]));
+      const patch: TablesUpdate<'profiles'> = Object.fromEntries(claves.map((k) => [COLUMNA_PREFERENCIA[k], next[k]]));
       const { error } = await supabase.from('profiles').update(patch).eq('id', userId);
       if (error) {
         setProfile((prev) => (prev ? { ...prev, ...anterior } : prev));

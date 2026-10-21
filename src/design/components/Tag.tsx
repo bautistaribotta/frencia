@@ -7,7 +7,7 @@
 import React from 'react';
 import { Pressable, StyleSheet, Text, View, type ViewStyle } from 'react-native';
 
-import { Icon } from '../Icon';
+import { Icon, type IconName } from '../Icon';
 import { useLume } from '../lume/useLume';
 import { lumeFuente } from '../lume/tipografia';
 
@@ -16,7 +16,7 @@ export interface TagProps {
   selectable?: boolean;
   dot?: boolean;
   /** Icono antes del texto, en el mismo color (filtro por tipo del catalogo). */
-  icon?: string;
+  icon?: IconName;
   onPress?: () => void;
   /** Nombre para el lector de pantalla cuando el texto visible no alcanza. */
   accessibilityLabel?: string;

@@ -12,7 +12,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useProfile, type Preferencias } from '@/contexts/profile';
 import { useSession } from '@/contexts/session';
 import { useToast } from '@/contexts/toast';
-import { pickAndUploadAvatar, deleteAvatarFile } from '@/lib/avatar';
+import { pickAndUploadAvatar, deleteAvatarFile, usarAvatarGenerado } from '@/lib/avatar';
 import { supabase } from '@/lib/supabase';
 import { useVolverArribaAlRetocar } from '@/lib/volver-arriba';
 
@@ -122,12 +122,9 @@ export default function ProfileScreen() {
     const nuevaSeed = `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
     // Antes de soltar la referencia, porque la ruta sale de la propia fila.
     await deleteAvatarFile(user.id);
-    const { error } = await supabase
-      .from('profiles')
-      .update({ avatar_seed: nuevaSeed, avatar_path: null })
-      .eq('id', user.id);
+    const ok = await usarAvatarGenerado(user.id, nuevaSeed);
     setBusy(false);
-    if (error) {
+    if (!ok) {
       setPhotoError('No pudimos generar el avatar.');
       return;
     }
@@ -148,12 +145,9 @@ export default function ProfileScreen() {
     await deleteAvatarFile(user.id);
     // Asegura una semilla para mostrar el avatar generado.
     const semilla = seed ?? `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
-    const { error } = await supabase
-      .from('profiles')
-      .update({ avatar_path: null, avatar_seed: semilla })
-      .eq('id', user.id);
+    const ok = await usarAvatarGenerado(user.id, semilla);
     setBusy(false);
-    if (error) {
+    if (!ok) {
       setPhotoError('No pudimos eliminar la foto.');
       return;
     }

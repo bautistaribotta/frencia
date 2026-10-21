@@ -9,7 +9,7 @@ import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 
-import { Icon } from '@/design';
+import { Icon, type IconName } from '@/design';
 import { Fondo, LumeButton, LumeText, Vidrio, lumeFuente, lumeLayout, lumeSpace, useLume } from '@/design/lume';
 import { usePedirEliminarCuenta } from '@/lib/pedir-eliminar-cuenta';
 
@@ -25,7 +25,7 @@ export default function SettingsScreen() {
 
   // Una fila de la lista: icono, titulo y chevron.
   const fila = (
-    icono: string,
+    icono: IconName,
     titulo: string,
     onPress: () => void,
     { peligro = false, deshabilitada = false }: { peligro?: boolean; deshabilitada?: boolean } = {},

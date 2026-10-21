@@ -27,7 +27,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import { useProfile } from '@/contexts/profile';
 import { useSession } from '@/contexts/session';
-import { supabase } from '@/lib/supabase';
+import { guardarTema } from '@/lib/perfil';
 import { themes, type Palette, type ThemeMode } from './tokens/colors';
 import { shadows, type Shadows } from './tokens/radius';
 
@@ -122,10 +122,7 @@ export function FrenciaThemeProvider({ children }: { children: React.ReactNode }
       applyTema(nuevoTema);
       AsyncStorage.setItem(STORAGE_KEY, next).catch(() => {});
       if (!userId) return;
-      void supabase
-        .from('profiles')
-        .update({ tema: nuevoTema })
-        .eq('id', userId);
+      guardarTema(userId, nuevoTema);
     },
     [applyTema, userId],
   );

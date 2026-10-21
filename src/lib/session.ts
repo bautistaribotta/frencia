@@ -8,10 +8,10 @@ import {
   ejercicioPlanDeFila,
   intensidadDeFila,
   type EjercicioPlan,
-  type FilaPlan,
   type Medidor,
 } from './dia';
 import { COLUMNAS_TIPO } from './exercises';
+import type { Tables } from './database.types';
 import { supabase } from './supabase';
 
 export type { EjercicioPlan, Medidor } from './dia';
@@ -30,14 +30,10 @@ export interface SerieFantasma {
 }
 
 /** Los datos de una serie tal como llegan de session_sets. */
-interface FilaSerie {
-  weight_kg: number | string | null;
-  reps: number | null;
-  duration_seconds: number | null;
-  distance_m: number | null;
-  intensity_kind: string | null;
-  intensity_value: number | string | null;
-}
+type FilaSerie = Pick<
+  Tables<'session_sets'>,
+  'weight_kg' | 'reps' | 'duration_seconds' | 'distance_m' | 'intensity_kind' | 'intensity_value'
+>;
 
 /** numeric llega como string desde PostgREST; null sigue siendo null. */
 function numero(v: number | string | null): number | null {
@@ -130,7 +126,7 @@ export async function cargarPlan(trainingDayId: string): Promise<EjercicioPlan[]
 
   if (error || !data) return [];
 
-  return (data as unknown as FilaPlan[]).map(ejercicioPlanDeFila);
+  return data.map((fila) => ejercicioPlanDeFila(fila));
 }
 
 /**
@@ -163,10 +159,7 @@ export async function cargarFantasmas(
   if (error || !data) return mapa;
 
   const finDe = (fila: (typeof data)[number]): number => {
-    const s = Array.isArray(fila.workout_sessions)
-      ? fila.workout_sessions[0]
-      : fila.workout_sessions;
-    const valor = (s as { finished_at?: string } | null)?.finished_at;
+    const valor = fila.workout_sessions.finished_at;
     return valor ? Date.parse(valor) : 0;
   };
 
@@ -376,15 +369,3 @@ export async function eliminarSesion(sessionId: string): Promise<boolean> {
     .eq('id', sessionId);
   return !error && count === 1;
 }
-
-/** Una sesion terminada, resumida para el historial. */
-export interface SesionTerminada {
-  id: string;
-  /** Nombre del dia, o null si el dia se borro (la sesion sobrevive). */
-  dayName: string | null;
-  startedAt: number;
-  finishedAt: number;
-}
-
-// La lectura paginada vive separada del registro de entrenamiento.
-export { cargarHistorial, HISTORIAL_PAGINA } from './history';

@@ -212,3 +212,15 @@ export async function deleteAvatarFile(userId: string): Promise<void> {
   if (!path) return;
   await supabase.storage.from('avatars').remove([path]);
 }
+
+/**
+ * Pasa el perfil al avatar generado por semilla: guarda la semilla y suelta la
+ * foto. Llamarla despues de deleteAvatarFile, que lee la ruta de la fila.
+ */
+export async function usarAvatarGenerado(userId: string, seed: string): Promise<boolean> {
+  const { error } = await supabase
+    .from('profiles')
+    .update({ avatar_seed: seed, avatar_path: null })
+    .eq('id', userId);
+  return !error;
+}

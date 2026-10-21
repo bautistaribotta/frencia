@@ -140,7 +140,7 @@ const REGISTRY = {
 export type IconName = keyof typeof REGISTRY;
 
 export interface IconProps {
-  name: string;
+  name: IconName;
   size?: number;
   color?: string;
   strokeWidth?: number;
@@ -149,7 +149,7 @@ export interface IconProps {
 /** Renders a Lucide icon by kebab name. Unknown names render nothing. */
 export function Icon({ name, size = 20, color, strokeWidth = 2 }: IconProps) {
   const colors = useColors();
-  const Cmp: LucideIcon | undefined = REGISTRY[name as IconName];
+  const Cmp: LucideIcon | undefined = REGISTRY[name];
   if (!Cmp) {
     if (__DEV__) console.warn(`[Frencia] Icon "${name}" not in registry — add it to Icon.tsx`);
     return null;
