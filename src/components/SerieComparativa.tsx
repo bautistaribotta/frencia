@@ -26,7 +26,17 @@
 import React, { useState } from 'react';
 import { StyleSheet, Text, TextInput, View } from 'react-native';
 
-import { LumeText, lumeFuente, lumeLayout, lumeRadius, lumeSpace, useLume } from '@/design/lume';
+import {
+  LumeText,
+  lumeFuente,
+  lumeLayout,
+  lumeRadius,
+  lumeSpace,
+  useLume,
+  useLumeStyles,
+  type LumePalette,
+  type LumeSombras,
+} from '@/design/lume';
 
 // Marca de dato ausente. El mismo signo para "el plan no lo dice", "no hay
 // registro" y "todavia no lo cargaste": en los tres casos no hay numero.
@@ -70,6 +80,7 @@ export function SerieComparativa({
   amplia = false,
 }: SerieComparativaProps) {
   const { t } = useLume();
+  const styles = useLumeStyles(makeStyles);
 
   return (
     <View>
@@ -101,7 +112,7 @@ export function SerieComparativa({
 
       {/* Hoy: la unica fila con celdas, porque es la unica que se completa. */}
       {mostrarHoy ? (
-        <View style={[styles.fila, styles.filaHoy, { borderTopColor: t.borderDefault }]}>
+        <View style={[styles.fila, styles.filaHoy]}>
           <View style={styles.etiqueta}>
             <LumeText rol="label" color={t.signalText}>
               Hoy
@@ -130,8 +141,9 @@ function Referencia({
   amplia: boolean;
 }) {
   const { t } = useLume();
+  const styles = useLumeStyles(makeStyles);
   return (
-    <View style={[styles.fila, { borderTopColor: t.divider }, styles.conLinea]}>
+    <View style={[styles.fila, styles.conLinea]}>
       <View style={styles.etiqueta}>
         <LumeText rol="label" color={t.textTertiary}>
           {etiqueta}
@@ -152,7 +164,7 @@ function Referencia({
             style={[
               styles.numeroRef,
               amplia && styles.numeroRefAmplio,
-              { color: v === null ? t.textDisabled : t.textSecondary },
+              v === null && styles.numeroVacio,
             ]}
           >
             {v ?? VACIO}
@@ -164,20 +176,12 @@ function Referencia({
 }
 
 function Caja({ columna, amplia }: { columna: ColumnaSerie; amplia: boolean }) {
-  const { t, sombras } = useLume();
+  const { t } = useLume();
+  const styles = useLumeStyles(makeStyles);
   const [foco, setFoco] = useState(false);
   const cargado = columna.hoy !== '';
 
-  const caja = [
-    styles.caja,
-    amplia && styles.cajaAmplia,
-    {
-      backgroundColor: foco || cargado ? t.surfaceCardElevated : t.surfaceCard,
-      borderColor: foco ? t.signal : t.glassLine,
-      borderTopColor: foco ? t.signal : t.glassHighlight,
-      boxShadow: foco ? sombras.haloSignal : sombras.glass,
-    },
-  ];
+  const caja = [styles.caja, amplia && styles.cajaAmplia, cargado && styles.cajaCargada, foco && styles.cajaFoco];
 
   if (!columna.onHoy) {
     return (
@@ -193,7 +197,7 @@ function Caja({ columna, amplia }: { columna: ColumnaSerie; amplia: boolean }) {
             style={[
               styles.numeroHoy,
               amplia && styles.numeroHoyAmplio,
-              { color: cargado ? t.textPrimary : t.textDisabled },
+              !cargado && styles.numeroVacio,
             ]}
           >
             {cargado ? columna.hoy : VACIO}
@@ -207,7 +211,7 @@ function Caja({ columna, amplia }: { columna: ColumnaSerie; amplia: boolean }) {
     <View style={styles.celda}>
       <View style={caja}>
         <TextInput
-          style={[styles.entrada, styles.numeroHoy, amplia && styles.numeroHoyAmplio, { color: t.textPrimary }]}
+          style={[styles.entrada, styles.numeroHoy, amplia && styles.numeroHoyAmplio]}
           value={columna.hoy}
           onChangeText={columna.onHoy}
           onFocus={() => setFoco(true)}
@@ -226,51 +230,67 @@ function Caja({ columna, amplia }: { columna: ColumnaSerie; amplia: boolean }) {
   );
 }
 
-const styles = StyleSheet.create({
-  fila: { flexDirection: 'row', alignItems: 'center', gap: lumeSpace[2], minHeight: 44 },
-  filaCabeza: { minHeight: 28 },
-  conLinea: { borderTopWidth: 1 },
-  // Ancho fijo: es lo que mantiene las columnas alineadas entre las tres
-  // filas, que es todo el punto de la grilla.
-  etiqueta: { width: 72, gap: 2 },
-  celda: { flex: 1, minWidth: 0 },
-  centrado: { textAlign: 'center' },
+const makeStyles = (t: LumePalette, sombras: LumeSombras) =>
+  StyleSheet.create({
+    fila: { flexDirection: 'row', alignItems: 'center', gap: lumeSpace[2], minHeight: 44 },
+    filaCabeza: { minHeight: 28 },
+    conLinea: { borderTopWidth: 1, borderTopColor: t.divider },
+    // Ancho fijo: es lo que mantiene las columnas alineadas entre las tres
+    // filas, que es todo el punto de la grilla.
+    etiqueta: { width: 72, gap: 2 },
+    celda: { flex: 1, minWidth: 0 },
+    centrado: { textAlign: 'center' },
 
-  ref: { height: 44, alignItems: 'center', justifyContent: 'center', paddingHorizontal: lumeSpace[1] },
-  numeroRef: {
-    fontFamily: lumeFuente.condMedium,
-    fontSize: 20,
-    lineHeight: 24,
-    letterSpacing: -0.3,
-    textAlign: 'center',
-    includeFontPadding: false,
-    fontVariant: ['tabular-nums'],
-  },
-  numeroRefAmplio: { fontSize: 22, lineHeight: 26 },
+    ref: { height: 44, alignItems: 'center', justifyContent: 'center', paddingHorizontal: lumeSpace[1] },
+    numeroRef: {
+      fontFamily: lumeFuente.condMedium,
+      fontSize: 20,
+      lineHeight: 24,
+      letterSpacing: -0.3,
+      textAlign: 'center',
+      includeFontPadding: false,
+      fontVariant: ['tabular-nums'],
+      color: t.textSecondary,
+    },
+    numeroRefAmplio: { fontSize: 22, lineHeight: 26 },
+    numeroVacio: { color: t.textDisabled },
 
-  // Hoy se separa con una linea mas marcada y algo de aire: es el corte entre
-  // lo que se mira y lo que se hace.
-  filaHoy: {
-    borderTopWidth: 1,
-    paddingTop: lumeSpace[4],
-    marginTop: lumeSpace[2],
-  },
+    // Hoy se separa con una linea mas marcada y algo de aire: es el corte entre
+    // lo que se mira y lo que se hace.
+    filaHoy: {
+      borderTopWidth: 1,
+      paddingTop: lumeSpace[4],
+      marginTop: lumeSpace[2],
+      borderTopColor: t.borderDefault,
+    },
 
-  caja: {
-    height: lumeLayout.controlHLg,
-    borderRadius: lumeRadius.lg,
-    borderWidth: 1,
-  },
-  cajaAmplia: { height: 72 },
-  cajaLectura: { alignItems: 'center', justifyContent: 'center', paddingHorizontal: lumeSpace[1] },
-  entrada: { flex: 1, padding: 0, textAlignVertical: 'center' },
-  numeroHoy: {
-    textAlign: 'center',
-    fontFamily: lumeFuente.condMedium,
-    fontSize: 28,
-    letterSpacing: -0.56,
-    includeFontPadding: false,
-    fontVariant: ['tabular-nums'],
-  },
-  numeroHoyAmplio: { fontSize: 38, letterSpacing: -0.76 },
-});
+    caja: {
+      height: lumeLayout.controlHLg,
+      borderRadius: lumeRadius.lg,
+      borderWidth: 1,
+      backgroundColor: t.surfaceCard,
+      borderColor: t.glassLine,
+      borderTopColor: t.glassHighlight,
+      boxShadow: sombras.glass,
+    },
+    cajaCargada: { backgroundColor: t.surfaceCardElevated },
+    cajaFoco: {
+      backgroundColor: t.surfaceCardElevated,
+      borderColor: t.signal,
+      borderTopColor: t.signal,
+      boxShadow: sombras.haloSignal,
+    },
+    cajaAmplia: { height: 72 },
+    cajaLectura: { alignItems: 'center', justifyContent: 'center', paddingHorizontal: lumeSpace[1] },
+    entrada: { flex: 1, padding: 0, textAlignVertical: 'center' },
+    numeroHoy: {
+      textAlign: 'center',
+      fontFamily: lumeFuente.condMedium,
+      fontSize: 28,
+      letterSpacing: -0.56,
+      includeFontPadding: false,
+      fontVariant: ['tabular-nums'],
+      color: t.textPrimary,
+    },
+    numeroHoyAmplio: { fontSize: 38, letterSpacing: -0.76 },
+  });

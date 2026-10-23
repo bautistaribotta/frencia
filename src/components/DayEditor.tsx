@@ -29,6 +29,8 @@ import {
   lumeRadius,
   lumeSpace,
   useLume,
+  useLumeStyles,
+  type LumePalette,
 } from '@/design/lume';
 
 export interface DayEditorProps {
@@ -50,6 +52,7 @@ export function DayEditor({
   onEditarEjercicio,
 }: DayEditorProps) {
   const { t } = useLume();
+  const tema = useLumeStyles(makeStyles);
   const { profile } = useProfile();
   const unidadDistancia = profile?.unidadDistancia ?? 'km';
   const unidadPeso = profile?.unidadPeso ?? 'kg';
@@ -126,7 +129,7 @@ export function DayEditor({
       <Semana editor marcados={marcados} onToggle={alternarDiaSemana} />
 
       {dia.exercises.length === 0 ? (
-        <View style={[styles.vacio, { backgroundColor: t.surfaceInset, borderColor: t.borderStrong }]}>
+        <View style={[styles.vacio, tema.vacio]}>
           <Icon name="dumbbell" size={22} strokeWidth={1.75} color={t.textTertiary} />
           <LumeText rol="bodySm" color={t.textTertiary} style={styles.centrado}>
             Todavía no agregaste ejercicios.
@@ -170,3 +173,8 @@ const styles = StyleSheet.create({
   },
   ejercicios: { gap: lumeSpace[4] },
 });
+
+const makeStyles = (t: LumePalette) =>
+  StyleSheet.create({
+    vacio: { backgroundColor: t.surfaceInset, borderColor: t.borderStrong },
+  });

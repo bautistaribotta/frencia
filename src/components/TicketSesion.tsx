@@ -34,7 +34,17 @@ import {
 } from '@/lib/resumen-sesion';
 import { pathSilueta } from '@/lib/silueta-ticket';
 import { reloj } from '@/lib/tiempo';
-import { lumeFuente, lumeLayout, lumePalette, lumeRadius, lumeSpace, useLume } from '@/design/lume';
+import {
+  lumeFuente,
+  lumeLayout,
+  lumePalette,
+  lumeRadius,
+  lumeSpace,
+  useLume,
+  useLumeStyles,
+  type LumePalette,
+  type LumeSombras,
+} from '@/design/lume';
 
 // El codigo se repite hasta cubrir el ancho; lo que sobra lo corta el contenedor.
 const REPETICIONES_BARRAS = 3;
@@ -62,7 +72,8 @@ export function TicketSesion({
   unidadDistancia,
   capturaRef,
 }: TicketSesionProps) {
-  const { t, modo, sombras } = useLume();
+  const { t, modo } = useLume();
+  const styles = useLumeStyles(makeStyles);
   // La silueta se dibuja con las medidas reales: el alto depende de cuantos
   // ejercicios haya y la perforacion, de cuanto ocupe el encabezado.
   const [tamano, setTamano] = useState<{ ancho: number; alto: number } | null>(null);
@@ -100,15 +111,15 @@ export function TicketSesion({
           <View style={styles.encabezado}>
             <View style={styles.marca}>
               <View style={styles.marcaNombre}>
-                <Text style={[styles.marcaTexto, { color: t.textPrimary }]}>FRENCIA</Text>
-                <View style={[styles.punto, { backgroundColor: t.signal, boxShadow: sombras.haloSignal }]} />
+                <Text style={styles.marcaTexto}>FRENCIA</Text>
+                <View style={styles.punto} />
               </View>
-              <Text style={[styles.meta, { color: t.textTertiary }]}>Nº {numero}</Text>
+              <Text style={styles.meta}>Nº {numero}</Text>
             </View>
-            <Text style={[styles.completa, { color: t.textPrimary }]} accessibilityRole="header">
+            <Text style={styles.completa} accessibilityRole="header">
               Sesión completa
             </Text>
-            <Text style={[styles.meta, { color: t.textTertiary }]} numberOfLines={2}>
+            <Text style={styles.meta} numberOfLines={2}>
               {nombreDia} · {fecha} · {hora}
             </Text>
           </View>
@@ -116,17 +127,17 @@ export function TicketSesion({
           {/* Duracion y volumen */}
           <View style={styles.grandes}>
             <View style={styles.grande} accessible accessibilityLabel={`Duración ${reloj(duracionSegundos)}`}>
-              <Text style={[styles.etiqueta, { color: t.textTertiary }]}>Duración</Text>
-              <Text style={[styles.grandeValor, { color: t.textPrimary }]}>{reloj(duracionSegundos)}</Text>
+              <Text style={styles.etiqueta}>Duración</Text>
+              <Text style={styles.grandeValor}>{reloj(duracionSegundos)}</Text>
             </View>
-            <View style={[styles.separadorVertical, { backgroundColor: t.divider }]} />
+            <View style={styles.separadorVertical} />
             <View
               style={[styles.grande, styles.grandeSegundo]}
               accessible
               accessibilityLabel={`Tonelaje ${volumen} ${unidad}`}
             >
-              <Text style={[styles.etiqueta, { color: t.textTertiary }]}>Tonelaje · {unidad}</Text>
-              <Text style={[styles.grandeValor, { color: t.textPrimary }]}>{volumen}</Text>
+              <Text style={styles.etiqueta}>Tonelaje · {unidad}</Text>
+              <Text style={styles.grandeValor}>{volumen}</Text>
             </View>
           </View>
 
@@ -140,7 +151,7 @@ export function TicketSesion({
             {/* iOS no dibuja un borde punteado de un solo lado: se dibuja la
                caja entera y se deja ver solo su borde de arriba. */}
             <View style={styles.lineaRecorte}>
-              <View style={[styles.lineaPunteada, { borderColor: t.borderStrong }]} />
+              <View style={styles.lineaPunteada} />
             </View>
           </View>
 
@@ -157,17 +168,17 @@ export function TicketSesion({
               return (
                 <View
                   key={ej.exerciseId}
-                  style={[styles.fila, i > 0 && { borderTopWidth: 1, borderTopColor: t.divider }]}
+                  style={[styles.fila, i > 0 && styles.filaConLinea]}
                   accessible
                   accessibilityLabel={`${ej.name}, ${ej.series.length} ${ej.series.length === 1 ? 'serie' : 'series'}${marca ? `, mejor ${marca}` : ''}`}
                 >
                   <View style={styles.filaIzq}>
-                    <Text style={[styles.filaSeries, { color: t.textTertiary }]}>{ej.series.length}×</Text>
-                    <Text style={[styles.filaNombre, { color: t.textSecondary }]} numberOfLines={1}>
+                    <Text style={styles.filaSeries}>{ej.series.length}×</Text>
+                    <Text style={styles.filaNombre} numberOfLines={1}>
                       {ej.name}
                     </Text>
                   </View>
-                  <Text style={[styles.filaMarca, { color: t.textPrimary }]}>{marca}</Text>
+                  <Text style={styles.filaMarca}>{marca}</Text>
                 </View>
               );
             })}
@@ -180,12 +191,12 @@ export function TicketSesion({
                 barras.map((b, i) => (
                   <View
                     key={`${r}-${i}`}
-                    style={[styles.barra, { width: b.barra, marginRight: b.espacio, backgroundColor: t.textPrimary }]}
+                    style={[styles.barra, { width: b.barra, marginRight: b.espacio }]}
                   />
                 )),
               )}
             </View>
-            <Text style={[styles.codigoTexto, { color: t.textTertiary }]}>{codigoTicket(sessionId)}</Text>
+            <Text style={styles.codigoTexto}>{codigoTicket(sessionId)}</Text>
           </View>
         </View>
       </View>
@@ -194,11 +205,11 @@ export function TicketSesion({
 }
 
 function Conteo({ label, valor }: { label: string; valor: number }) {
-  const { t } = useLume();
+  const styles = useLumeStyles(makeStyles);
   return (
     <View style={styles.conteo} accessible accessibilityLabel={`${label} ${valor}`}>
-      <Text style={[styles.etiqueta, { color: t.textTertiary }]}>{label}</Text>
-      <Text style={[styles.conteoValor, { color: t.textPrimary }]}>{valor}</Text>
+      <Text style={styles.etiqueta}>{label}</Text>
+      <Text style={styles.conteoValor}>{valor}</Text>
     </View>
   );
 }
@@ -235,6 +246,7 @@ function SiluetaTicket({
   filo: string;
   sombra: SombraTicket;
 }) {
+  const styles = useLumeStyles(makeStyles);
   const d = useMemo(
     () =>
       pathSilueta({
@@ -289,106 +301,149 @@ const ALTO_PERFORACION = 24;
  *  sombra cae hacia abajo. El marco de la pantalla lo descuenta de su scroll. */
 export const MARGEN_CAPTURA = { arriba: lumeSpace[5], abajo: lumeSpace[8] };
 
-const styles = StyleSheet.create({
-  silueta: { position: 'absolute', pointerEvents: 'none' },
-  // El margen de la imagen compartida: el mismo de la pantalla a los lados,
-  // sin fondo.
-  captura: {
-    width: '100%',
-    maxWidth: ANCHO_TICKET + lumeLayout.padScreen * 2,
-    alignItems: 'center',
-    paddingHorizontal: lumeLayout.padScreen,
-    paddingTop: MARGEN_CAPTURA.arriba,
-    paddingBottom: MARGEN_CAPTURA.abajo,
-  },
-  contenedorTicket: { width: '100%', maxWidth: ANCHO_TICKET },
+const makeStyles = (t: LumePalette, sombras: LumeSombras) =>
+  StyleSheet.create({
+    silueta: { position: 'absolute', pointerEvents: 'none' },
+    // El margen de la imagen compartida: el mismo de la pantalla a los lados,
+    // sin fondo.
+    captura: {
+      width: '100%',
+      maxWidth: ANCHO_TICKET + lumeLayout.padScreen * 2,
+      alignItems: 'center',
+      paddingHorizontal: lumeLayout.padScreen,
+      paddingTop: MARGEN_CAPTURA.arriba,
+      paddingBottom: MARGEN_CAPTURA.abajo,
+    },
+    contenedorTicket: { width: '100%', maxWidth: ANCHO_TICKET },
 
-  encabezado: {
-    alignItems: 'flex-start',
-    gap: lumeSpace[4],
-    paddingTop: lumeSpace[6],
-    paddingHorizontal: lumeSpace[6],
-    paddingBottom: lumeSpace[5],
-  },
-  marca: { alignSelf: 'stretch', flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between' },
-  marcaNombre: { flexDirection: 'row', alignItems: 'center', gap: 3 },
-  marcaTexto: { fontFamily: lumeFuente.condBold, fontSize: 13, lineHeight: 16, letterSpacing: 1.8 },
-  punto: { width: 4, height: 4, borderRadius: 2, marginTop: 6 },
-  completa: { fontFamily: lumeFuente.medium, fontSize: 30, lineHeight: 34, letterSpacing: -0.9 },
-  meta: {
-    fontFamily: lumeFuente.monoRegular,
-    fontSize: 11,
-    lineHeight: 14,
-    letterSpacing: 0.44,
-    textTransform: 'uppercase',
-  },
+    encabezado: {
+      alignItems: 'flex-start',
+      gap: lumeSpace[4],
+      paddingTop: lumeSpace[6],
+      paddingHorizontal: lumeSpace[6],
+      paddingBottom: lumeSpace[5],
+    },
+    marca: { alignSelf: 'stretch', flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between' },
+    marcaNombre: { flexDirection: 'row', alignItems: 'center', gap: 3 },
+    marcaTexto: {
+      fontFamily: lumeFuente.condBold,
+      fontSize: 13,
+      lineHeight: 16,
+      letterSpacing: 1.8,
+      color: t.textPrimary,
+    },
+    punto: {
+      width: 4,
+      height: 4,
+      borderRadius: 2,
+      marginTop: 6,
+      backgroundColor: t.signal,
+      boxShadow: sombras.haloSignal,
+    },
+    completa: {
+      fontFamily: lumeFuente.medium,
+      fontSize: 30,
+      lineHeight: 34,
+      letterSpacing: -0.9,
+      color: t.textPrimary,
+    },
+    meta: {
+      fontFamily: lumeFuente.monoRegular,
+      fontSize: 11,
+      lineHeight: 14,
+      letterSpacing: 0.44,
+      textTransform: 'uppercase',
+      color: t.textTertiary,
+    },
 
-  grandes: {
-    flexDirection: 'row',
-    paddingTop: lumeSpace[2],
-    paddingHorizontal: lumeSpace[6],
-    paddingBottom: lumeSpace[6],
-  },
-  grande: { flex: 1, alignItems: 'flex-start', gap: lumeSpace[2] },
-  grandeSegundo: { paddingLeft: lumeSpace[5] },
-  grandeValor: {
-    fontFamily: lumeFuente.condMedium,
-    fontSize: 44,
-    lineHeight: 46,
-    letterSpacing: -1.76,
-    fontVariant: ['tabular-nums'],
-  },
-  separadorVertical: { width: 1 },
-  etiqueta: {
-    fontFamily: lumeFuente.semiSemibold,
-    fontSize: 9.5,
-    lineHeight: 12,
-    letterSpacing: 0.76,
-    textTransform: 'uppercase',
-  },
+    grandes: {
+      flexDirection: 'row',
+      paddingTop: lumeSpace[2],
+      paddingHorizontal: lumeSpace[6],
+      paddingBottom: lumeSpace[6],
+    },
+    grande: { flex: 1, alignItems: 'flex-start', gap: lumeSpace[2] },
+    grandeSegundo: { paddingLeft: lumeSpace[5] },
+    grandeValor: {
+      fontFamily: lumeFuente.condMedium,
+      fontSize: 44,
+      lineHeight: 46,
+      letterSpacing: -1.76,
+      fontVariant: ['tabular-nums'],
+      color: t.textPrimary,
+    },
+    separadorVertical: { width: 1, backgroundColor: t.divider },
+    etiqueta: {
+      fontFamily: lumeFuente.semiSemibold,
+      fontSize: 9.5,
+      lineHeight: 12,
+      letterSpacing: 0.76,
+      textTransform: 'uppercase',
+      color: t.textTertiary,
+    },
 
-  perforacion: { height: ALTO_PERFORACION, justifyContent: 'center', paddingHorizontal: 20 },
-  lineaRecorte: { height: 1, overflow: 'hidden' },
-  lineaPunteada: { height: 4, borderWidth: 1, borderStyle: 'dashed', borderRadius: 1 },
+    perforacion: { height: ALTO_PERFORACION, justifyContent: 'center', paddingHorizontal: 20 },
+    lineaRecorte: { height: 1, overflow: 'hidden' },
+    lineaPunteada: { height: 4, borderWidth: 1, borderStyle: 'dashed', borderRadius: 1, borderColor: t.borderStrong },
 
-  // Los conteos se reparten parejo: el mismo espacio entre ellos y contra los
-  // bordes del ticket.
-  conteos: {
-    flexDirection: 'row',
-    justifyContent: 'space-evenly',
-    paddingTop: lumeSpace[5],
-    paddingBottom: lumeSpace[2],
-  },
-  conteo: { alignItems: 'center', gap: lumeSpace[1] },
-  conteoValor: { fontFamily: lumeFuente.condMedium, fontSize: 22, lineHeight: 26, fontVariant: ['tabular-nums'] },
+    // Los conteos se reparten parejo: el mismo espacio entre ellos y contra los
+    // bordes del ticket.
+    conteos: {
+      flexDirection: 'row',
+      justifyContent: 'space-evenly',
+      paddingTop: lumeSpace[5],
+      paddingBottom: lumeSpace[2],
+    },
+    conteo: { alignItems: 'center', gap: lumeSpace[1] },
+    conteoValor: {
+      fontFamily: lumeFuente.condMedium,
+      fontSize: 22,
+      lineHeight: 26,
+      fontVariant: ['tabular-nums'],
+      color: t.textPrimary,
+    },
 
-  registro: { paddingTop: lumeSpace[3], paddingHorizontal: lumeSpace[6], paddingBottom: lumeSpace[2] },
-  fila: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: lumeSpace[4],
-    paddingVertical: 10,
-  },
-  filaIzq: { flex: 1, minWidth: 0, flexDirection: 'row', alignItems: 'center', gap: lumeSpace[3] },
-  filaSeries: { fontFamily: lumeFuente.monoRegular, fontSize: 11, lineHeight: 14 },
-  filaNombre: { flexShrink: 1, fontFamily: lumeFuente.regular, fontSize: 13, lineHeight: 18 },
-  filaMarca: { fontFamily: lumeFuente.semibold, fontSize: 13, lineHeight: 18, fontVariant: ['tabular-nums'] },
+    registro: { paddingTop: lumeSpace[3], paddingHorizontal: lumeSpace[6], paddingBottom: lumeSpace[2] },
+    fila: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      gap: lumeSpace[4],
+      paddingVertical: 10,
+    },
+    filaConLinea: { borderTopWidth: 1, borderTopColor: t.divider },
+    filaIzq: { flex: 1, minWidth: 0, flexDirection: 'row', alignItems: 'center', gap: lumeSpace[3] },
+    filaSeries: { fontFamily: lumeFuente.monoRegular, fontSize: 11, lineHeight: 14, color: t.textTertiary },
+    filaNombre: {
+      flexShrink: 1,
+      fontFamily: lumeFuente.regular,
+      fontSize: 13,
+      lineHeight: 18,
+      color: t.textSecondary,
+    },
+    filaMarca: {
+      fontFamily: lumeFuente.semibold,
+      fontSize: 13,
+      lineHeight: 18,
+      fontVariant: ['tabular-nums'],
+      color: t.textPrimary,
+    },
 
-  codigo: {
-    alignItems: 'stretch',
-    gap: lumeSpace[3],
-    paddingTop: lumeSpace[5],
-    paddingHorizontal: lumeSpace[6],
-    paddingBottom: lumeSpace[6],
-  },
-  barras: { height: 36, flexDirection: 'row', overflow: 'hidden' },
-  barra: { height: '100%' },
-  codigoTexto: {
-    fontFamily: lumeFuente.monoRegular,
-    fontSize: 11,
-    lineHeight: 14,
-    letterSpacing: 1.76,
-    textAlign: 'center',
-  },
-});
+    codigo: {
+      alignItems: 'stretch',
+      gap: lumeSpace[3],
+      paddingTop: lumeSpace[5],
+      paddingHorizontal: lumeSpace[6],
+      paddingBottom: lumeSpace[6],
+    },
+    barras: { height: 36, flexDirection: 'row', overflow: 'hidden' },
+    barra: { height: '100%', backgroundColor: t.textPrimary },
+    codigoTexto: {
+      fontFamily: lumeFuente.monoRegular,
+      fontSize: 11,
+      lineHeight: 14,
+      letterSpacing: 1.76,
+      textAlign: 'center',
+      color: t.textTertiary,
+    },
+  });

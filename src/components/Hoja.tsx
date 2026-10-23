@@ -15,7 +15,15 @@ import { Modal, Pressable, StyleSheet, View } from 'react-native';
 import Animated, { FadeIn } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { lumeLayout, lumeMotion, lumeRadius, lumeSpace, useLume } from '@/design/lume';
+import {
+  lumeLayout,
+  lumeMotion,
+  lumeRadius,
+  lumeSpace,
+  useLumeStyles,
+  type LumePalette,
+  type LumeSombras,
+} from '@/design/lume';
 
 export interface HojaProps {
   visible: boolean;
@@ -34,11 +42,11 @@ export function Hoja({
   superpuesta = false,
   children,
 }: HojaProps) {
-  const { t, sombras } = useLume();
+  const styles = useLumeStyles(makeStyles);
   const insets = useSafeAreaInsets();
 
   const contenido = (
-    <View style={[styles.velo, { backgroundColor: t.scrim }]}>
+    <View style={styles.velo}>
       {/* El fondo tocable va al lado de la hoja y no la envuelve: un
          Pressable alrededor le ganaba el gesto a las ruedas, que son un
          scroll, y no se podian mover. */}
@@ -52,15 +60,10 @@ export function Hoja({
         style={[
           styles.hoja,
           rueda && styles.hojaRueda,
-          {
-            backgroundColor: t.surfaceRaisedOpaco,
-            borderColor: t.glassLine,
-            boxShadow: sombras.lg,
-            paddingBottom: (rueda ? lumeSpace[9] : lumeSpace[8]) + insets.bottom,
-          },
+          { paddingBottom: (rueda ? lumeSpace[9] : lumeSpace[8]) + insets.bottom },
         ]}
       >
-        <View style={[styles.tirador, { backgroundColor: t.borderDefault }]} />
+        <View style={styles.tirador} />
         {children}
       </View>
     </View>
@@ -93,18 +96,29 @@ export function Hoja({
   );
 }
 
-const styles = StyleSheet.create({
-  capa: { position: 'absolute', left: 0, right: 0, zIndex: 10 },
-  velo: { flex: 1, justifyContent: 'flex-end' },
-  hoja: {
-    borderTopLeftRadius: lumeRadius['3xl'],
-    borderTopRightRadius: lumeRadius['3xl'],
-    borderWidth: 1,
-    borderBottomWidth: 0,
-    paddingTop: lumeSpace[3],
-    paddingHorizontal: lumeLayout.padScreen,
-    gap: lumeSpace[3],
-  },
-  hojaRueda: { gap: lumeSpace[5] },
-  tirador: { alignSelf: 'center', width: 36, height: 4, borderRadius: 2, marginBottom: lumeSpace[3] },
-});
+const makeStyles = (t: LumePalette, sombras: LumeSombras) =>
+  StyleSheet.create({
+    capa: { position: 'absolute', left: 0, right: 0, zIndex: 10 },
+    velo: { flex: 1, justifyContent: 'flex-end', backgroundColor: t.scrim },
+    hoja: {
+      borderTopLeftRadius: lumeRadius['3xl'],
+      borderTopRightRadius: lumeRadius['3xl'],
+      borderWidth: 1,
+      borderBottomWidth: 0,
+      paddingTop: lumeSpace[3],
+      paddingHorizontal: lumeLayout.padScreen,
+      gap: lumeSpace[3],
+      backgroundColor: t.surfaceRaisedOpaco,
+      borderColor: t.glassLine,
+      boxShadow: sombras.lg,
+    },
+    hojaRueda: { gap: lumeSpace[5] },
+    tirador: {
+      alignSelf: 'center',
+      width: 36,
+      height: 4,
+      borderRadius: 2,
+      marginBottom: lumeSpace[3],
+      backgroundColor: t.borderDefault,
+    },
+  });

@@ -17,6 +17,8 @@ import {
   lumeRadius,
   lumeSpace,
   useLume,
+  useLumeStyles,
+  type LumePalette,
 } from '@/design/lume';
 import { TIPOS, type Exercise } from '@/lib/exercises';
 import type { BusquedaCatalogo } from '@/lib/use-busqueda-catalogo';
@@ -35,6 +37,7 @@ export function CatalogoEjercicios({
   onAdd: (exercise: Exercise) => void;
 }) {
   const { t } = useLume();
+  const styles = useLumeStyles(makeStyles);
   const { abierta, toggleFila } = b;
 
   const keyExtractor = useCallback((hit: Exercise) => hit.id, []);
@@ -56,10 +59,10 @@ export function CatalogoEjercicios({
       <View style={styles.searchHeader}>
         <LumeText rol="title">Agregar ejercicio</LumeText>
 
-        <View style={[styles.searchField, { backgroundColor: t.surfaceInset, borderColor: t.glassLine }]}>
+        <View style={styles.searchField}>
           <Icon name="search" size={18} strokeWidth={1.75} color={t.textTertiary} />
           <TextInput
-            style={[styles.input, { color: t.textPrimary }]}
+            style={styles.input}
             placeholder="Buscá por nombre o músculo"
             placeholderTextColor={t.textTertiary}
             selectionColor={t.signal}
@@ -181,40 +184,43 @@ export function CatalogoEjercicios({
   );
 }
 
-const styles = StyleSheet.create({
-  flex: { flex: 1 },
-  // Titulo e input separados del boton Cerrar, que queda solo arriba.
-  searchHeader: { paddingTop: lumeSpace[5], gap: lumeSpace[5] },
-  searchField: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: lumeSpace[4],
-    paddingHorizontal: lumeSpace[4],
-    height: lumeLayout.controlHMd,
-    borderRadius: lumeRadius.lg,
-    borderWidth: 1,
-  },
-  input: { flex: 1, fontFamily: lumeFuente.regular, fontSize: 16, padding: 0 },
-  // Los chips corren de borde a borde de la pantalla: el scroll anula el
-  // padding del contenedor y lo repone adentro.
-  chipsScroll: { marginHorizontal: -lumeLayout.padScreen, flexGrow: 0 },
-  chipsFiltro: { paddingHorizontal: lumeLayout.padScreen, gap: lumeSpace[2] },
-  chipFiltro: { height: lumeLayout.controlHSm },
-  // Sin color propio: hereda el del chip (relleno si esta activo).
-  chipConteo: { fontFamily: lumeFuente.medium, fontSize: 11, opacity: 0.6, fontVariant: ['tabular-nums'] },
-  // La lista va de borde a borde y repone el margen en su contenido: si no,
-  // el scroll recorta el fondo de la fila desplegada, que se sale del texto.
-  listWrap: { flex: 1, marginHorizontal: -lumeLayout.padScreen },
-  mascaraLlena: { flex: 1, backgroundColor: MASCARA_LLENA },
-  fundido: { height: lumeSpace[7] },
-  // El padding de arriba iguala la altura del fundido: en reposo la primera
-  // fila se ve entera, y al scrollear las filas se funden ahi en vez de
-  // cortarse pegadas al buscador.
-  resultsList: {
-    paddingTop: lumeSpace[7],
-    paddingBottom: lumeSpace[6],
-    paddingHorizontal: lumeLayout.padScreen,
-  },
-  resultsHint: { paddingVertical: lumeSpace[8], alignItems: 'center' },
-  centerText: { textAlign: 'center' },
-});
+const makeStyles = (t: LumePalette) =>
+  StyleSheet.create({
+    flex: { flex: 1 },
+    // Titulo e input separados del boton Cerrar, que queda solo arriba.
+    searchHeader: { paddingTop: lumeSpace[5], gap: lumeSpace[5] },
+    searchField: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: lumeSpace[4],
+      paddingHorizontal: lumeSpace[4],
+      height: lumeLayout.controlHMd,
+      borderRadius: lumeRadius.lg,
+      borderWidth: 1,
+      backgroundColor: t.surfaceInset,
+      borderColor: t.glassLine,
+    },
+    input: { flex: 1, fontFamily: lumeFuente.regular, fontSize: 16, padding: 0, color: t.textPrimary },
+    // Los chips corren de borde a borde de la pantalla: el scroll anula el
+    // padding del contenedor y lo repone adentro.
+    chipsScroll: { marginHorizontal: -lumeLayout.padScreen, flexGrow: 0 },
+    chipsFiltro: { paddingHorizontal: lumeLayout.padScreen, gap: lumeSpace[2] },
+    chipFiltro: { height: lumeLayout.controlHSm },
+    // Sin color propio: hereda el del chip (relleno si esta activo).
+    chipConteo: { fontFamily: lumeFuente.medium, fontSize: 11, opacity: 0.6, fontVariant: ['tabular-nums'] },
+    // La lista va de borde a borde y repone el margen en su contenido: si no,
+    // el scroll recorta el fondo de la fila desplegada, que se sale del texto.
+    listWrap: { flex: 1, marginHorizontal: -lumeLayout.padScreen },
+    mascaraLlena: { flex: 1, backgroundColor: MASCARA_LLENA },
+    fundido: { height: lumeSpace[7] },
+    // El padding de arriba iguala la altura del fundido: en reposo la primera
+    // fila se ve entera, y al scrollear las filas se funden ahi en vez de
+    // cortarse pegadas al buscador.
+    resultsList: {
+      paddingTop: lumeSpace[7],
+      paddingBottom: lumeSpace[6],
+      paddingHorizontal: lumeLayout.padScreen,
+    },
+    resultsHint: { paddingVertical: lumeSpace[8], alignItems: 'center' },
+    centerText: { textAlign: 'center' },
+  });

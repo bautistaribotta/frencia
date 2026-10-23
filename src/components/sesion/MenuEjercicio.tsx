@@ -6,7 +6,16 @@ import { Pressable, StyleSheet, View } from 'react-native';
 
 import { Hoja } from '@/components/Hoja';
 import { Icon, type IconName } from '@/design';
-import { Cargando, LumeButton, LumeText, lumeFuente, lumeSpace, useLume } from '@/design/lume';
+import {
+  Cargando,
+  LumeButton,
+  LumeText,
+  lumeFuente,
+  lumeSpace,
+  useLume,
+  useLumeStyles,
+  type LumePalette,
+} from '@/design/lume';
 
 export function MenuEjercicio({
   visible,
@@ -79,6 +88,7 @@ function FilaMenu({
   ultima?: boolean;
 }) {
   const { t } = useLume();
+  const styles = useLumeStyles(makeStyles);
   return (
     <Pressable
       accessibilityRole="button"
@@ -86,8 +96,8 @@ function FilaMenu({
       disabled={cargando}
       style={({ pressed }) => [
         styles.filaMenu,
-        !ultima && { borderBottomWidth: 1, borderBottomColor: t.divider },
-        pressed && { backgroundColor: t.surfaceChip },
+        !ultima && styles.filaMenuConLinea,
+        pressed && styles.filaMenuPresionada,
       ]}
     >
       <Icon name={icono} size={20} strokeWidth={1.75} color={t.textSecondary} />
@@ -99,13 +109,16 @@ function FilaMenu({
   );
 }
 
-const styles = StyleSheet.create({
-  filaMenu: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: lumeSpace[4],
-    height: 56,
-    paddingHorizontal: lumeSpace[2],
-  },
-  filaMenuTexto: { flex: 1, fontFamily: lumeFuente.medium, lineHeight: 20 },
-});
+const makeStyles = (t: LumePalette) =>
+  StyleSheet.create({
+    filaMenu: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: lumeSpace[4],
+      height: 56,
+      paddingHorizontal: lumeSpace[2],
+    },
+    filaMenuConLinea: { borderBottomWidth: 1, borderBottomColor: t.divider },
+    filaMenuPresionada: { backgroundColor: t.surfaceChip },
+    filaMenuTexto: { flex: 1, fontFamily: lumeFuente.medium, lineHeight: 20 },
+  });

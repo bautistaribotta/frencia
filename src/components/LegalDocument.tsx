@@ -13,7 +13,7 @@ import { useRouter } from 'expo-router';
 
 import { useSession } from '@/contexts/session';
 import type { BloqueLegal, SeccionLegal } from '@/lib/legal';
-import { Fondo, LumeButton, LumeText, lumeLayout, lumeSpace, useLume } from '@/design/lume';
+import { Fondo, LumeButton, LumeText, lumeLayout, lumeSpace, useLume, useLumeStyles, type LumePalette } from '@/design/lume';
 
 interface LegalDocumentProps {
   titulo: string;
@@ -72,6 +72,7 @@ export function LegalDocument({ titulo, vigencia, secciones }: LegalDocumentProp
 
 function Bloque({ bloque }: { bloque: BloqueLegal }) {
   const { t } = useLume();
+  const tema = useLumeStyles(makeStyles);
 
   if (typeof bloque === 'string') {
     return (
@@ -85,7 +86,7 @@ function Bloque({ bloque }: { bloque: BloqueLegal }) {
     <View style={styles.lista}>
       {bloque.lista.map((item) => (
         <View key={item} style={styles.item}>
-          <View style={[styles.vineta, { backgroundColor: t.textTertiary }]} />
+          <View style={[styles.vineta, tema.vineta]} />
           <LumeText rol="bodySm" color={t.textSecondary} style={styles.itemTexto}>
             {item}
           </LumeText>
@@ -115,3 +116,8 @@ const styles = StyleSheet.create({
   vineta: { width: 8, height: 1, marginTop: 10 },
   itemTexto: { flex: 1 },
 });
+
+const makeStyles = (t: LumePalette) =>
+  StyleSheet.create({
+    vineta: { backgroundColor: t.textTertiary },
+  });

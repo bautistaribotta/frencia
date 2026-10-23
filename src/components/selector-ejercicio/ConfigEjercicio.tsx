@@ -8,7 +8,17 @@ import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
 import { MarqueeText } from '@/components/MarqueeText';
 import { DistanceField, DurationField, ExerciseTypeTag, Icon, NumberField, Stepper } from '@/design';
-import { LumeText, Segmentado, Vidrio, lumeRadius, lumeSpace, useLume } from '@/design/lume';
+import {
+  LumeText,
+  Segmentado,
+  Vidrio,
+  lumeRadius,
+  lumeSpace,
+  useLume,
+  useLumeStyles,
+  type LumePalette,
+  type LumeSombras,
+} from '@/design/lume';
 import type { ConfigEjercicio as Config } from '@/lib/config-ejercicio';
 import { esSerieUnica, intensityRange, intensityValueLabel, restLabel, type Medidor } from '@/lib/dia';
 import type { UnidadDistancia } from '@/lib/distancia';
@@ -36,7 +46,8 @@ export function ConfigEjercicio({
   set: <K extends Campo>(campo: K, valor: Config[K]) => void;
   onAbrirDescanso: () => void;
 }) {
-  const { t, sombras } = useLume();
+  const { t } = useLume();
+  const styles = useLumeStyles(makeStyles);
   const { selected, sets, reps, intensityValue, restSeconds, tiempo, distancia, pesoPlan, conRpe } = config;
   const setSets = (v: number) => set('sets', v);
   const setReps = (v: number) => set('reps', v);
@@ -97,15 +108,7 @@ export function ConfigEjercicio({
         accessibilityRole="button"
         accessibilityLabel={`Descanso entre series: ${restLabel(restSeconds)}`}
         accessibilityHint="Abre las ruedas para elegir minutos y segundos"
-        style={({ pressed }) => [
-          styles.campoToque,
-          {
-            backgroundColor: pressed ? t.surfaceCardElevated : t.surfaceCard,
-            borderColor: t.glassLine,
-            borderTopColor: t.glassHighlight,
-            boxShadow: sombras.glass,
-          },
-        ]}
+        style={({ pressed }) => [styles.campoToque, pressed && styles.campoToquePresionado]}
       >
         <Icon name="timer" size={20} strokeWidth={1.75} color={t.textTertiary} />
         {restSeconds === null ? (
@@ -283,27 +286,33 @@ export function ConfigEjercicio({
   );
 }
 
-const styles = StyleSheet.create({
-  flex: { flex: 1 },
-  modalBody: { paddingTop: lumeSpace[6], paddingBottom: lumeSpace[6], gap: lumeSpace[8] },
-  elegido: { flexDirection: 'row', alignItems: 'center', gap: lumeSpace[4], padding: lumeSpace[5] },
-  // Caja del nombre dentro de una fila: ocupa lo que dejan los iconos.
-  nombre: { flex: 1, minWidth: 0, gap: lumeSpace[3] },
-  par: { flexDirection: 'row', gap: lumeSpace[3] },
-  parItem: { flex: 1, minWidth: 0 },
-  campoBloque: { gap: lumeSpace[3] },
-  cardioCampos: { gap: lumeSpace[5] },
-  captionFila: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline' },
-  campoSeparado: { marginTop: lumeSpace[4] },
-  campoToque: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: lumeSpace[4],
-    height: 60,
-    paddingHorizontal: lumeSpace[5],
-    borderRadius: lumeRadius.lg,
-    borderWidth: 1,
-  },
-  campoTexto: { flex: 1 },
-  campoValor: { fontSize: 30, lineHeight: 34, letterSpacing: -0.6 },
-});
+const makeStyles = (t: LumePalette, sombras: LumeSombras) =>
+  StyleSheet.create({
+    flex: { flex: 1 },
+    modalBody: { paddingTop: lumeSpace[6], paddingBottom: lumeSpace[6], gap: lumeSpace[8] },
+    elegido: { flexDirection: 'row', alignItems: 'center', gap: lumeSpace[4], padding: lumeSpace[5] },
+    // Caja del nombre dentro de una fila: ocupa lo que dejan los iconos.
+    nombre: { flex: 1, minWidth: 0, gap: lumeSpace[3] },
+    par: { flexDirection: 'row', gap: lumeSpace[3] },
+    parItem: { flex: 1, minWidth: 0 },
+    campoBloque: { gap: lumeSpace[3] },
+    cardioCampos: { gap: lumeSpace[5] },
+    captionFila: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline' },
+    campoSeparado: { marginTop: lumeSpace[4] },
+    campoToque: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: lumeSpace[4],
+      height: 60,
+      paddingHorizontal: lumeSpace[5],
+      borderRadius: lumeRadius.lg,
+      borderWidth: 1,
+      backgroundColor: t.surfaceCard,
+      borderColor: t.glassLine,
+      borderTopColor: t.glassHighlight,
+      boxShadow: sombras.glass,
+    },
+    campoToquePresionado: { backgroundColor: t.surfaceCardElevated },
+    campoTexto: { flex: 1 },
+    campoValor: { fontSize: 30, lineHeight: 34, letterSpacing: -0.6 },
+  });

@@ -6,7 +6,16 @@ import { StyleSheet, View } from 'react-native';
 
 import { SerieComparativa, type ColumnaSerie } from '@/components/SerieComparativa';
 import { DistanceField, DurationField, Icon, IsoTimer, NumberField } from '@/design';
-import { LumeButton, LumeText, lumeLayout, lumeSpace, useLume } from '@/design/lume';
+import {
+  LumeButton,
+  LumeText,
+  lumeLayout,
+  lumeSpace,
+  useLume,
+  useLumeStyles,
+  type LumePalette,
+  type LumeSombras,
+} from '@/design/lume';
 import type { UnidadDistancia } from '@/lib/distancia';
 import type { UnidadPeso } from '@/lib/peso';
 import { enumerar, parseNum, type ValoresSerie } from '@/lib/sesion-pasos';
@@ -188,20 +197,13 @@ export function PasoSerie({
 /** Las marcas de las series del ejercicio: hechas en tinta, la actual en lume
  *  con su brillo, las que faltan en la pista. */
 function PuntosSerie({ total, actual }: { total: number; actual: number }) {
-  const { t, sombras } = useLume();
+  const tema = useLumeStyles(makeStyles);
   return (
     <View style={styles.puntos} accessible={false}>
       {Array.from({ length: total }, (_, i) => (
         <View
           key={i}
-          style={[
-            styles.punto,
-            i < actual
-              ? { backgroundColor: t.textPrimary }
-              : i === actual
-                ? { backgroundColor: t.signal, boxShadow: sombras.haloSignal }
-                : { backgroundColor: t.dataTrack },
-          ]}
+          style={[styles.punto, i < actual ? tema.hecha : i === actual ? tema.actual : tema.pendiente]}
         />
       ))}
     </View>
@@ -240,3 +242,10 @@ const styles = StyleSheet.create({
   campos: { gap: lumeSpace[6] },
   campoConAviso: { gap: lumeSpace[4] },
 });
+
+const makeStyles = (t: LumePalette, sombras: LumeSombras) =>
+  StyleSheet.create({
+    hecha: { backgroundColor: t.textPrimary },
+    actual: { backgroundColor: t.signal, boxShadow: sombras.haloSignal },
+    pendiente: { backgroundColor: t.dataTrack },
+  });

@@ -5,7 +5,18 @@ import { Pressable, StyleSheet, View } from 'react-native';
 import Animated, { FadeIn } from 'react-native-reanimated';
 
 import { ExerciseTypeTag, Icon, Tag } from '@/design';
-import { LumeButton, LumeText, lumeFuente, lumeMotion, lumeRadius, lumeSpace, useLume } from '@/design/lume';
+import {
+  LumeButton,
+  LumeText,
+  lumeFuente,
+  lumeMotion,
+  lumeRadius,
+  lumeSpace,
+  useLume,
+  useLumeStyles,
+  type LumePalette,
+  type LumeSombras,
+} from '@/design/lume';
 import { TIPOS, datosAbreviados, equipmentLabel, type Exercise } from '@/lib/exercises';
 
 interface FilaCatalogoProps {
@@ -27,7 +38,8 @@ export const FilaCatalogo = React.memo(function FilaCatalogo({
   onToggle,
   onAdd,
 }: FilaCatalogoProps) {
-  const { t, sombras } = useLume();
+  const { t } = useLume();
+  const styles = useLumeStyles(makeStyles);
   const equipo = equipmentLabel(exercise.equipment);
   // La fuerza es casi todo el catalogo: su tipo no se anuncia en cada fila.
   // Los demas si, porque cambian lo que se carga en la sesion.
@@ -35,19 +47,7 @@ export const FilaCatalogo = React.memo(function FilaCatalogo({
 
   return (
     <View
-      style={[
-        styles.fila,
-        { borderBottomColor: t.divider },
-        abierta && [
-          styles.filaAbierta,
-          {
-            backgroundColor: t.surfaceCardElevated,
-            borderColor: t.glassLine,
-            borderTopColor: t.glassHighlight,
-            boxShadow: sombras.glass,
-          },
-        ],
-      ]}
+      style={[styles.fila, abierta && styles.filaAbierta]}
     >
       <Pressable
         onPress={() => onToggle(exercise.id)}
@@ -105,26 +105,31 @@ export const FilaCatalogo = React.memo(function FilaCatalogo({
   );
 });
 
-const styles = StyleSheet.create({
-  // Filas planas con divisor. Desplegada sube a vidrio fuerte; el margen
-  // negativo compensa su padding para que el texto no se corra. El alto lo da
-  // la cabecera, asi toda la fila plegada responde al toque.
-  fila: { borderBottomWidth: 1 },
-  filaAbierta: {
-    marginHorizontal: -lumeSpace[4],
-    marginVertical: lumeSpace[2],
-    paddingHorizontal: lumeSpace[4],
-    paddingBottom: lumeSpace[5],
-    borderRadius: lumeRadius.lg,
-    borderWidth: 1,
-  },
-  filaPresionada: { opacity: 0.6 },
-  filaCabeza: { flexDirection: 'row', alignItems: 'center', gap: lumeSpace[4], paddingVertical: 14 },
-  filaCabezaAbierta: { paddingVertical: lumeSpace[5] },
-  filaPrincipal: { flex: 1, minWidth: 0, gap: 5 },
-  filaNombre: { fontFamily: lumeFuente.medium, lineHeight: 22 },
-  filaMusculo: { maxWidth: 104, fontSize: 13, lineHeight: 18, textAlign: 'right' },
-  filaDetalle: { gap: lumeSpace[5] },
-  filaMeta: { flexDirection: 'row', alignItems: 'center', gap: lumeSpace[4] },
-  filaMusculos: { flex: 1, flexDirection: 'row', flexWrap: 'wrap', gap: lumeSpace[3] },
-});
+const makeStyles = (t: LumePalette, sombras: LumeSombras) =>
+  StyleSheet.create({
+    // Filas planas con divisor. Desplegada sube a vidrio fuerte; el margen
+    // negativo compensa su padding para que el texto no se corra. El alto lo da
+    // la cabecera, asi toda la fila plegada responde al toque.
+    fila: { borderBottomWidth: 1, borderBottomColor: t.divider },
+    filaAbierta: {
+      marginHorizontal: -lumeSpace[4],
+      marginVertical: lumeSpace[2],
+      paddingHorizontal: lumeSpace[4],
+      paddingBottom: lumeSpace[5],
+      borderRadius: lumeRadius.lg,
+      borderWidth: 1,
+      backgroundColor: t.surfaceCardElevated,
+      borderColor: t.glassLine,
+      borderTopColor: t.glassHighlight,
+      boxShadow: sombras.glass,
+    },
+    filaPresionada: { opacity: 0.6 },
+    filaCabeza: { flexDirection: 'row', alignItems: 'center', gap: lumeSpace[4], paddingVertical: 14 },
+    filaCabezaAbierta: { paddingVertical: lumeSpace[5] },
+    filaPrincipal: { flex: 1, minWidth: 0, gap: 5 },
+    filaNombre: { fontFamily: lumeFuente.medium, lineHeight: 22 },
+    filaMusculo: { maxWidth: 104, fontSize: 13, lineHeight: 18, textAlign: 'right' },
+    filaDetalle: { gap: lumeSpace[5] },
+    filaMeta: { flexDirection: 'row', alignItems: 'center', gap: lumeSpace[4] },
+    filaMusculos: { flex: 1, flexDirection: 'row', flexWrap: 'wrap', gap: lumeSpace[3] },
+  });

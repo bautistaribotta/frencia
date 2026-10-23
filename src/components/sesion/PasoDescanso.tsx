@@ -5,7 +5,7 @@ import React from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { Icon } from '@/design';
-import { LumeText, Vidrio, lumeRadius, lumeSpace, useLume } from '@/design/lume';
+import { LumeText, Vidrio, lumeRadius, lumeSpace, useLume, useLumeStyles, type LumePalette } from '@/design/lume';
 import type { UnidadDistancia } from '@/lib/distancia';
 import type { UnidadPeso } from '@/lib/peso';
 import { datosProximos, type ValoresSerie } from '@/lib/sesion-pasos';
@@ -49,7 +49,7 @@ export function PasoDescanso({
   medidor: Medidor;
 }) {
   return (
-    <View style={styles.descanso}>
+    <View style={estaticos.descanso}>
       <RelojDescanso
         key={clave}
         clave={clave}
@@ -102,6 +102,7 @@ function LoQueViene({
   onPress: () => void;
 }) {
   const { t } = useLume();
+  const styles = useLumeStyles(makeStyles);
   const { grupos, esfuerzo } = datosProximos(
     ejercicio,
     cargado,
@@ -119,16 +120,16 @@ function LoQueViene({
   // una cruz. Los signos van en terciario para que manden los numeros.
   const piezas: React.ReactNode[] = [];
   grupos.forEach((grupo, g) => {
-    if (g > 0) piezas.push(<Text key={`p${g}`} style={{ color: t.textTertiary }}> · </Text>);
+    if (g > 0) piezas.push(<Text key={`p${g}`} style={styles.signo}> · </Text>);
     grupo.forEach((dato, d) => {
-      if (d > 0) piezas.push(<Text key={`x${g}${d}`} style={{ color: t.textTertiary }}> × </Text>);
+      if (d > 0) piezas.push(<Text key={`x${g}${d}`} style={styles.signo}> × </Text>);
       piezas.push(dato);
     });
   });
   if (esfuerzo) {
-    if (piezas.length > 0) piezas.push(<Text key="pe" style={{ color: t.textTertiary }}> · </Text>);
+    if (piezas.length > 0) piezas.push(<Text key="pe" style={styles.signo}> · </Text>);
     piezas.push(
-      <Text key="e" style={{ color: t.intensityText }}>
+      <Text key="e" style={styles.esfuerzo}>
         {esfuerzo}
       </Text>,
     );
@@ -138,7 +139,7 @@ function LoQueViene({
     <Pressable
       accessibilityRole="button"
       onPress={onPress}
-      style={({ pressed }) => [styles.siguiente, pressed && { transform: [{ scale: 0.985 }] }]}
+      style={({ pressed }) => [styles.siguiente, pressed && styles.siguientePresionado]}
     >
       <Vidrio radio={lumeRadius.lg} style={styles.siguienteVidrio}>
         <View style={styles.siguienteTexto}>
@@ -155,16 +156,24 @@ function LoQueViene({
   );
 }
 
-const styles = StyleSheet.create({
+const estaticos = StyleSheet.create({
   // Descanso: la esfera manda, todo lo demas es contexto.
   descanso: { alignItems: 'center', gap: lumeSpace[6], paddingVertical: lumeSpace[3] },
-  siguiente: { alignSelf: 'stretch' },
-  siguienteVidrio: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: lumeSpace[4],
-    paddingVertical: lumeSpace[4],
-    paddingHorizontal: lumeSpace[5],
-  },
-  siguienteTexto: { flex: 1, gap: 2 },
 });
+
+const makeStyles = (t: LumePalette) =>
+  StyleSheet.create({
+    siguiente: { alignSelf: 'stretch' },
+    siguientePresionado: { transform: [{ scale: 0.985 }] },
+    siguienteVidrio: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: lumeSpace[4],
+      paddingVertical: lumeSpace[4],
+      paddingHorizontal: lumeSpace[5],
+    },
+    siguienteTexto: { flex: 1, gap: 2 },
+    // Los signos van en terciario para que manden los numeros.
+    signo: { color: t.textTertiary },
+    esfuerzo: { color: t.intensityText },
+  });

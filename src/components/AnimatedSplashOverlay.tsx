@@ -3,7 +3,7 @@ import { Dimensions, StyleSheet } from 'react-native';
 import Animated, { Easing, Keyframe } from 'react-native-reanimated';
 import { scheduleOnRN } from 'react-native-worklets';
 
-import { useColors } from '@/design';
+import { useThemedStyles, type Palette } from '@/design';
 
 const INITIAL_SCALE_FACTOR = Dimensions.get('screen').height / 90;
 const DURATION = 600;
@@ -30,7 +30,7 @@ const splashKeyframe = new Keyframe({
 export function AnimatedSplashOverlay() {
   const [visible, setVisible] = useState(true);
   // Mismo fondo que el splash nativo del tema activo, para que no haya salto.
-  const colors = useColors();
+  const styles = useThemedStyles(makeStyles);
 
   if (!visible) return null;
 
@@ -42,14 +42,16 @@ export function AnimatedSplashOverlay() {
           scheduleOnRN(setVisible, false);
         }
       })}
-      style={[styles.backgroundSolidColor, { backgroundColor: colors.bgApp }]}
+      style={styles.backgroundSolidColor}
     />
   );
 }
 
-const styles = StyleSheet.create({
-  backgroundSolidColor: {
-    ...StyleSheet.absoluteFill,
-    zIndex: 1000,
-  },
-});
+const makeStyles = (colors: Palette) =>
+  StyleSheet.create({
+    backgroundSolidColor: {
+      ...StyleSheet.absoluteFill,
+      zIndex: 1000,
+      backgroundColor: colors.bgApp,
+    },
+  });

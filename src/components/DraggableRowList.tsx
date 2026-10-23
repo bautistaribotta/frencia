@@ -39,6 +39,7 @@ import {
   lumeRadius,
   lumeSpace,
   useLume,
+  useLumeStyles,
   type LumePalette,
 } from '@/design/lume';
 
@@ -79,6 +80,7 @@ export function DraggableRowList({
   onPress,
 }: DraggableRowListProps) {
   const { t: colors, sombras } = useLume();
+  const styles = useLumeStyles(makeStyles);
 
   // Alto de fila real, medido una sola vez. Todas las filas tienen la misma
   // estructura, asi que alcanza con la primera. Hasta tenerlo, el arrastre
@@ -167,6 +169,7 @@ function Row({
   colors,
   sombras,
 }: RowProps) {
+  const styles = useLumeStyles(makeStyles);
   // 1 mientras el dedo esta sobre la fila. Solo alimenta la opacidad, asi que
   // vive en el hilo de UI y no dispara renders.
   const apretada = useSharedValue(0);
@@ -283,7 +286,7 @@ function Row({
 
   return (
     <Animated.View
-      style={[styles.row, { borderColor: colors.glassLine, borderTopColor: colors.glassHighlight }, animStyle]}
+      style={[styles.row, animStyle]}
       onLayout={onMeasure}
     >
       {/* Solo el asa y el texto reciben los gestos: el tacho queda afuera para
@@ -323,21 +326,24 @@ function Row({
   );
 }
 
-const styles = StyleSheet.create({
-  // Filas sueltas en vez de una tarjeta con divisores: al levantar una, el
-  // hueco que deja tiene que verse como un lugar vacio, no como una tarjeta
-  // partida al medio.
-  list: { gap: GAP },
-  row: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: lumeSpace[4],
-    paddingVertical: lumeSpace[4],
-    paddingRight: lumeSpace[4],
-    paddingLeft: lumeSpace[3],
-    borderRadius: lumeRadius.lg,
-    borderWidth: 1,
-  },
-  dragZone: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: lumeSpace[4] },
-  info: { flex: 1, gap: lumeSpace[1] },
-});
+const makeStyles = (t: LumePalette) =>
+  StyleSheet.create({
+    // Filas sueltas en vez de una tarjeta con divisores: al levantar una, el
+    // hueco que deja tiene que verse como un lugar vacio, no como una tarjeta
+    // partida al medio.
+    list: { gap: GAP },
+    row: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: lumeSpace[4],
+      paddingVertical: lumeSpace[4],
+      paddingRight: lumeSpace[4],
+      paddingLeft: lumeSpace[3],
+      borderRadius: lumeRadius.lg,
+      borderWidth: 1,
+      borderColor: t.glassLine,
+      borderTopColor: t.glassHighlight,
+    },
+    dragZone: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: lumeSpace[4] },
+    info: { flex: 1, gap: lumeSpace[1] },
+  });

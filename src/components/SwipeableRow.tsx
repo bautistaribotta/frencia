@@ -32,7 +32,7 @@ import { scheduleOnRN } from 'react-native-worklets';
 import * as Haptics from 'expo-haptics';
 
 import { Icon, type IconName } from '@/design';
-import { lumeMotion, lumePalette, lumeRadius, useLume } from '@/design/lume';
+import { lumeMotion, lumePalette, lumeRadius, useLume, useLumeStyles, type LumePalette } from '@/design/lume';
 
 // Ancho que descubre cada accion cuando la fila queda abierta en reposo... solo
 // que no queda abierta: al soltar siempre vuelve a cero. Es la referencia con
@@ -79,6 +79,7 @@ export function SwipeableRow({
   children,
 }: SwipeableRowProps) {
   const { t } = useLume();
+  const styles = useLumeStyles(makeStyles);
 
   const tx = useSharedValue(0);
   // 1 cuando el arrastre ya cruzo el umbral, para pegar un solo golpe al cruzar
@@ -193,7 +194,7 @@ export function SwipeableRow({
     [derecha, izquierda],
   );
 
-  const fondo = (tono: AccionDeslizable['tono']) => ({ backgroundColor: tono === 'danger' ? t.danger : t.accent });
+  const fondo = (tono: AccionDeslizable['tono']) => (tono === 'danger' ? styles.fondoPeligro : styles.fondoAccion);
   const tinta = (tono: AccionDeslizable['tono']) => (tono === 'danger' ? lumePalette.ivory0 : t.textOnAccent);
 
   return (
@@ -228,19 +229,22 @@ export function SwipeableRow({
   );
 }
 
-const styles = StyleSheet.create({
-  // Recorta las acciones a la forma de la tarjeta: sin esto, los rectangulos
-  // de color asoman por las esquinas redondeadas.
-  wrap: { overflow: 'hidden', borderRadius: lumeRadius.xl },
-  acciones: { ...StyleSheet.absoluteFill, flexDirection: 'row', pointerEvents: 'none' },
-  accion: {
-    position: 'absolute',
-    top: 0,
-    bottom: 0,
-    width: ANCHO_ACCION,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  ladoIzquierdo: { left: 0 },
-  ladoDerecho: { right: 0 },
-});
+const makeStyles = (t: LumePalette) =>
+  StyleSheet.create({
+    // Recorta las acciones a la forma de la tarjeta: sin esto, los rectangulos
+    // de color asoman por las esquinas redondeadas.
+    wrap: { overflow: 'hidden', borderRadius: lumeRadius.xl },
+    acciones: { ...StyleSheet.absoluteFill, flexDirection: 'row', pointerEvents: 'none' },
+    accion: {
+      position: 'absolute',
+      top: 0,
+      bottom: 0,
+      width: ANCHO_ACCION,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    ladoIzquierdo: { left: 0 },
+    ladoDerecho: { right: 0 },
+    fondoAccion: { backgroundColor: t.accent },
+    fondoPeligro: { backgroundColor: t.danger },
+  });

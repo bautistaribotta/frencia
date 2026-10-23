@@ -7,7 +7,16 @@
 import React from 'react';
 import { Modal, Pressable, StyleSheet, View } from 'react-native';
 
-import { LumeText, lumeLayout, lumeRadius, lumeSpace, useLume } from '@/design/lume';
+import {
+  LumeText,
+  lumeLayout,
+  lumeRadius,
+  lumeSpace,
+  useLume,
+  useLumeStyles,
+  type LumePalette,
+  type LumeSombras,
+} from '@/design/lume';
 
 export interface DialogoProps {
   visible: boolean;
@@ -20,22 +29,20 @@ export interface DialogoProps {
 }
 
 export function Dialogo({ visible, titulo, mensaje, onDescartar, children }: DialogoProps) {
-  const { t, sombras } = useLume();
+  const { t } = useLume();
+  const styles = useLumeStyles(makeStyles);
 
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onDescartar} statusBarTranslucent>
       <Pressable
-        style={[styles.velo, { backgroundColor: t.scrim }]}
+        style={styles.velo}
         onPress={onDescartar}
         accessibilityRole="button"
         accessibilityLabel="Cerrar"
       >
         {/* Frena el toque para que tocar la tarjeta no la cierre. */}
         <Pressable
-          style={[
-            styles.tarjeta,
-            { backgroundColor: t.surfaceRaisedOpaco, borderColor: t.glassLine, boxShadow: sombras.lg },
-          ]}
+          style={styles.tarjeta}
           onPress={() => {}}
           accessibilityRole="alert"
         >
@@ -55,23 +62,28 @@ export function Dialogo({ visible, titulo, mensaje, onDescartar, children }: Dia
   );
 }
 
-const styles = StyleSheet.create({
-  velo: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: lumeLayout.padScreen,
-  },
-  tarjeta: {
-    width: '100%',
-    maxWidth: 480,
-    borderWidth: 1,
-    borderRadius: lumeRadius['2xl'],
-    paddingTop: lumeSpace[7],
-    paddingHorizontal: lumeLayout.padCard,
-    paddingBottom: lumeLayout.padCard,
-    gap: lumeSpace[7],
-  },
-  textos: { gap: lumeSpace[4] },
-  acciones: { gap: lumeSpace[4] },
-});
+const makeStyles = (t: LumePalette, sombras: LumeSombras) =>
+  StyleSheet.create({
+    velo: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+      padding: lumeLayout.padScreen,
+      backgroundColor: t.scrim,
+    },
+    tarjeta: {
+      width: '100%',
+      maxWidth: 480,
+      borderWidth: 1,
+      borderRadius: lumeRadius['2xl'],
+      paddingTop: lumeSpace[7],
+      paddingHorizontal: lumeLayout.padCard,
+      paddingBottom: lumeLayout.padCard,
+      gap: lumeSpace[7],
+      backgroundColor: t.surfaceRaisedOpaco,
+      borderColor: t.glassLine,
+      boxShadow: sombras.lg,
+    },
+    textos: { gap: lumeSpace[4] },
+    acciones: { gap: lumeSpace[4] },
+  });

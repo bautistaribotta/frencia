@@ -10,7 +10,18 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 
 import { Icon } from '@/design';
-import { Cargando, Fondo, LumeButton, LumeText, lumeFuente, lumeLayout, lumeSpace, useLume } from '@/design/lume';
+import {
+  Cargando,
+  Fondo,
+  LumeButton,
+  LumeText,
+  lumeFuente,
+  lumeLayout,
+  lumeSpace,
+  useLume,
+  useLumeStyles,
+  type LumePalette,
+} from '@/design/lume';
 import type { OAuthProvider } from '@/lib/oauth';
 
 import AppleLogo from '@/assets/icons/apple.svg';
@@ -121,13 +132,13 @@ export function ErrorAcceso({ mensaje, live = true }: { mensaje?: string; live?:
    arriba de todo con un margen fijo bajo la barra de estado y cerca del
    titulo del formulario. */
 export function Marca() {
-  const { t } = useLume();
+  const tema = useLumeStyles(makeStyles);
   const insets = useSafeAreaInsets();
   return (
     <View style={[styles.marca, { paddingTop: insets.top + lumeSpace[8] + 50 }]}>
       <View style={styles.nombre} accessibilityRole="image" accessibilityLabel="Frencia">
-        <Image source={LETRAS} style={[styles.capa, { tintColor: t.marca }]} />
-        <Image source={PUNTO} style={[styles.capa, { tintColor: t.marca }]} />
+        <Image source={LETRAS} style={tema.capa} />
+        <Image source={PUNTO} style={tema.capa} />
       </View>
     </View>
   );
@@ -136,13 +147,14 @@ export function Marca() {
 /* Separador entre el formulario y los proveedores. */
 export function Divisor({ texto }: { texto: string }) {
   const { t } = useLume();
+  const tema = useLumeStyles(makeStyles);
   return (
     <View style={styles.divisor}>
-      <View style={[styles.linea, { backgroundColor: t.glassLine }]} />
+      <View style={tema.linea} />
       <LumeText rol="label" color={t.textTertiary}>
         {texto}
       </LumeText>
-      <View style={[styles.linea, { backgroundColor: t.glassLine }]} />
+      <View style={tema.linea} />
     </View>
   );
 }
@@ -298,9 +310,7 @@ const styles = StyleSheet.create({
   // el bloque mide lo mismo, asi que el formulario no se mueve.
   marca: { alignSelf: 'stretch', alignItems: 'center', paddingBottom: lumeSpace[9] },
   nombre: { width: ANCHO_MARCA, height: ALTO_MARCA },
-  capa: { position: 'absolute', top: 0, left: 0, width: ANCHO_MARCA, height: ALTO_MARCA },
   divisor: { flexDirection: 'row', alignItems: 'center', gap: lumeSpace[4] },
-  linea: { flex: 1, height: 1 },
   social: { flexDirection: 'row', gap: lumeSpace[3] },
   socialBoton: { flex: 1, minWidth: 0 },
   centro: { textAlign: 'center' },
@@ -310,3 +320,10 @@ const styles = StyleSheet.create({
   pieAlFondo: { marginTop: 'auto', paddingTop: lumeSpace[7] },
   entrando: { alignItems: 'center', justifyContent: 'center' },
 });
+
+// Lo que cambia con el tema: el nombre se tiñe con la marca y el divisor va en glass-line.
+const makeStyles = (t: LumePalette) =>
+  StyleSheet.create({
+    capa: { position: 'absolute', top: 0, left: 0, width: ANCHO_MARCA, height: ALTO_MARCA, tintColor: t.marca },
+    linea: { flex: 1, height: 1, backgroundColor: t.glassLine },
+  });

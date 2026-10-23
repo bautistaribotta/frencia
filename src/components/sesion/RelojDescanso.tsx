@@ -5,7 +5,7 @@ import { Platform, StyleSheet, Text, View } from 'react-native';
 import * as Haptics from 'expo-haptics';
 
 import { RestRing } from '@/components/RestRing';
-import { LumeButton, LumeText, lumeFuente, lumeSpace, useLume } from '@/design/lume';
+import { LumeButton, LumeText, lumeFuente, lumeSpace, useLume, useLumeStyles, type LumePalette } from '@/design/lume';
 import { reloj } from '@/lib/tiempo';
 
 /** Cuanto suma o resta cada toque a los botones del descanso, en segundos. */
@@ -47,6 +47,7 @@ export function RelojDescanso({
   onTerminadoChange: (terminado: boolean) => void;
 }) {
   const { t } = useLume();
+  const styles = useLumeStyles(makeStyles);
   const [ahora, setAhora] = useState(() => Date.now());
 
   // Cada medio segundo para que el numero no se atrase visiblemente respecto
@@ -114,7 +115,7 @@ export function RelojDescanso({
           {finDelDescanso ? 'Listo' : 'Descanso'}
         </LumeText>
         <Text
-          style={[styles.reloj, { color: finDelDescanso ? t.signalText : t.textPrimary }]}
+          style={[styles.reloj, finDelDescanso && styles.relojListo]}
         >
           {reloj(restante)}
         </Text>
@@ -151,17 +152,20 @@ export function RelojDescanso({
   );
 }
 
-const styles = StyleSheet.create({
-  reloj: {
-    fontFamily: lumeFuente.condMedium,
-    fontSize: 60,
-    lineHeight: 64,
-    letterSpacing: -2.4,
-    includeFontPadding: false,
-    fontVariant: ['tabular-nums'],
-  },
-  deTotal: { fontSize: 12.5, lineHeight: 17, fontVariant: ['tabular-nums'] },
-  // Al ancho del contenido y no estirados: dos botones anchos debajo de la
-  // esfera le pelearian el peso, y aca la esfera es lo que se mira.
-  ajustes: { flexDirection: 'row', gap: lumeSpace[3] },
-});
+const makeStyles = (t: LumePalette) =>
+  StyleSheet.create({
+    reloj: {
+      fontFamily: lumeFuente.condMedium,
+      fontSize: 60,
+      lineHeight: 64,
+      letterSpacing: -2.4,
+      includeFontPadding: false,
+      fontVariant: ['tabular-nums'],
+      color: t.textPrimary,
+    },
+    relojListo: { color: t.signalText },
+    deTotal: { fontSize: 12.5, lineHeight: 17, fontVariant: ['tabular-nums'] },
+    // Al ancho del contenido y no estirados: dos botones anchos debajo de la
+    // esfera le pelearian el peso, y aca la esfera es lo que se mira.
+    ajustes: { flexDirection: 'row', gap: lumeSpace[3] },
+  });

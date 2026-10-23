@@ -20,6 +20,8 @@ import {
   lumeRadius,
   lumeSpace,
   useLume,
+  useLumeStyles,
+  type LumePalette,
 } from '@/design/lume';
 
 export function CargaPestania({ titulo, texto }: { titulo: string; texto: string }) {
@@ -75,8 +77,9 @@ export function VacioPestania({
   children?: React.ReactNode;
 }) {
   const { t } = useLume();
+  const tema = useLumeStyles(makeStyles);
   return (
-    <View style={[styles.vacio, { backgroundColor: t.surfaceInset, borderColor: t.borderStrong }]}>
+    <View style={[styles.vacio, tema.vacio]}>
       <Icon name={icono} size={26} color={t.textTertiary} strokeWidth={1.75} />
       <LumeText rol="subtitle" style={styles.centrado}>
         {titulo}
@@ -128,3 +131,8 @@ const styles = StyleSheet.create({
   },
   avisoTexto: { flex: 1 },
 });
+
+const makeStyles = (t: LumePalette) =>
+  StyleSheet.create({
+    vacio: { backgroundColor: t.surfaceInset, borderColor: t.borderStrong },
+  });
