@@ -9,7 +9,7 @@
    Va en Lume: el nombre en un Campo grande con el icono en lume, la semana
    como eleccion (accent) y los ejercicios en filas de vidrio. */
 
-import React, { useCallback, useMemo, useRef } from 'react';
+import React, { useCallback, useLayoutEffect, useMemo, useRef } from 'react';
 import { StyleSheet, View } from 'react-native';
 
 import { DraggableRowList } from '@/components/DraggableRowList';
@@ -58,12 +58,16 @@ export function DayEditor({
   // memoiza los gestos contra ellas, y si cambian en pleno arrastre el Pan se
   // reconstruye a mitad del gesto. Con el ultimo valor en un ref, los callbacks
   // leen lo actual sin depender de el.
+  // Los refs se actualizan en un efecto de layout y no en el render, donde el
+  // React Compiler no deja escribirlos; corre antes de cualquier gesto.
   const diaRef = useRef(dia);
-  diaRef.current = dia;
   const onChangeRef = useRef(onChange);
-  onChangeRef.current = onChange;
   const onEditarRef = useRef(onEditarEjercicio);
-  onEditarRef.current = onEditarEjercicio;
+  useLayoutEffect(() => {
+    diaRef.current = dia;
+    onChangeRef.current = onChange;
+    onEditarRef.current = onEditarEjercicio;
+  });
 
   // El orden de los ejercicios es el orden en que se entrenan, asi que
   // arrastrarlos cambia el dato, no solo la vista.

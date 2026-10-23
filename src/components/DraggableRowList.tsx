@@ -99,9 +99,9 @@ export function DraggableRowList({
   const commit = useCallback(
     (f: number, t: number) => {
       if (f !== t) onReorder(f, t);
-      from.value = -1;
-      over.value = -1;
-      dragY.value = 0;
+      from.set(-1);
+      over.set(-1);
+      dragY.set(0);
     },
     [from, over, dragY, onReorder],
   );
@@ -177,18 +177,18 @@ function Row({
         .enabled(draggable)
         .activateAfterLongPress(LONG_PRESS_MS)
         .onStart(() => {
-          from.value = index;
-          over.value = index;
-          dragY.value = 0;
+          from.set(index);
+          over.set(index);
+          dragY.set(0);
           scheduleOnRN(tick);
         })
         .onUpdate((e) => {
-          dragY.value = e.translationY;
+          dragY.set(e.translationY);
           // A que lugar apunta el dedo: cada `step` recorrido es un lugar.
           const raw = index + Math.round(e.translationY / step);
           const target = Math.max(0, Math.min(count - 1, raw));
           if (target !== over.value) {
-            over.value = target;
+            over.set(target);
             scheduleOnRN(tick);
           }
         })
@@ -203,9 +203,11 @@ function Row({
           }
           // La fila cae en el hueco antes de avisar el orden nuevo, asi el
           // salto entre la posicion del dedo y la definitiva no se ve.
-          dragY.value = withTiming((t - f) * step, { duration: lumeMotion.durFast }, (done) => {
-            if (done) scheduleOnRN(commit, f, t);
-          });
+          dragY.set(
+            withTiming((t - f) * step, { duration: lumeMotion.durFast }, (done) => {
+              if (done) scheduleOnRN(commit, f, t);
+            }),
+          );
         }),
     [draggable, index, count, step, from, over, dragY, commit],
   );
@@ -217,10 +219,10 @@ function Row({
         // onBegin/onFinalize y no onStart: el destello tiene que aparecer al
         // apoyar el dedo, no cuando el gesto ya se reconocio.
         .onBegin(() => {
-          apretada.value = 1;
+          apretada.set(1);
         })
         .onFinalize(() => {
-          apretada.value = 0;
+          apretada.set(0);
         })
         .onEnd((_e, success) => {
           if (success && onPress) scheduleOnRN(onPress, index);

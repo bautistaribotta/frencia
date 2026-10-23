@@ -106,21 +106,21 @@ export function SwipeableRow({
           if (Math.abs(v) > UMBRAL) {
             v = Math.sign(v) * (UMBRAL + (Math.abs(v) - UMBRAL) * RESISTENCIA);
           }
-          tx.value = v;
+          tx.set(v);
           const cruzo = Math.abs(v) >= UMBRAL ? 1 : 0;
           if (cruzo !== armado.value) {
-            armado.value = cruzo;
+            armado.set(cruzo);
             if (cruzo === 1) scheduleOnRN(golpe, Haptics.ImpactFeedbackStyle.Medium);
           }
         })
         .onEnd(() => {
           const paso = Math.abs(tx.value) >= UMBRAL;
           const haciaDerecha = tx.value > 0;
-          armado.value = 0;
+          armado.set(0);
           // Siempre vuelve a cero: la accion se ejecuta afuera (reordenar la
           // lista, abrir un alerta), y la fila no tiene por que quedar colgada
           // mientras tanto.
-          tx.value = withTiming(0, { duration: lumeMotion.durBase });
+          tx.set(withTiming(0, { duration: lumeMotion.durBase }));
           if (!paso) return;
           if (haciaDerecha) {
             if (onDerecha) scheduleOnRN(onDerecha);
@@ -138,10 +138,10 @@ export function SwipeableRow({
         // onBegin/onFinalize y no onStart: el destello aparece al apoyar el
         // dedo, no cuando el gesto ya se reconocio.
         .onBegin(() => {
-          apretada.value = 1;
+          apretada.set(1);
         })
         .onFinalize(() => {
-          apretada.value = 0;
+          apretada.set(0);
         })
         .onEnd((_e, success) => {
           if (success) scheduleOnRN(onPress);
