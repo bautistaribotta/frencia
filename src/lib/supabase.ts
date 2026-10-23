@@ -2,6 +2,7 @@
 // Persiste la sesion en AsyncStorage y la refresca sola.
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { createClient } from '@supabase/supabase-js';
+import { AppState, Platform } from 'react-native';
 import type { Database } from './database.types';
 import 'react-native-url-polyfill/auto';
 import './webcrypto-polyfill';
@@ -35,3 +36,15 @@ export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey, {
     flowType: 'pkce',
   },
 });
+
+// En el telefono el refresco automatico se frena con la app en segundo plano,
+// y al volver el token puede estar vencido. Como indica la guia de Supabase
+// para React Native, se pausa al salir y se reactiva al volver: al reactivarse
+// renueva el token si hace falta, sin que el usuario tenga que ingresar de
+// nuevo.
+if (Platform.OS !== 'web') {
+  AppState.addEventListener('change', (estado) => {
+    if (estado === 'active') supabase.auth.startAutoRefresh();
+    else supabase.auth.stopAutoRefresh();
+  });
+}
