@@ -72,7 +72,7 @@
     "web": "expo start --web",
     "lint": "expo lint",
     "gen:types": "supabase gen types typescript --project-id dcxtqxdfkbqphuoyibyt --schema public > src/lib/database.types.ts",
-    "test": "node --test \"src/**/*.test.ts\""
+    "test": "node --test \"src/**/*.test.ts\" \"scripts/test-*.cjs\""
   },
   "private": true,
   "allowScripts": {

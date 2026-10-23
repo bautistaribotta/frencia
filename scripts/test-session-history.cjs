@@ -1,20 +1,9 @@
-// Run: node scripts/test-session-history.cjs (in-process runner also works in restricted Windows sandboxes).
+// Run: node scripts/test-session-history.cjs (tambien corre con npm test).
 // Uses the installed Supabase client against a local fetch double; never connects to a database.
 const assert = require('node:assert/strict');
-const fs = require('node:fs');
-const path = require('node:path');
-const vm = require('node:vm');
-const { createRequire } = require('node:module');
+const { createClient } = require('@supabase/supabase-js');
 const { test } = require('node:test');
-
-const project = process.env.HISTORY_TEST_PROJECT || path.resolve(__dirname, '..');
-const projectRequire = createRequire(path.join(project, 'package.json'));
-const ts = projectRequire('typescript');
-const { createClient } = projectRequire('@supabase/supabase-js');
-const source = fs.readFileSync(path.join(project, 'src/lib/session-history.ts'), 'utf8');
-const compiled = ts.transpileModule(source, {
-  compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.CommonJS },
-}).outputText;
+const { cargarModulo } = require('./cargar-modulo.cjs');
 
 const USER = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
 const SESSION = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb';
@@ -69,16 +58,8 @@ function setup({ session = sessionRow(), rows = [], onRequest } = {}) {
   const supabase = createClient('https://history-tests.invalid', 'test-anon-key', {
     global: { fetch }, auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
   });
-  const module = { exports: {} };
-  vm.runInNewContext(compiled, {
-    module, exports: module.exports,
-    require(name) {
-      assert.equal(name, './supabase');
-      return { supabase };
-    },
-    Date, Map, Number, Infinity, AbortController, AbortSignal,
-  }, { filename: 'session-history.ts' });
-  return { ...module.exports, requests };
+  const modulo = cargarModulo('session-history', { './supabase': { supabase } });
+  return { ...modulo, requests };
 }
 
 test('requests only the owned, completed session and joins names in existing requests', async () => {
@@ -91,7 +72,7 @@ test('requests only the owned, completed session and joins names in existing req
   assert.equal(header.get('user_id'), `eq.${USER}`);
   assert.equal(header.get('finished_at'), 'not.is.null');
   assert.equal(header.get('select'), 'id,started_at,finished_at,training_days(name)');
-  assert.equal(h.requests[1].url.searchParams.get('select'), 'id,exercise_id,set_index,weight_kg,reps,intensity_kind,intensity_value,completed_at,exercises(name)');
+  assert.equal(h.requests[1].url.searchParams.get('select'), 'id,exercise_id,set_index,weight_kg,reps,duration_seconds,distance_m,intensity_kind,intensity_value,completed_at,exercises(name,kind,tracks_weight,tracks_reps,tracks_duration,tracks_distance)');
   assert.equal(h.requests[1].url.searchParams.get('offset'), '0');
 });
 
@@ -126,12 +107,12 @@ test('maps decimal kg, zero kg, negative RIR, RPE, repetition count, and timesta
   ]);
 });
 
-test('supports object, array, and absent name joins', async () => {
+// Con los tipos generados (B20) los joins de muchos a uno llegan como objeto,
+// asi que ya no se prueba la forma de arreglo.
+test('supports object and absent name joins', async () => {
   for (const [trainingDays, exercise, expectedDay, expectedExercise] of [
     [{ name: 'A' }, { name: 'B' }, 'A', 'B'],
-    [[{ name: 'C' }], [{ name: 'D' }], 'C', 'D'],
     [null, null, null, 'Ejercicio'],
-    [[], [], null, 'Ejercicio'],
   ]) {
     const h = setup({ session: sessionRow({ training_days: trainingDays }), rows: [setRow({ exercises: exercise })] });
     const result = await h.cargarDetalleSesion(USER, SESSION);

@@ -1,25 +1,8 @@
-// Ejecutar: node scripts/test-history.cjs. Sin conexiones ni cambios en la base.
-/* global __dirname */
+// Ejecutar: node scripts/test-history.cjs (tambien corre con npm test). Sin conexiones ni cambios en la base.
 const assert = require('node:assert/strict');
-const fs = require('node:fs');
-const path = require('node:path');
-const vm = require('node:vm');
 const { test } = require('node:test');
-const ts = require('typescript');
+const { cargarModulo } = require('./cargar-modulo.cjs');
 const { createClient } = require('@supabase/supabase-js');
-
-function cargarModulo(nombre, dependencias) {
-  const source = fs.readFileSync(path.join(__dirname, '../src/lib', nombre + '.ts'), 'utf8');
-  const code = ts.transpileModule(source, {
-    compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.CommonJS },
-  }).outputText;
-  const sandbox = { exports: {}, AbortController, Date, Set, Map, require: (nombre) => {
-    assert.ok(nombre in dependencias, `Dependencia inesperada: ${nombre}`);
-    return dependencias[nombre];
-  } };
-  vm.runInNewContext(code, sandbox);
-  return sandbox.exports;
-}
 
 const USER = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
 const id = (n) => `bbbbbbbb-bbbb-4bbb-8bbb-${n.toString(16).padStart(12, '0')}`;
