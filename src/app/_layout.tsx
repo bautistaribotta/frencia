@@ -3,6 +3,7 @@
    define el Stack de navegacion y aplica el gate de autenticacion que
    decide entre el flujo de auth, el setup inicial y la app. */
 
+import { StyleSheet } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { Stack } from 'expo-router';
@@ -28,7 +29,7 @@ export default function RootLayout() {
   if (!lumeLoaded && !lumeError) return null;
 
   return (
-    <GestureHandlerRootView style={{ flex: 1 }}>
+    <GestureHandlerRootView style={styles.raiz}>
       <SafeAreaProvider>
         <SessionProvider>
           <ProfileProvider>
@@ -174,3 +175,7 @@ function RootNavigator() {
     </>
   );
 }
+
+const styles = StyleSheet.create({
+  raiz: { flex: 1 },
+});
