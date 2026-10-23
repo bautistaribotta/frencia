@@ -34,6 +34,11 @@ https://docs.expo.dev/versions/v57.0.0/ antes de escribir codigo que toque el SD
   que `src/design/tokens/colors.ts` y la configuracion nativa usan hex/rgba.
 - **Nunca** usar estilos en linea (inline) con CSS. Solo se usaran si ya se
   estaba usando Tailwind en el proyecto.
+  Excepcion: un objeto de estilo en linea solo puede llevar valores que se
+  conocen recien al renderizar (props, medidas, insets, animacion, tema). Lo
+  fijo va siempre a `StyleSheet`, y si hay parte fija se compone en un arreglo:
+  `style={[styles.base, { height }]}`. Los colores del tema que se repiten van
+  por `useThemedStyles` o `useLumeStyles`.
 - **Nunca** usar emojis en los comentarios.
 
 ## Base de datos
