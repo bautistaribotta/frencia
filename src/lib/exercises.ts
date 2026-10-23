@@ -7,7 +7,9 @@
      1. Cache en memoria (sobrevive a la navegacion dentro de la sesion).
      2. Cache en AsyncStorage (sobrevive a reinicios): se muestra al instante.
      3. Refresco en segundo plano desde Supabase, que actualiza ambos caches
-        solo cuando llego el catalogo completo (todas sus paginas). */
+        solo cuando llego el catalogo completo (todas sus paginas). Se
+        comparte entre los que montan a la vez y no se repite mientras la
+        copia en memoria tenga menos de REFRESCO_MS. */
 
 import { useEffect, useState } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -106,6 +108,11 @@ const STORAGE_KEY = 'frencia.exercises.catalog.v4';
 
 // Cache en memoria compartido entre montajes del hook.
 let memoryCache: Exercise[] | null = null;
+// Cuando llego el ultimo catalogo completo de la red, y el pedido en vuelo si
+// lo hay. El catalogo cambia poco: dentro de esta ventana no se vuelve a bajar.
+const REFRESCO_MS = 15 * 60 * 1000;
+let refrescadoEl = 0;
+let refrescoEnCurso: Promise<Exercise[] | null> | null = null;
 
 // Tiene que coincidir con max_rows de Supabase (supabase/config.toml y el
 // proyecto remoto). Si fuera mayor, la API recortaria cada pagina a max_rows,
@@ -213,6 +220,24 @@ export function contarTipo(catalog: Exercise[], kind: TipoEjercicio): number {
   return catalog.reduce((n, e) => (e.kind === kind ? n + 1 : n), 0);
 }
 
+/** Baja el catalogo y, si llego completo, actualiza los dos caches. Si ya hay
+ *  un pedido en vuelo devuelve ese mismo en vez de abrir otro. */
+function refrescarCatalogo(): Promise<Exercise[] | null> {
+  refrescoEnCurso ??= fetchAll()
+    .then((fresh) => {
+      if (fresh !== null) {
+        memoryCache = fresh;
+        refrescadoEl = Date.now();
+        AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(fresh)).catch(() => {});
+      }
+      return fresh;
+    })
+    .finally(() => {
+      refrescoEnCurso = null;
+    });
+  return refrescoEnCurso;
+}
+
 /** Catalogo completo de ejercicios, listo para filtrar en memoria. */
 export function useExerciseCatalog() {
   const [exercises, setExercises] = useState<Exercise[]>(memoryCache ?? []);
@@ -238,18 +263,18 @@ export function useExerciseCatalog() {
         }
       }
 
-      // 2. Refresco desde la fuente de verdad. Si falla, nos quedamos con la
-      //    ultima copia valida (memoria o AsyncStorage) en vez de vaciarla.
-      const fresh = await fetchAll();
+      // 2. Refresco desde la fuente de verdad, salvo que el de memoria sea
+      //    reciente. Si falla, nos quedamos con la ultima copia valida
+      //    (memoria o AsyncStorage) en vez de vaciarla.
+      if (memoryCache !== null && Date.now() - refrescadoEl < REFRESCO_MS) return;
+      const fresh = await refrescarCatalogo();
       if (cancelado) return;
       if (fresh === null) {
         setLoading(false);
         return;
       }
-      memoryCache = fresh;
       setExercises(fresh);
       setLoading(false);
-      AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(fresh)).catch(() => {});
     })();
 
     return () => {
