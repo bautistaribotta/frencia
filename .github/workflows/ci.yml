@@ -1,0 +1,26 @@
+# Frencia · Integracion continua.
+# En cada push y pull request corre lo mismo que hay que correr a mano antes de
+# commitear: tipos, lint y tests. No necesita las variables de Supabase: ningun
+# paso arranca la app ni se conecta a la base.
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  verificar:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Tipos
+        run: npx tsc --noEmit
+      - name: Lint
+        run: npm run lint
+      - name: Tests
+        run: npm test
