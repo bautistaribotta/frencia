@@ -9,7 +9,8 @@ import React from 'react';
 import { StyleSheet, Text, View, type ViewStyle } from 'react-native';
 
 import { Icon } from '../Icon';
-import { useLume } from '../lume/useLume';
+import { useLume, useLumeStyles } from '../lume/useLume';
+import type { LumePalette } from '../lume/tokens';
 import { lumeFuente } from '../lume/tipografia';
 
 type Size = 'md' | 'lg';
@@ -29,25 +30,26 @@ const FONT_SIZE: Record<Size, number> = { md: 13, lg: 15 };
 
 export function ExerciseSummary({ volume, intensity, rest, size = 'md', style }: ExerciseSummaryProps) {
   const { t } = useLume();
+  const styles = useLumeStyles(makeStyles);
   const fontSize = FONT_SIZE[size];
-  const lineHeight = fontSize + 5;
+  const medida = { fontSize, lineHeight: fontSize + 5 };
   const label = [volume, intensity, rest ? `descanso ${rest}` : null].filter(Boolean).join(', ');
 
   return (
     <View style={[styles.base, style]} accessible accessibilityLabel={label}>
-      <Text style={[styles.vol, { fontSize, lineHeight, color: t.textPrimary }]}>{volume}</Text>
+      <Text style={[styles.vol, medida]}>{volume}</Text>
       {intensity ? (
         <>
-          <Text style={[styles.sep, { fontSize, lineHeight, color: t.textDisabled }]}>·</Text>
-          <Text style={[styles.int, { fontSize, lineHeight, color: t.intensityText }]}>{intensity}</Text>
+          <Text style={[styles.sep, medida]}>·</Text>
+          <Text style={[styles.int, medida]}>{intensity}</Text>
         </>
       ) : null}
       {rest ? (
         <>
-          <Text style={[styles.sep, { fontSize, lineHeight, color: t.textDisabled }]}>·</Text>
+          <Text style={[styles.sep, medida]}>·</Text>
           <View style={styles.rest}>
             <Icon name="timer" size={fontSize} strokeWidth={1.75} color={t.textTertiary} />
-            <Text style={[styles.restText, { fontSize, lineHeight, color: t.textTertiary }]}>{rest}</Text>
+            <Text style={[styles.restText, medida]}>{rest}</Text>
           </View>
         </>
       ) : null}
@@ -55,11 +57,12 @@ export function ExerciseSummary({ volume, intensity, rest, size = 'md', style }:
   );
 }
 
-const styles = StyleSheet.create({
-  base: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', columnGap: 7, rowGap: 2 },
-  vol: { fontFamily: lumeFuente.semibold, fontVariant: ['tabular-nums'] },
-  sep: { fontFamily: lumeFuente.medium },
-  int: { fontFamily: lumeFuente.semibold, fontVariant: ['tabular-nums'] },
-  rest: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  restText: { fontFamily: lumeFuente.medium, fontVariant: ['tabular-nums'] },
-});
+const makeStyles = (t: LumePalette) =>
+  StyleSheet.create({
+    base: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', columnGap: 7, rowGap: 2 },
+    vol: { fontFamily: lumeFuente.semibold, fontVariant: ['tabular-nums'], color: t.textPrimary },
+    sep: { fontFamily: lumeFuente.medium, color: t.textDisabled },
+    int: { fontFamily: lumeFuente.semibold, fontVariant: ['tabular-nums'], color: t.intensityText },
+    rest: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+    restText: { fontFamily: lumeFuente.medium, fontVariant: ['tabular-nums'], color: t.textTertiary },
+  });

@@ -7,9 +7,9 @@ import React from 'react';
 import { Pressable, StyleSheet, Text, View, type ViewStyle } from 'react-native';
 
 import { Icon } from '../Icon';
-import { useLume } from '../lume/useLume';
+import { useLume, useLumeStyles } from '../lume/useLume';
 import { lumeFuente, lumeTexto } from '../lume/tipografia';
-import { lumeRadius } from '../lume/tokens';
+import { lumeRadius, type LumePalette } from '../lume/tokens';
 
 type Size = 'md' | 'lg';
 
@@ -45,6 +45,7 @@ export function Stepper({
   style,
 }: StepperProps) {
   const { t } = useLume();
+  const styles = useLumeStyles(makeStyles);
   const lg = size === 'lg';
   const set = (next: number) => {
     const clamped = Math.max(min, Math.min(max, next));
@@ -64,9 +65,9 @@ export function Stepper({
       onPress={onPress}
       style={({ pressed }) => [
         styles.btn,
-        { width: ancho, height: alto, borderColor: t.borderSubtle },
+        { width: ancho, height: alto },
         lado === 'izq' ? styles.btnIzq : styles.btnDer,
-        pressed && !tope && { backgroundColor: t.surfaceCardElevated },
+        pressed && !tope && styles.btnPresionado,
       ]}
     >
       <Icon name={icono} size={18} strokeWidth={1.75} color={tope ? t.textDisabled : t.textPrimary} />
@@ -75,20 +76,20 @@ export function Stepper({
 
   return (
     <View style={[styles.base, fullWidth && styles.baseFull, style]}>
-      {label ? <Text style={[lumeTexto.label, { color: t.textTertiary }]}>{label}</Text> : null}
-      <View style={[styles.row, { backgroundColor: t.surfaceInset, borderColor: t.borderSubtle }]}>
+      {label ? <Text style={[lumeTexto.label, styles.label]}>{label}</Text> : null}
+      <View style={styles.row}>
         {boton('minus', atMin, () => set(value - step), 'izq')}
 
         <Text
           accessibilityLabel={label ? `${label}: ${shown}` : shown}
           style={[
             styles.val,
-            { color: t.textPrimary, fontSize: lg ? 30 : 24, minWidth: lg ? 88 : 72 },
+            { fontSize: lg ? 30 : 24, minWidth: lg ? 88 : 72 },
             fullWidth && styles.valFull,
           ]}
         >
           {shown}
-          {unit ? <Text style={[styles.unit, { color: t.textTertiary }]}> {unit}</Text> : null}
+          {unit ? <Text style={styles.unit}> {unit}</Text> : null}
         </Text>
 
         {boton('plus', atMax, () => set(value + step), 'der')}
@@ -97,25 +98,31 @@ export function Stepper({
   );
 }
 
-const styles = StyleSheet.create({
-  base: { gap: 8, alignSelf: 'flex-start' },
-  baseFull: { alignSelf: 'stretch' },
-  row: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderWidth: 1,
-    borderRadius: lumeRadius.md,
-    overflow: 'hidden',
-  },
-  btn: { alignItems: 'center', justifyContent: 'center' },
-  btnIzq: { borderRightWidth: 1 },
-  btnDer: { borderLeftWidth: 1 },
-  val: {
-    textAlign: 'center',
-    fontFamily: lumeFuente.condMedium,
-    letterSpacing: -0.5,
-    fontVariant: ['tabular-nums'],
-  },
-  valFull: { flex: 1, minWidth: 0 },
-  unit: { fontFamily: lumeFuente.medium, fontSize: 12, letterSpacing: 0 },
-});
+const makeStyles = (t: LumePalette) =>
+  StyleSheet.create({
+    base: { gap: 8, alignSelf: 'flex-start' },
+    baseFull: { alignSelf: 'stretch' },
+    label: { color: t.textTertiary },
+    row: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      borderWidth: 1,
+      borderRadius: lumeRadius.md,
+      overflow: 'hidden',
+      backgroundColor: t.surfaceInset,
+      borderColor: t.borderSubtle,
+    },
+    btn: { alignItems: 'center', justifyContent: 'center', borderColor: t.borderSubtle },
+    btnPresionado: { backgroundColor: t.surfaceCardElevated },
+    btnIzq: { borderRightWidth: 1 },
+    btnDer: { borderLeftWidth: 1 },
+    val: {
+      textAlign: 'center',
+      fontFamily: lumeFuente.condMedium,
+      letterSpacing: -0.5,
+      fontVariant: ['tabular-nums'],
+      color: t.textPrimary,
+    },
+    valFull: { flex: 1, minWidth: 0 },
+    unit: { fontFamily: lumeFuente.medium, fontSize: 12, letterSpacing: 0, color: t.textTertiary },
+  });

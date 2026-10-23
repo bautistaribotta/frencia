@@ -7,9 +7,9 @@
    campo: con el teclado abierto, tocar Guardar no pasa por el blur y el ultimo
    digito se perderia. */
 
-import React, { useMemo, useRef, useState } from 'react';
+import React, { useRef, useState } from 'react';
 import { Pressable, StyleSheet, Text, TextInput, View, type ViewStyle } from 'react-native';
-import { useLume } from '../lume/useLume';
+import { useLume, useLumeStyles } from '../lume/useLume';
 import { lumeFuente } from '../lume/tipografia';
 import { lumeRadius, type LumePalette } from '../lume/tokens';
 import { Icon } from '../Icon';
@@ -46,7 +46,7 @@ export function DurationField({
   style,
 }: DurationFieldProps) {
   const { t: colors } = useLume();
-  const styles = useMemo(() => makeStyles(colors), [colors]);
+  const styles = useLumeStyles(makeStyles);
   const input = useRef<TextInput>(null);
   const [foco, setFoco] = useState(false);
   const [buf, setBuf] = useState('');
@@ -97,7 +97,7 @@ export function DurationField({
     mostrado = (
       <View style={styles.enFoco}>
         <Text style={[styles.valor, { fontSize }]}>{partes}</Text>
-        <View style={[styles.cursor, { height: fontSize * 0.95, backgroundColor: colors.signal }]} />
+        <View style={[styles.cursor, { height: fontSize * 0.95 }]} />
       </View>
     );
   } else if (value === null) {
@@ -114,7 +114,7 @@ export function DurationField({
           <Text style={styles.formato}>{formato}</Text>
         </View>
       ) : null}
-      <View style={[styles.fila, foco && { borderColor: colors.signal }]}>
+      <View style={[styles.fila, foco && styles.filaFoco]}>
         <Pressable
           accessibilityRole="button"
           accessibilityLabel={`menos ${pasoLabel(step)}`}
@@ -203,6 +203,7 @@ const makeStyles = (colors: LumePalette) =>
       borderRadius: lumeRadius.md,
       overflow: 'hidden',
     },
+    filaFoco: { borderColor: colors.signal },
     btn: { alignItems: 'center', justifyContent: 'center', gap: 1 },
     btnPresionado: { backgroundColor: colors.surfaceCardElevated },
     btnApagado: { opacity: 0.35 },
@@ -217,7 +218,7 @@ const makeStyles = (colors: LumePalette) =>
       includeFontPadding: false,
     },
     apagado: { color: colors.textDisabled },
-    cursor: { width: 2, marginLeft: 2 },
+    cursor: { width: 2, marginLeft: 2, backgroundColor: colors.signal },
     input: {
       position: 'absolute',
       top: 0,

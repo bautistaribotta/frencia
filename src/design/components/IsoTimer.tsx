@@ -30,9 +30,9 @@ import Animated, {
   withRepeat,
   withTiming,
 } from 'react-native-reanimated';
-import { useLume } from '../lume/useLume';
+import { useLume, useLumeStyles } from '../lume/useLume';
 import { lumeFuente, lumeTexto } from '../lume/tipografia';
-import { lumeMotion, lumeRadius, lumeSpace } from '../lume/tokens';
+import { lumeMotion, lumeRadius, lumeSpace, type LumePalette } from '../lume/tokens';
 import { Vidrio } from '../lume/Vidrio';
 import { LumeButton } from '../lume/LumeButton';
 import { Icon } from '../Icon';
@@ -71,8 +71,9 @@ function PantallaEncendida() {
 }
 
 /** El punto que late al lado de "contando". Quieto con Reducir movimiento. */
-function EnVivo({ color }: { color: string }) {
+function EnVivo() {
   const { reducirMovimiento } = useLume();
+  const styles = useLumeStyles(makeStyles);
   const opacidad = useSharedValue(1);
 
   useEffect(() => {
@@ -86,7 +87,7 @@ function EnVivo({ color }: { color: string }) {
   }, [reducirMovimiento, opacidad]);
 
   const latido = useAnimatedStyle(() => ({ opacity: opacidad.value }));
-  return <Animated.View style={[styles.enVivo, { backgroundColor: color }, latido]} />;
+  return <Animated.View style={[styles.enVivo, latido]} />;
 }
 
 export function IsoTimer({
@@ -98,6 +99,7 @@ export function IsoTimer({
   style,
 }: IsoTimerProps) {
   const { t } = useLume();
+  const styles = useLumeStyles(makeStyles);
   const [fase, setFase] = useState<Fase>(value !== null ? 'hecho' : 'idle');
   // Momento en que se toco Empezar. Contar arranca `countdown` segundos despues.
   const [arranque, setArranque] = useState(0);
@@ -201,14 +203,14 @@ export function IsoTimer({
 
       <View style={styles.arriba}>
         <View style={styles.titulo}>
-          {midiendo && !enCuenta ? <EnVivo color={t.intensity} /> : null}
-          <Text style={[lumeTexto.label, { color: midiendo ? t.intensityText : t.textTertiary }]}>
+          {midiendo && !enCuenta ? <EnVivo /> : null}
+          <Text style={[lumeTexto.label, styles.tituloTexto, midiendo && styles.tintaIntensidad]}>
             {titulo}
           </Text>
         </View>
-        <Text style={[styles.objetivo, { color: t.textTertiary }]}>
+        <Text style={styles.objetivo}>
           Objetivo{' '}
-          <Text style={[styles.objetivoValor, { color: t.textPrimary }]}>
+          <Text style={styles.objetivoValor}>
             {target ? reloj(target) : '—'}
           </Text>
         </Text>
@@ -226,35 +228,26 @@ export function IsoTimer({
       ) : (
         <>
           <Text
-            style={[
-              styles.digitos,
-              {
-                color:
-                  fase === 'idle' ? t.textDisabled : enCuenta ? t.intensityText : t.textPrimary,
-              },
-            ]}
+            style={[styles.digitos, fase === 'idle' ? styles.digitosApagados : enCuenta && styles.tintaIntensidad]}
             accessibilityLiveRegion="none"
           >
             {enCuenta ? String(cuentaRestante) : reloj(seg)}
           </Text>
           {target ? (
             <View
-              style={[styles.barra, { backgroundColor: t.dataTrack }]}
+              style={styles.barra}
               accessibilityRole="progressbar"
               accessibilityValue={{ min: 0, max: target, now: Math.floor(seg) }}
             >
-              <View style={[styles.relleno, { width: `${lleno}%`, backgroundColor: t.intensity }]} />
+              <View style={[styles.relleno, { width: `${lleno}%` }]} />
               {/* La marca del objetivo: una linea fina con su punta arriba. */}
-              <View style={[styles.marca, { left: `${marca}%`, backgroundColor: t.textPrimary }]}>
-                <View style={[styles.punta, { borderTopColor: t.textPrimary }]} />
+              <View style={[styles.marca, { left: `${marca}%` }]}>
+                <View style={styles.punta} />
               </View>
             </View>
           ) : null}
           <Text
-            style={[
-              styles.nota,
-              { color: midiendo && llego ? t.intensityText : t.textSecondary },
-            ]}
+            style={[styles.nota, midiendo && llego && styles.tintaIntensidad]}
           >
             {nota}
           </Text>
@@ -273,18 +266,14 @@ export function IsoTimer({
         <Pressable
           accessibilityRole="button"
           onPress={frenar}
-          style={({ pressed }) => [
-            styles.frenar,
-            { backgroundColor: t.intensity },
-            pressed && { transform: [{ scale: lumeMotion.pressScale }] },
-          ]}
+          style={({ pressed }) => [styles.frenar, pressed && styles.frenarPresionado]}
         >
           <Icon name="square" size={18} strokeWidth={2} color={t.textOnIntensity} />
-          <Text style={[styles.frenarTexto, { color: t.textOnIntensity }]}>Frenar</Text>
+          <Text style={styles.frenarTexto}>Frenar</Text>
         </Pressable>
       ) : (
         <View style={styles.fila}>
-          <Text style={[styles.nota, styles.centrado, { color: t.textSecondary }]}>
+          <Text style={[styles.nota, styles.centrado]}>
             Corregilo si hace falta.
           </Text>
           <Pressable
@@ -294,7 +283,7 @@ export function IsoTimer({
             style={({ pressed }) => [styles.link, pressed && styles.linkPresionado]}
           >
             <Icon name="rotate-ccw" size={16} strokeWidth={1.75} color={t.signalText} />
-            <Text style={[styles.linkTexto, { color: t.signalText }]}>Volver a medir</Text>
+            <Text style={styles.linkTexto}>Volver a medir</Text>
           </Pressable>
         </View>
       )}
@@ -302,61 +291,77 @@ export function IsoTimer({
   );
 }
 
-const styles = StyleSheet.create({
-  base: { gap: 18, padding: lumeSpace[6] },
-  arriba: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'baseline',
-    gap: lumeSpace[4],
-  },
-  titulo: { flexDirection: 'row', alignItems: 'center', gap: lumeSpace[3], flexShrink: 1 },
-  enVivo: { width: 6, height: 6, borderRadius: 3 },
-  objetivo: { fontFamily: lumeFuente.regular, fontSize: 13, lineHeight: 18 },
-  objetivoValor: { fontFamily: lumeFuente.semibold, fontVariant: ['tabular-nums'] },
-  digitos: {
-    fontFamily: lumeFuente.condMedium,
-    fontSize: 80,
-    lineHeight: 84,
-    letterSpacing: -3.2,
-    includeFontPadding: false,
-    fontVariant: ['tabular-nums'],
-  },
-  barra: { height: 4, borderRadius: lumeRadius.xs, marginTop: 6 },
-  relleno: { position: 'absolute', left: 0, top: 0, bottom: 0, borderRadius: lumeRadius.xs },
-  marca: { position: 'absolute', top: -7, bottom: -7, width: 1, marginLeft: -0.5 },
-  punta: {
-    position: 'absolute',
-    top: -4,
-    left: -3,
-    width: 0,
-    height: 0,
-    borderLeftWidth: 3.5,
-    borderRightWidth: 3.5,
-    borderTopWidth: 4,
-    borderLeftColor: 'transparent',
-    borderRightColor: 'transparent',
-  },
-  nota: {
-    fontFamily: lumeFuente.regular,
-    fontSize: 13,
-    lineHeight: 18,
-    minHeight: 18,
-    fontVariant: ['tabular-nums'],
-  },
-  centrado: { textAlign: 'center' },
-  frenar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 10,
-    height: 54,
-    borderRadius: lumeRadius.lg,
-  },
-  frenarTexto: { fontFamily: lumeFuente.semibold, fontSize: 16, lineHeight: 20 },
-  // La nota arriba y el link abajo, centrados en el ancho de la tarjeta.
-  fila: { alignItems: 'center', gap: lumeSpace[1] },
-  link: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingVertical: 10, paddingHorizontal: 4 },
-  linkPresionado: { opacity: 0.6 },
-  linkTexto: { fontFamily: lumeFuente.semibold, fontSize: 14, lineHeight: 18 },
-});
+const makeStyles = (t: LumePalette) =>
+  StyleSheet.create({
+    base: { gap: 18, padding: lumeSpace[6] },
+    arriba: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'baseline',
+      gap: lumeSpace[4],
+    },
+    titulo: { flexDirection: 'row', alignItems: 'center', gap: lumeSpace[3], flexShrink: 1 },
+    enVivo: { width: 6, height: 6, borderRadius: 3, backgroundColor: t.intensity },
+    tituloTexto: { color: t.textTertiary },
+    tintaIntensidad: { color: t.intensityText },
+    objetivo: { fontFamily: lumeFuente.regular, fontSize: 13, lineHeight: 18, color: t.textTertiary },
+    objetivoValor: { fontFamily: lumeFuente.semibold, fontVariant: ['tabular-nums'], color: t.textPrimary },
+    digitos: {
+      fontFamily: lumeFuente.condMedium,
+      fontSize: 80,
+      lineHeight: 84,
+      letterSpacing: -3.2,
+      includeFontPadding: false,
+      fontVariant: ['tabular-nums'],
+      color: t.textPrimary,
+    },
+    digitosApagados: { color: t.textDisabled },
+    barra: { height: 4, borderRadius: lumeRadius.xs, marginTop: 6, backgroundColor: t.dataTrack },
+    relleno: {
+      position: 'absolute',
+      left: 0,
+      top: 0,
+      bottom: 0,
+      borderRadius: lumeRadius.xs,
+      backgroundColor: t.intensity,
+    },
+    marca: { position: 'absolute', top: -7, bottom: -7, width: 1, marginLeft: -0.5, backgroundColor: t.textPrimary },
+    punta: {
+      position: 'absolute',
+      top: -4,
+      left: -3,
+      width: 0,
+      height: 0,
+      borderLeftWidth: 3.5,
+      borderRightWidth: 3.5,
+      borderTopWidth: 4,
+      borderLeftColor: 'transparent',
+      borderRightColor: 'transparent',
+      borderTopColor: t.textPrimary,
+    },
+    nota: {
+      fontFamily: lumeFuente.regular,
+      fontSize: 13,
+      lineHeight: 18,
+      minHeight: 18,
+      fontVariant: ['tabular-nums'],
+      color: t.textSecondary,
+    },
+    centrado: { textAlign: 'center' },
+    frenar: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: 10,
+      height: 54,
+      borderRadius: lumeRadius.lg,
+      backgroundColor: t.intensity,
+    },
+    frenarPresionado: { transform: [{ scale: lumeMotion.pressScale }] },
+    frenarTexto: { fontFamily: lumeFuente.semibold, fontSize: 16, lineHeight: 20, color: t.textOnIntensity },
+    // La nota arriba y el link abajo, centrados en el ancho de la tarjeta.
+    fila: { alignItems: 'center', gap: lumeSpace[1] },
+    link: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingVertical: 10, paddingHorizontal: 4 },
+    linkPresionado: { opacity: 0.6 },
+    linkTexto: { fontFamily: lumeFuente.semibold, fontSize: 14, lineHeight: 18, color: t.signalText },
+  });

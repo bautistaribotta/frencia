@@ -8,7 +8,8 @@ import React from 'react';
 import { Pressable, StyleSheet, Text, View, type ViewStyle } from 'react-native';
 
 import { Icon, type IconName } from '../Icon';
-import { useLume } from '../lume/useLume';
+import { useLume, useLumeStyles } from '../lume/useLume';
+import type { LumePalette } from '../lume/tokens';
 import { lumeFuente } from '../lume/tipografia';
 
 export interface TagProps {
@@ -35,21 +36,16 @@ export function Tag({
   style,
 }: TagProps) {
   const { t } = useLume();
+  const styles = useLumeStyles(makeStyles);
   const fg = selected ? t.textOnAccent : t.textSecondary;
   const content = (
     <>
-      {dot ? <View style={[styles.dot, { backgroundColor: fg }]} /> : null}
+      {dot ? <View style={[styles.dot, selected && styles.dotElegido]} /> : null}
       {icon ? <Icon name={icon} size={14} strokeWidth={1.75} color={fg} /> : null}
-      <Text style={[styles.text, { color: fg }]}>{children}</Text>
+      <Text style={[styles.text, selected && styles.textElegido]}>{children}</Text>
     </>
   );
-  const boxStyle = [
-    styles.base,
-    selected
-      ? { backgroundColor: t.accent, borderColor: t.accent }
-      : { backgroundColor: t.surfaceCard, borderColor: t.glassLine },
-    style,
-  ];
+  const boxStyle = [styles.base, selected && styles.baseElegida, style];
 
   if (selectable || onPress) {
     return (
@@ -57,7 +53,7 @@ export function Tag({
         onPress={onPress}
         style={({ pressed }) => [
           ...boxStyle,
-          pressed && !selected && { borderColor: t.borderStrong },
+          pressed && !selected && styles.basePresionada,
         ]}
         accessibilityRole="button"
         accessibilityState={{ selected }}
@@ -70,17 +66,24 @@ export function Tag({
   return <View style={boxStyle}>{content}</View>;
 }
 
-const styles = StyleSheet.create({
-  base: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    height: 34,
-    paddingHorizontal: 14,
-    borderRadius: 999,
-    borderWidth: 1,
-    alignSelf: 'flex-start',
-  },
-  text: { fontFamily: lumeFuente.medium, fontSize: 13, lineHeight: 17 },
-  dot: { width: 5, height: 5, borderRadius: 2.5 },
-});
+const makeStyles = (t: LumePalette) =>
+  StyleSheet.create({
+    base: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 6,
+      height: 34,
+      paddingHorizontal: 14,
+      borderRadius: 999,
+      borderWidth: 1,
+      alignSelf: 'flex-start',
+      backgroundColor: t.surfaceCard,
+      borderColor: t.glassLine,
+    },
+    baseElegida: { backgroundColor: t.accent, borderColor: t.accent },
+    basePresionada: { borderColor: t.borderStrong },
+    text: { fontFamily: lumeFuente.medium, fontSize: 13, lineHeight: 17, color: t.textSecondary },
+    textElegido: { color: t.textOnAccent },
+    dot: { width: 5, height: 5, borderRadius: 2.5, backgroundColor: t.textSecondary },
+    dotElegido: { backgroundColor: t.textOnAccent },
+  });

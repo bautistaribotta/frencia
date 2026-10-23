@@ -8,9 +8,9 @@
    no al salir del campo: con el teclado abierto, tocar Siguiente o Guardar no
    pasa por el blur y lo ultimo escrito se perderia. */
 
-import React, { useMemo, useState } from 'react';
+import React, { useState } from 'react';
 import { Pressable, StyleSheet, Text, TextInput, View, type ViewStyle } from 'react-native';
-import { useLume } from '../lume/useLume';
+import { useLume, useLumeStyles } from '../lume/useLume';
 import { lumeFuente } from '../lume/tipografia';
 import { lumeRadius, type LumePalette } from '../lume/tokens';
 import { Icon } from '../Icon';
@@ -52,7 +52,7 @@ export function NumberField({
   style,
 }: NumberFieldProps) {
   const { t: colors } = useLume();
-  const styles = useMemo(() => makeStyles(colors), [colors]);
+  const styles = useLumeStyles(makeStyles);
   const [foco, setFoco] = useState(false);
   const [buf, setBuf] = useState('');
 
@@ -84,7 +84,7 @@ export function NumberField({
           {unit || hint ? <Text style={styles.formato}>{unit ?? hint}</Text> : null}
         </View>
       ) : null}
-      <View style={[styles.fila, foco && { borderColor: colors.signal }]}>
+      <View style={[styles.fila, foco && styles.filaFoco]}>
         <Pressable
           accessibilityRole="button"
           accessibilityLabel={`menos ${pasoTexto}${unit ? ` ${unit}` : ''}`}
@@ -167,6 +167,7 @@ const makeStyles = (colors: LumePalette) =>
       borderRadius: lumeRadius.lg,
       overflow: 'hidden',
     },
+    filaFoco: { borderColor: colors.signal },
     btn: { alignItems: 'center', justifyContent: 'center', gap: 1 },
     btnPresionado: { backgroundColor: colors.surfaceCardElevated },
     btnApagado: { opacity: 0.35 },
