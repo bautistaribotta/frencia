@@ -18,7 +18,6 @@ import React, { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { useRouter } from 'expo-router';
 
-import { supabase } from '@/lib/supabase';
 import type { TablesUpdate } from '@/lib/database.types';
 import { guardarSetup } from '@/lib/perfil';
 import { edadAFechaNacimiento } from '@/lib/edad';
@@ -26,6 +25,7 @@ import { cmAPiesPulgadas, piesPulgadasACm } from '@/lib/altura';
 import { kgALb, lbAKg } from '@/lib/peso';
 import { ONBOARDING_SIEMPRE } from '@/lib/onboarding';
 import { useProfile } from '@/contexts/profile';
+import { useSession } from '@/contexts/session';
 
 import {
   BotonTexto,
@@ -84,6 +84,7 @@ const INICIAL = { edad: 25, altura: 170, peso: 70 };
 export default function SetupWizardScreen() {
   const router = useRouter();
   const { refresh, profile } = useProfile();
+  const { user } = useSession();
   const [indice, setIndice] = useState(0);
 
   // Lo elegido en cada paso. Altura en cm y peso en kg, siempre: la unidad
@@ -128,9 +129,6 @@ export default function SetupWizardScreen() {
     if (valores.altura != null) payload.altura = valores.altura;
     if (valores.peso != null) payload.peso = valores.peso;
 
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
 
     if (!user) {
       setGuardando(false);

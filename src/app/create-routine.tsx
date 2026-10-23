@@ -21,9 +21,9 @@ import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import { KeyboardAvoidingView, Platform, Pressable, StyleSheet, TextInput, View } from 'react-native';
 
-import { supabase } from '@/lib/supabase';
 import { crearRutina, nombreRutinaActiva } from '@/lib/rutinas';
 import { useProfile } from '@/contexts/profile';
+import { useSession } from '@/contexts/session';
 import { useToast } from '@/contexts/toast';
 import { DayEditor } from '@/components/DayEditor';
 import { ExercisePickerModal } from '@/components/ExercisePickerModal';
@@ -57,6 +57,7 @@ export default function CreateRoutineScreen() {
   const router = useRouter();
   const { showToast } = useToast();
   const { profile } = useProfile();
+  const { user } = useSession();
   // El medidor de esfuerzo lo define la preferencia del perfil (RIR o RPE).
   const medidor: Medidor = profile?.medidorEsfuerzo ?? 'rir';
 
@@ -150,9 +151,6 @@ export default function CreateRoutineScreen() {
 
   /** Usuario de la sesion, o null con el aviso ya mostrado. */
   async function usuarioActual(): Promise<string | null> {
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
     if (!user) {
       showToast({ message: 'No pudimos identificar tu sesión. Volvé a ingresar.', type: 'error' });
       return null;

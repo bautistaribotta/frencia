@@ -12,6 +12,7 @@ import { Platform, type View } from 'react-native';
 import * as Haptics from 'expo-haptics';
 
 import { useProfile } from '@/contexts/profile';
+import { useSession } from '@/contexts/session';
 import { useToast } from '@/contexts/toast';
 import { alerta } from '@/lib/alerta';
 import { AVISO_COMPARTIR, compartirTicket } from '@/lib/compartir-ticket';
@@ -37,7 +38,6 @@ import {
   type EjercicioPlan,
   type Medidor,
 } from '@/lib/session';
-import { supabase } from '@/lib/supabase';
 
 // --- Hook --------------------------------------------------------------------
 
@@ -45,6 +45,7 @@ export function useSesion(trainingDayId: string, nombreParam: string | undefined
   const router = useRouter();
   const { showToast } = useToast();
   const { profile } = useProfile();
+  const { user } = useSession();
   const nombrePorDefecto = nombreParam ?? 'Entrenamiento';
   const [estado, dispatch] = useReducer(reducerSesion, nombrePorDefecto, estadoInicial);
   const { fase, sessionId, plan, cantidades, valores, indiceGuardado, guardando, conflicto, resumen } = estado;
@@ -133,9 +134,6 @@ export function useSesion(trainingDayId: string, nombreParam: string | undefined
         return;
       }
 
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
       if (!user || cancelado) {
         dispatch({ tipo: 'fase', fase: 'sinEjercicios' });
         return;
@@ -406,9 +404,6 @@ export function useSesion(trainingDayId: string, nombreParam: string | undefined
     }
     dispatch({ tipo: 'conflicto', conflicto: null });
 
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
     const ejercicios = user ? await cargarPlan(trainingDayId) : [];
     if (!user || ejercicios.length === 0) {
       dispatch({ tipo: 'fase', fase: 'sinEjercicios' });

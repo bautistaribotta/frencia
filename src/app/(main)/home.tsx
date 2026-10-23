@@ -17,11 +17,11 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect, useRouter } from 'expo-router';
 
 import { useProfile } from '@/contexts/profile';
+import { useSession } from '@/contexts/session';
 import { SEMANA_CORTA, SEMANA_NOMBRES } from '@/lib/dia';
 import { cargarFechasEntrenadas } from '@/lib/history';
 import { calcularRacha, fechaLocal, type Racha } from '@/lib/streak';
 import { cargarRutinaActiva, type DiaResumen, type RutinaDetalle } from '@/lib/rutinas';
-import { supabase } from '@/lib/supabase';
 import { indiceSemanaLunes, MESES_CORTO } from '@/lib/tiempo';
 import { useVolverArribaAlRetocar } from '@/lib/volver-arriba';
 
@@ -83,6 +83,10 @@ export default function HomeScreen() {
   const scrollRef = useRef<ScrollView>(null);
   useVolverArribaAlRetocar(scrollRef);
   const { displayName, profile } = useProfile();
+  // El usuario sale de la sesion local: getUser() hace un pedido HTTP y falla
+  // sin red.
+  const { user } = useSession();
+  const userId = user?.id ?? null;
   const first = displayName.split(' ')[0];
 
   const [routine, setRoutine] = useState<RutinaDetalle | null>(null);
@@ -98,10 +102,7 @@ export default function HomeScreen() {
   // Lee la rutina activa y la racha. vigente() deja de ser verdadero si llego
   // otra carga despues o, en la del foco, si la pantalla lo perdio.
   const cargar = useCallback(async (vigente: () => boolean) => {
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    if (!user) {
+    if (!userId) {
       if (vigente()) {
         setRoutine(null);
         setRacha(null);
@@ -109,7 +110,7 @@ export default function HomeScreen() {
       }
       return;
     }
-    const data = await cargarRutinaActiva(user.id);
+    const data = await cargarRutinaActiva(userId);
     if (!vigente()) return;
     setRoutine(data);
     setLoaded(true);
@@ -121,10 +122,10 @@ export default function HomeScreen() {
       setRacha(null);
       return;
     }
-    const fechas = await cargarFechasEntrenadas(user.id);
+    const fechas = await cargarFechasEntrenadas(userId);
     if (!vigente()) return;
     setRacha(fechas ? calcularRacha(weekdays, fechas, fechaLocal(Date.now())) : null);
-  }, []);
+  }, [userId]);
 
   // Relee la rutina activa al enfocar la pantalla (incluye volver del wizard).
   useFocusEffect(

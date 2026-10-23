@@ -8,12 +8,12 @@ import React, { useEffect, useState } from 'react';
 import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { supabase } from '@/lib/supabase';
 import { guardarDatosPersonales, leerDatosPersonales } from '@/lib/perfil';
 import { edadAFechaNacimiento, fechaNacimientoAEdad } from '@/lib/edad';
 import { mostrarAltura } from '@/lib/altura';
 import { mostrarPeso } from '@/lib/peso';
 import { useProfile } from '@/contexts/profile';
+import { useSession } from '@/contexts/session';
 import { useToast } from '@/contexts/toast';
 import { useDescartarAlSalir } from '@/lib/descartar-al-salir';
 import { Hoja } from '@/components/Hoja';
@@ -48,6 +48,8 @@ function firma(campos: string[]): string {
 export default function EditProfileScreen() {
   const { t } = useLume();
   const { profile, refresh, savePreferencias } = useProfile();
+  const { user } = useSession();
+  const userId = user?.id ?? null;
   const { showToast } = useToast();
   const [nombre, setNombre] = useState('');
   const [apellido, setApellido] = useState('');
@@ -99,15 +101,12 @@ export default function EditProfileScreen() {
     let activo = true;
 
     async function cargarPerfil() {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-      if (!user) {
+      if (!userId) {
         if (activo) setCargandoPerfil(false);
         return;
       }
 
-      const lectura = await leerDatosPersonales(user.id);
+      const lectura = await leerDatosPersonales(userId);
       if (!activo) return;
       const data = lectura.estado === 'ok' ? lectura.datos : null;
 
@@ -135,7 +134,7 @@ export default function EditProfileScreen() {
     return () => {
       activo = false;
     };
-  }, []);
+  }, [userId]);
 
   // Ningun campo es obligatorio: validamos solo el formato de lo que se completa.
   const edadNum = Number(edad);
@@ -164,9 +163,6 @@ export default function EditProfileScreen() {
     setLoading(true);
     setErrorMsg('');
 
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
 
     if (!user) {
       setLoading(false);
