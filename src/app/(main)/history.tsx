@@ -33,6 +33,9 @@ import {
   lumeLayout,
   lumeSpace,
   useLume,
+  useLumeStyles,
+  type LumePalette,
+  type LumeSombras,
 } from '@/design/lume';
 
 /** "Jue 12 jun" y, si no es de este anio, "Jue 12 jun 2025". */
@@ -50,7 +53,8 @@ function tituloMes(epochMs: number): string {
 }
 
 export default function HistoryScreen() {
-  const { t, sombras } = useLume();
+  const { t } = useLume();
+  const tema = useLumeStyles(makeStyles);
   const { user } = useSession();
   const router = useRouter();
   const { showToast } = useToast();
@@ -207,7 +211,7 @@ export default function HistoryScreen() {
                     </LumeText>
                   </View>
                   {/* Terminado: el check en un circulo de accent con su resplandor. */}
-                  <View style={[styles.hecho, { backgroundColor: t.accent, boxShadow: sombras.haloAccent }]}>
+                  <View style={[styles.hecho, tema.hecho]}>
                     <Icon name="check" size={16} color={t.textOnAccent} strokeWidth={2} />
                   </View>
                 </View>
@@ -298,3 +302,8 @@ const styles = StyleSheet.create({
   },
   verSeries: { flexDirection: 'row', alignItems: 'center', gap: lumeSpace[1] },
 });
+
+const makeStyles = (t: LumePalette, sombras: LumeSombras) =>
+  StyleSheet.create({
+    hecho: { backgroundColor: t.accent, boxShadow: sombras.haloAccent },
+  });

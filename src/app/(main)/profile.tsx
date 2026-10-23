@@ -29,6 +29,8 @@ import {
   lumeLayout,
   lumeSpace,
   useLume,
+  useLumeStyles,
+  type LumePalette,
 } from '@/design/lume';
 import { Hoja } from '@/components/Hoja';
 
@@ -45,6 +47,7 @@ const TEMA_SUB: Record<ThemePreference, string> = {
 
 export default function ProfileScreen() {
   const { t } = useLume();
+  const tema = useLumeStyles(makeStyles);
   const router = useRouter();
   const scrollRef = useRef<ScrollView>(null);
   useVolverArribaAlRetocar(scrollRef);
@@ -186,7 +189,7 @@ export default function ProfileScreen() {
 
   // Una fila de ajuste con interruptor.
   const ajuste = (titulo: string, sub: string, on: boolean, onChange: (v: boolean) => void, primera = false) => (
-    <View style={[styles.fila, !primera && { borderTopWidth: 1, borderTopColor: t.divider }]}>
+    <View style={[styles.fila, !primera && tema.filaConLinea]}>
       <View style={styles.filaTexto}>
         <LumeText rol="bodySm" style={styles.filaTitulo}>
           {titulo}
@@ -218,7 +221,7 @@ export default function ProfileScreen() {
               accessibilityLabel="Cambiar foto de perfil"
             >
               <LumeAvatar name={seed ?? displayName} src={photo} cacheKey={avatarPath} size="lg" ring />
-              <View style={[styles.camara, { backgroundColor: t.accent, borderColor: t.surfaceCardOpaco }]}>
+              <View style={[styles.camara, tema.camara]}>
                 <Icon name="camera" size={13} color={t.textOnAccent} strokeWidth={2} />
               </View>
             </Pressable>
@@ -257,7 +260,7 @@ export default function ProfileScreen() {
 
               {/* Tema: tres opciones, asi que va en selector en vez de switch,
                   apilado debajo del titulo para que entre en cualquier ancho. */}
-              <View style={[styles.filaApilada, { borderTopColor: t.divider }]}>
+              <View style={[styles.filaApilada, tema.filaApilada]}>
                 <View style={styles.filaTexto}>
                   <LumeText rol="bodySm" style={styles.filaTitulo}>
                     Tema
@@ -281,7 +284,7 @@ export default function ProfileScreen() {
               onPress={() => router.push('/settings')}
               accessibilityRole="button"
               accessibilityLabel="Configuración"
-              style={({ pressed }) => [styles.fila, pressed && { backgroundColor: t.surfaceChip }]}
+              style={({ pressed }) => [styles.fila, pressed && tema.presionada]}
             >
               <View style={styles.filaIzq}>
                 <Icon name="settings" size={20} color={t.textPrimary} strokeWidth={1.75} />
@@ -299,7 +302,7 @@ export default function ProfileScreen() {
               onPress={handleSignOut}
               accessibilityRole="button"
               accessibilityLabel="Cerrar sesión"
-              style={({ pressed }) => [styles.fila, pressed && { backgroundColor: t.surfaceChip }]}
+              style={({ pressed }) => [styles.fila, pressed && tema.presionada]}
             >
               <View style={styles.filaIzq}>
                 <Icon name="log-out" size={20} color={t.dangerText} strokeWidth={1.75} />
@@ -397,3 +400,11 @@ const styles = StyleSheet.create({
   vista: { alignItems: 'center', marginBottom: lumeSpace[2] },
   hojaTitulo: { marginBottom: lumeSpace[1] },
 });
+
+const makeStyles = (t: LumePalette) =>
+  StyleSheet.create({
+    filaConLinea: { borderTopWidth: 1, borderTopColor: t.divider },
+    filaApilada: { borderTopColor: t.divider },
+    camara: { backgroundColor: t.accent, borderColor: t.surfaceCardOpaco },
+    presionada: { backgroundColor: t.surfaceChip },
+  });

@@ -40,6 +40,9 @@ import {
   lumeRadius,
   lumeSpace,
   useLume,
+  useLumeStyles,
+  type LumePalette,
+  type LumeSombras,
 } from '@/design/lume';
 
 interface Step {
@@ -78,7 +81,8 @@ function indiceProximo(days: DiaResumen[], hoy: number): number {
 }
 
 export default function HomeScreen() {
-  const { t, sombras } = useLume();
+  const { t } = useLume();
+  const tema = useLumeStyles(makeStyles);
   const router = useRouter();
   const scrollRef = useRef<ScrollView>(null);
   useVolverArribaAlRetocar(scrollRef);
@@ -335,17 +339,15 @@ export default function HomeScreen() {
                         accessibilityState={{ disabled: !active }}
                         style={({ pressed }) => [
                           styles.paso,
-                          i > 0 && { borderTopWidth: 1, borderTopColor: t.divider },
+                          i > 0 && tema.pasoConLinea,
                           !active && styles.pasoBloqueado,
-                          pressed && active && { backgroundColor: t.surfaceChip },
+                          pressed && active && tema.presionado,
                         ]}
                       >
                         <View
                           style={[
                             styles.pasoNum,
-                            active
-                              ? { backgroundColor: t.accent, boxShadow: sombras.haloAccent }
-                              : { borderWidth: 1, borderColor: t.borderStrong },
+                            active ? tema.pasoNumActivo : tema.pasoNumBloqueado,
                           ]}
                         >
                           <LumeText
@@ -450,3 +452,11 @@ const styles = StyleSheet.create({
   pasoTitulo: { fontFamily: lumeFuente.semibold },
   pasoSub: { fontSize: 12.5, lineHeight: 17 },
 });
+
+const makeStyles = (t: LumePalette, sombras: LumeSombras) =>
+  StyleSheet.create({
+    pasoConLinea: { borderTopWidth: 1, borderTopColor: t.divider },
+    presionado: { backgroundColor: t.surfaceChip },
+    pasoNumActivo: { backgroundColor: t.accent, boxShadow: sombras.haloAccent },
+    pasoNumBloqueado: { borderWidth: 1, borderColor: t.borderStrong },
+  });

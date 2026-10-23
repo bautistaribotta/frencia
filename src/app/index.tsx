@@ -5,18 +5,19 @@
 
 import { StyleSheet, View } from 'react-native';
 
-import { useColors } from '@/design';
+import { useThemedStyles, type Palette } from '@/design';
 import { Cargando } from '@/design/lume';
 
 export default function IndexScreen() {
-  const colors = useColors();
+  const styles = useThemedStyles(makeStyles);
   return (
-    <View style={[styles.container, { backgroundColor: colors.bgApp }]}>
+    <View style={styles.container}>
       <Cargando />
     </View>
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-});
+const makeStyles = (colors: Palette) =>
+  StyleSheet.create({
+    container: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.bgApp },
+  });

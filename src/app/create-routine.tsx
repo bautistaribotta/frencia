@@ -46,6 +46,9 @@ import {
   lumeRadius,
   lumeSpace,
   useLume,
+  useLumeStyles,
+  type LumePalette,
+  type LumeSombras,
   type PosicionFondo,
 } from '@/design/lume';
 
@@ -326,22 +329,14 @@ function PasoNombre({
   onListo: () => void;
 }) {
   const { t } = useLume();
+  const tema = useLumeStyles(makeStyles);
   const [foco, setFoco] = useState(false);
 
   return (
     <View style={styles.nombre}>
       <View style={styles.linea}>
         <TextInput
-          style={[
-            styles.lineaEntrada,
-            {
-              color: t.textPrimary,
-              // En foco la linea pasa a lume y gana un pixel, sin mover el texto.
-              borderBottomColor: foco ? t.signal : t.borderStrong,
-              borderBottomWidth: foco ? 2 : 1,
-              marginBottom: foco ? 0 : 1,
-            },
-          ]}
+          style={[styles.lineaEntrada, tema.entrada, foco && tema.entradaFoco]}
           placeholder="Nombre de la rutina"
           placeholderTextColor={t.textDisabled}
           selectionColor={t.signal}
@@ -389,7 +384,8 @@ function PasoDias({
   dias: TrainingDay[];
   onCantidad: (cantidad: number) => void;
 }) {
-  const { t, sombras } = useLume();
+  const { t } = useLume();
+  const tema = useLumeStyles(makeStyles);
   const opciones = Array.from({ length: MAX_DIAS - MIN_DIAS + 1 }, (_, i) => MIN_DIAS + i);
 
   return (
@@ -406,13 +402,7 @@ function PasoDias({
               onPress={() => onCantidad(n)}
               style={({ pressed }) => [
                 styles.numero,
-                elegido
-                  ? { backgroundColor: t.accent, borderColor: t.accent, boxShadow: sombras.haloAccent }
-                  : {
-                      backgroundColor: pressed ? t.surfaceCardElevated : t.surfaceCard,
-                      borderColor: t.glassLine,
-                      borderTopColor: t.glassHighlight,
-                    },
+                elegido ? tema.numeroElegido : [tema.numeroLibre, pressed && tema.numeroPresionado],
               ]}
             >
               <LumeText
@@ -427,9 +417,9 @@ function PasoDias({
         })}
       </View>
 
-      <View style={[styles.previa, { borderTopColor: t.divider }]}>
+      <View style={[styles.previa, tema.previa]}>
         {dias.map((d, i) => (
-          <View key={i} style={[styles.previaFila, { borderBottomColor: t.divider }]}>
+          <View key={i} style={[styles.previaFila, tema.previaFila]}>
             <LumeText rol="data" color={t.textTertiary} style={styles.previaNumero}>
               {String(i + 1).padStart(2, '0')}
             </LumeText>
@@ -485,3 +475,15 @@ const styles = StyleSheet.create({
   },
   previaNumero: { width: 22, fontFamily: lumeFuente.semibold, fontSize: 12, lineHeight: 16 },
 });
+
+const makeStyles = (t: LumePalette, sombras: LumeSombras) =>
+  StyleSheet.create({
+    // En foco la linea pasa a lume y gana un pixel, sin mover el texto.
+    entrada: { color: t.textPrimary, borderBottomColor: t.borderStrong, borderBottomWidth: 1, marginBottom: 1 },
+    entradaFoco: { borderBottomColor: t.signal, borderBottomWidth: 2, marginBottom: 0 },
+    numeroLibre: { backgroundColor: t.surfaceCard, borderColor: t.glassLine, borderTopColor: t.glassHighlight },
+    numeroPresionado: { backgroundColor: t.surfaceCardElevated },
+    numeroElegido: { backgroundColor: t.accent, borderColor: t.accent, boxShadow: sombras.haloAccent },
+    previa: { borderTopColor: t.divider },
+    previaFila: { borderBottomColor: t.divider },
+  });

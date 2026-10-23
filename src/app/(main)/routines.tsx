@@ -43,6 +43,9 @@ import {
   lumeRadius,
   lumeSpace,
   useLume,
+  useLumeStyles,
+  type LumePalette,
+  type LumeSombras,
 } from '@/design/lume';
 
 function contarDias(n: number): string {
@@ -57,7 +60,8 @@ function resumen(rutina: RutinaResumen): string {
 }
 
 export default function RoutinesScreen() {
-  const { t, sombras } = useLume();
+  const { t } = useLume();
+  const tema = useLumeStyles(makeStyles);
   const router = useRouter();
   const { user } = useSession();
   const scrollRef = useRef<FlatList<RutinaResumen>>(null);
@@ -161,7 +165,7 @@ export default function RoutinesScreen() {
         accessibilityLabel={`Abrir ${rutina.name}`}
       >
         {rutina.activa ? (
-          <View style={[styles.filo, { backgroundColor: t.signal, boxShadow: sombras.haloSignal }]} />
+          <View style={[styles.filo, tema.filo]} />
         ) : null}
         <View style={styles.tarjetaTexto}>
           <LumeText rol="subtitle" numberOfLines={1}>
@@ -245,7 +249,7 @@ export default function RoutinesScreen() {
                     tarjeta(activa)
                   ) : (
                     <View
-                      style={[styles.sinActiva, { backgroundColor: t.surfaceInset, borderColor: t.borderStrong }]}
+                      style={[styles.sinActiva, tema.sinActiva]}
                     >
                       <LumeText rol="bodySm" color={t.textSecondary}>
                         No tenés ninguna rutina en curso.
@@ -339,3 +343,9 @@ const styles = StyleSheet.create({
   },
   separador: { height: lumeSpace[3] },
 });
+
+const makeStyles = (t: LumePalette, sombras: LumeSombras) =>
+  StyleSheet.create({
+    filo: { backgroundColor: t.signal, boxShadow: sombras.haloSignal },
+    sinActiva: { backgroundColor: t.surfaceInset, borderColor: t.borderStrong },
+  });

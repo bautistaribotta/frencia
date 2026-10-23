@@ -36,6 +36,9 @@ import {
   lumeRadius,
   lumeSpace,
   useLume,
+  useLumeStyles,
+  type LumePalette,
+  type LumeSombras,
 } from '@/design/lume';
 
 interface SeccionEjercicio {
@@ -80,7 +83,8 @@ function datosSerie(
 }
 
 export default function SessionHistoryScreen() {
-  const { t, sombras } = useLume();
+  const { t } = useLume();
+  const styles = useLumeStyles(makeStyles);
   const router = useRouter();
   const { user } = useSession();
   const { profile } = useProfile();
@@ -207,7 +211,7 @@ export default function SessionHistoryScreen() {
                   </LumeText>
                 </View>
 
-                <View style={[styles.resumen, { borderColor: t.divider }]}>
+                <View style={styles.resumen}>
                   <View style={[styles.metrica, styles.duracion]}>
                     <LumeText rol="label" color={t.textSecondary}>
                       Duración
@@ -263,39 +267,28 @@ export default function SessionHistoryScreen() {
               // chico, el esfuerzo en una pildora con la llama y el check en lume.
               return (
                 <View
-                  style={[
-                    styles.serie,
-                    {
-                      backgroundColor: t.surfaceCard,
-                      borderColor: t.glassLine,
-                      borderTopColor: t.glassHighlight,
-                      boxShadow: sombras.glass,
-                    },
-                  ]}
+                  style={styles.serie}
                   accessible
                   accessibilityLabel={`Serie ${serie.setIndex}. ${accesible}. Completada.`}
                 >
-                  <View style={[styles.indice, { backgroundColor: t.surfaceChip }]}>
-                    <Text style={[styles.indiceTexto, { color: t.textSecondary }]}>{serie.setIndex}</Text>
+                  <View style={styles.indice}>
+                    <Text style={styles.indiceTexto}>{serie.setIndex}</Text>
                   </View>
                   <View style={styles.datosSerie}>
                     {datos.map((d, i) => (
                       <React.Fragment key={i}>
-                        {i > 0 ? <Text style={[styles.separador, { color: t.textTertiary }]}>{separador}</Text> : null}
-                        <Text style={[styles.valor, { color: t.textPrimary }]}>{d.valor}</Text>
-                        {d.unidad ? <Text style={[styles.unidad, { color: t.textTertiary }]}>{d.unidad}</Text> : null}
+                        {i > 0 ? <Text style={styles.separador}>{separador}</Text> : null}
+                        <Text style={styles.valor}>{d.valor}</Text>
+                        {d.unidad ? <Text style={styles.unidad}>{d.unidad}</Text> : null}
                       </React.Fragment>
                     ))}
                   </View>
                   {esfuerzo ? (
                     <View
-                      style={[
-                        styles.esfuerzo,
-                        { backgroundColor: t.surfaceIntensitySoft, borderColor: t.surfaceIntensityLine },
-                      ]}
+                      style={styles.esfuerzo}
                     >
                       <Icon name="flame" size={13} strokeWidth={1.75} color={t.intensityText} />
-                      <Text style={[styles.esfuerzoTexto, { color: t.intensityText }]}>{esfuerzo}</Text>
+                      <Text style={styles.esfuerzoTexto}>{esfuerzo}</Text>
                     </View>
                   ) : null}
                   <View accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
@@ -326,7 +319,7 @@ export default function SessionHistoryScreen() {
               ) : null
             }
             ListEmptyComponent={
-              <View style={[styles.vacio, { backgroundColor: t.surfaceInset, borderColor: t.borderStrong }]}>
+              <View style={styles.vacio}>
                 <View accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
                   <Icon name="list" size={24} strokeWidth={1.75} color={t.textSecondary} />
                 </View>
@@ -345,101 +338,138 @@ export default function SessionHistoryScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  raiz: { flex: 1 },
-  safe: { flex: 1 },
-  // Bajado para que la sombra de la silueta, que sobresale unos 60 por
-  // arriba del ticket, tampoco quede por encima del borde de la pantalla.
-  ticketOculto: { position: 'absolute', top: lumeSpace[12], left: 0, right: 0, pointerEvents: 'none' },
-  // El boton ghost trae su propio padding: el margen lo corre 10 px a la
-  // izquierda para que el chevron quede alineado con el borde del contenido.
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: lumeLayout.padScreen - 10,
-    paddingVertical: lumeSpace[4],
-    minHeight: 44,
-  },
-  scroll: {
-    paddingHorizontal: lumeLayout.padScreen,
-    paddingTop: lumeSpace[4],
-    paddingBottom: lumeSpace[10],
-  },
-  centro: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: lumeSpace[4],
-    padding: lumeLayout.padScreen,
-  },
-  centrado: { textAlign: 'center' },
-  intro: { gap: lumeSpace[7], paddingBottom: lumeSpace[4] },
-  titulo: { gap: lumeSpace[4], alignItems: 'flex-start' },
-  nombre: { fontSize: 34, lineHeight: 36, letterSpacing: -1 },
-  resumen: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: lumeSpace[5],
-    paddingVertical: lumeSpace[5],
-    borderTopWidth: 1,
-    borderBottomWidth: 1,
-  },
-  metrica: { flexGrow: 1, flexBasis: 72, minWidth: 72, gap: lumeSpace[2] },
-  duracion: { flexGrow: 2, flexBasis: 128, minWidth: 128 },
-  valorMetrica: { fontSize: 32, lineHeight: 36, letterSpacing: -1 },
-  ejercicio: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    alignItems: 'baseline',
-    justifyContent: 'space-between',
-    columnGap: lumeSpace[4],
-    rowGap: lumeSpace[2],
-    paddingBottom: lumeSpace[2],
-  },
-  ejercicioNombre: { flexGrow: 1, flexShrink: 1, flexBasis: 200 },
-  serie: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: lumeSpace[4],
-    minHeight: 52,
-    paddingLeft: lumeSpace[3],
-    paddingRight: lumeSpace[4],
-    borderRadius: lumeRadius.lg,
-    borderWidth: 1,
-  },
-  entreSeries: { height: lumeSpace[2] },
-  indice: { width: 26, height: 26, borderRadius: 13, alignItems: 'center', justifyContent: 'center' },
-  indiceTexto: { fontFamily: lumeFuente.semibold, fontSize: 12, lineHeight: 14, fontVariant: ['tabular-nums'] },
-  datosSerie: { flex: 1, minWidth: 0, flexDirection: 'row', alignItems: 'baseline', gap: 4 },
-  valor: { fontFamily: lumeFuente.semibold, fontSize: 17, lineHeight: 20, letterSpacing: -0.2, fontVariant: ['tabular-nums'] },
-  unidad: { fontFamily: lumeFuente.medium, fontSize: 12, lineHeight: 14, marginRight: 2 },
-  separador: { fontFamily: lumeFuente.regular, fontSize: 14, lineHeight: 16, marginHorizontal: 4 },
-  esfuerzo: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    height: 24,
-    paddingHorizontal: 9,
-    borderRadius: 999,
-    borderWidth: 1,
-  },
-  esfuerzoTexto: {
-    fontFamily: lumeFuente.semiSemibold,
-    fontSize: 11,
-    lineHeight: 13,
-    letterSpacing: 0.44,
-    textTransform: 'uppercase',
-  },
-  finEjercicio: { height: lumeSpace[6] },
-  acciones: { flexDirection: 'row', gap: lumeSpace[3], paddingTop: lumeSpace[5] },
-  accion: { flex: 1 },
-  vacio: {
-    alignItems: 'center',
-    gap: lumeSpace[5],
-    paddingVertical: lumeSpace[8],
-    paddingHorizontal: lumeLayout.padCard,
-    borderRadius: lumeRadius.xl,
-    borderWidth: 1,
-    borderStyle: 'dashed',
-  },
-});
+const makeStyles = (t: LumePalette, sombras: LumeSombras) =>
+  StyleSheet.create({
+    raiz: { flex: 1 },
+    safe: { flex: 1 },
+    // Bajado para que la sombra de la silueta, que sobresale unos 60 por
+    // arriba del ticket, tampoco quede por encima del borde de la pantalla.
+    ticketOculto: { position: 'absolute', top: lumeSpace[12], left: 0, right: 0, pointerEvents: 'none' },
+    // El boton ghost trae su propio padding: el margen lo corre 10 px a la
+    // izquierda para que el chevron quede alineado con el borde del contenido.
+    header: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingHorizontal: lumeLayout.padScreen - 10,
+      paddingVertical: lumeSpace[4],
+      minHeight: 44,
+    },
+    scroll: {
+      paddingHorizontal: lumeLayout.padScreen,
+      paddingTop: lumeSpace[4],
+      paddingBottom: lumeSpace[10],
+    },
+    centro: {
+      flex: 1,
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: lumeSpace[4],
+      padding: lumeLayout.padScreen,
+    },
+    centrado: { textAlign: 'center' },
+    intro: { gap: lumeSpace[7], paddingBottom: lumeSpace[4] },
+    titulo: { gap: lumeSpace[4], alignItems: 'flex-start' },
+    nombre: { fontSize: 34, lineHeight: 36, letterSpacing: -1 },
+    resumen: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: lumeSpace[5],
+      paddingVertical: lumeSpace[5],
+      borderTopWidth: 1,
+      borderBottomWidth: 1,
+      borderColor: t.divider,
+    },
+    metrica: { flexGrow: 1, flexBasis: 72, minWidth: 72, gap: lumeSpace[2] },
+    duracion: { flexGrow: 2, flexBasis: 128, minWidth: 128 },
+    valorMetrica: { fontSize: 32, lineHeight: 36, letterSpacing: -1 },
+    ejercicio: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      alignItems: 'baseline',
+      justifyContent: 'space-between',
+      columnGap: lumeSpace[4],
+      rowGap: lumeSpace[2],
+      paddingBottom: lumeSpace[2],
+    },
+    ejercicioNombre: { flexGrow: 1, flexShrink: 1, flexBasis: 200 },
+    serie: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: lumeSpace[4],
+      minHeight: 52,
+      paddingLeft: lumeSpace[3],
+      paddingRight: lumeSpace[4],
+      borderRadius: lumeRadius.lg,
+      borderWidth: 1,
+      backgroundColor: t.surfaceCard,
+      borderColor: t.glassLine,
+      borderTopColor: t.glassHighlight,
+      boxShadow: sombras.glass,
+    },
+    entreSeries: { height: lumeSpace[2] },
+    indice: {
+      width: 26,
+      height: 26,
+      borderRadius: 13,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: t.surfaceChip,
+    },
+    indiceTexto: {
+      fontFamily: lumeFuente.semibold,
+      fontSize: 12,
+      lineHeight: 14,
+      fontVariant: ['tabular-nums'],
+      color: t.textSecondary,
+    },
+    datosSerie: { flex: 1, minWidth: 0, flexDirection: 'row', alignItems: 'baseline', gap: 4 },
+    valor: {
+      fontFamily: lumeFuente.semibold,
+      fontSize: 17,
+      lineHeight: 20,
+      letterSpacing: -0.2,
+      fontVariant: ['tabular-nums'],
+      color: t.textPrimary,
+    },
+    unidad: { fontFamily: lumeFuente.medium, fontSize: 12, lineHeight: 14, marginRight: 2, color: t.textTertiary },
+    separador: {
+      fontFamily: lumeFuente.regular,
+      fontSize: 14,
+      lineHeight: 16,
+      marginHorizontal: 4,
+      color: t.textTertiary,
+    },
+    esfuerzo: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 4,
+      height: 24,
+      paddingHorizontal: 9,
+      borderRadius: 999,
+      borderWidth: 1,
+      backgroundColor: t.surfaceIntensitySoft,
+      borderColor: t.surfaceIntensityLine,
+    },
+    esfuerzoTexto: {
+      fontFamily: lumeFuente.semiSemibold,
+      fontSize: 11,
+      lineHeight: 13,
+      letterSpacing: 0.44,
+      textTransform: 'uppercase',
+      color: t.intensityText,
+    },
+    finEjercicio: { height: lumeSpace[6] },
+    acciones: { flexDirection: 'row', gap: lumeSpace[3], paddingTop: lumeSpace[5] },
+    accion: { flex: 1 },
+    vacio: {
+      alignItems: 'center',
+      gap: lumeSpace[5],
+      paddingVertical: lumeSpace[8],
+      paddingHorizontal: lumeLayout.padCard,
+      borderRadius: lumeRadius.xl,
+      borderWidth: 1,
+      borderStyle: 'dashed',
+      backgroundColor: t.surfaceInset,
+      borderColor: t.borderStrong,
+    },
+  });

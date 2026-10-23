@@ -29,6 +29,8 @@ import {
   lumeRadius,
   lumeSpace,
   useLume,
+  useLumeStyles,
+  type LumePalette,
 } from '@/design/lume';
 
 function resumenDia(ejercicios: number, weekdays: number[]): string {
@@ -39,6 +41,7 @@ function resumenDia(ejercicios: number, weekdays: number[]): string {
 
 export default function RoutineScreen() {
   const { t } = useLume();
+  const tema = useLumeStyles(makeStyles);
   const router = useRouter();
   const { showToast } = useToast();
 
@@ -144,7 +147,7 @@ export default function RoutineScreen() {
             </View>
 
             {rutina.dias.length === 0 ? (
-              <View style={[styles.vacio, { backgroundColor: t.surfaceInset, borderColor: t.borderStrong }]}>
+              <View style={[styles.vacio, tema.vacio]}>
                 <Icon name="calendar-off" size={22} strokeWidth={1.75} color={t.textTertiary} />
                 <LumeText rol="bodySm" color={t.textTertiary} style={styles.centrado}>
                   Esta rutina no tiene días.
@@ -165,7 +168,7 @@ export default function RoutineScreen() {
                       accessibilityLabel={`Editar ${d.name}`}
                       style={({ pressed }) => [
                         styles.fila,
-                        i > 0 && { borderTopWidth: 1, borderTopColor: t.divider },
+                        i > 0 && tema.filaConLinea,
                         pressed && styles.presionada,
                       ]}
                     >
@@ -271,3 +274,9 @@ const styles = StyleSheet.create({
     paddingBottom: lumeSpace[2],
   },
 });
+
+const makeStyles = (t: LumePalette) =>
+  StyleSheet.create({
+    vacio: { backgroundColor: t.surfaceInset, borderColor: t.borderStrong },
+    filaConLinea: { borderTopWidth: 1, borderTopColor: t.divider },
+  });

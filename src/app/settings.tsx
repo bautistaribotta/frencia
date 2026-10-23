@@ -10,11 +10,12 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 
 import { Icon, type IconName } from '@/design';
-import { Fondo, LumeButton, LumeText, Vidrio, lumeFuente, lumeLayout, lumeSpace, useLume } from '@/design/lume';
+import { Fondo, LumeButton, LumeText, Vidrio, lumeFuente, lumeLayout, lumeSpace, useLume, useLumeStyles, type LumePalette } from '@/design/lume';
 import { usePedirEliminarCuenta } from '@/lib/pedir-eliminar-cuenta';
 
 export default function SettingsScreen() {
   const { t } = useLume();
+  const tema = useLumeStyles(makeStyles);
   const router = useRouter();
   const { pedir: pedirEliminarCuenta, eliminando } = usePedirEliminarCuenta();
 
@@ -35,7 +36,7 @@ export default function SettingsScreen() {
       disabled={deshabilitada}
       accessibilityRole="button"
       accessibilityLabel={titulo}
-      style={({ pressed }) => [styles.fila, pressed && { backgroundColor: t.surfaceChip }]}
+      style={({ pressed }) => [styles.fila, pressed && tema.presionada]}
     >
       <View style={styles.filaIzq}>
         <Icon name={icono} size={20} color={peligro ? t.dangerText : t.textSecondary} strokeWidth={1.75} />
@@ -69,7 +70,7 @@ export default function SettingsScreen() {
             </LumeText>
             <Vidrio style={styles.lista}>
               {fila('file-text', 'Términos y Condiciones', () => router.push('/terms'))}
-              <View style={[styles.divisor, { backgroundColor: t.divider }]} />
+              <View style={[styles.divisor, tema.divisor]} />
               {fila('shield', 'Política de Privacidad', () => router.push('/privacy'))}
             </Vidrio>
           </View>
@@ -119,3 +120,9 @@ const styles = StyleSheet.create({
   filaTitulo: { fontFamily: lumeFuente.semibold },
   divisor: { height: 1, marginLeft: lumeSpace[5] },
 });
+
+const makeStyles = (t: LumePalette) =>
+  StyleSheet.create({
+    presionada: { backgroundColor: t.surfaceChip },
+    divisor: { backgroundColor: t.divider },
+  });

@@ -27,7 +27,7 @@ import { TERMINOS_VIGENCIA } from '@/lib/terminos';
 import { PRIVACIDAD_VIGENCIA } from '@/lib/privacidad';
 
 import { Icon } from '@/design';
-import { Casilla, Fondo, LumeButton, LumeText, Vidrio, lumeFuente, lumeLayout, lumeSpace, useLume } from '@/design/lume';
+import { Casilla, Fondo, LumeButton, LumeText, Vidrio, lumeFuente, lumeLayout, lumeSpace, useLume, useLumeStyles, type LumePalette } from '@/design/lume';
 
 type Documento = 'terminos' | 'privacidad';
 
@@ -38,6 +38,7 @@ const DOCUMENTOS: { id: Documento; titulo: string; vigencia: string; ruta: '/ter
 
 export default function LegalConsentScreen() {
   const { t } = useLume();
+  const tema = useLumeStyles(makeStyles);
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const { aceptarLegales } = useProfile();
@@ -110,7 +111,7 @@ export default function LegalConsentScreen() {
         <Vidrio style={styles.lista}>
           {DOCUMENTOS.map((doc, i) => (
             <React.Fragment key={doc.id}>
-              {i > 0 ? <View style={[styles.divisor, { backgroundColor: t.divider }]} /> : null}
+              {i > 0 ? <View style={[styles.divisor, tema.divisor]} /> : null}
               <Pressable
                 onPress={() => abrir(doc)}
                 disabled={ocupada}
@@ -118,7 +119,7 @@ export default function LegalConsentScreen() {
                 accessibilityLabel={`Leer ${doc.titulo}`}
                 accessibilityHint="Al volver queda marcado como leído"
                 accessibilityState={{ checked: leidos[doc.id], disabled: ocupada }}
-                style={({ pressed }) => [styles.fila, pressed && { backgroundColor: t.surfaceChip }]}
+                style={({ pressed }) => [styles.fila, pressed && tema.presionada]}
               >
                 <Casilla checked={leidos[doc.id]} />
                 <View style={styles.filaTexto}>
@@ -204,3 +205,9 @@ const styles = StyleSheet.create({
   acciones: { gap: lumeSpace[2], paddingHorizontal: lumeLayout.padScreen },
   aviso: { textAlign: 'center', marginBottom: lumeSpace[2] },
 });
+
+const makeStyles = (t: LumePalette) =>
+  StyleSheet.create({
+    presionada: { backgroundColor: t.surfaceChip },
+    divisor: { backgroundColor: t.divider },
+  });

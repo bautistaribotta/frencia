@@ -31,6 +31,9 @@ import {
   lumeRadius,
   lumeSpace,
   useLume,
+  useLumeStyles,
+  type LumePalette,
+  type LumeSombras,
 } from '@/design/lume';
 
 // Opciones de sexo: el value coincide con los permitidos en la tabla profiles.
@@ -359,22 +362,15 @@ interface CampoSelectorProps {
 }
 
 function CampoSelector({ icono, etiqueta, valor, placeholder, onPress }: CampoSelectorProps) {
-  const { t, sombras } = useLume();
+  const { t } = useLume();
+  const tema = useLumeStyles(makeStyles);
   return (
     <Grupo etiqueta={etiqueta}>
       <Pressable
         onPress={onPress}
         accessibilityRole="button"
         accessibilityLabel={`${etiqueta}: ${valor || placeholder}`}
-        style={({ pressed }) => [
-          styles.selector,
-          {
-            backgroundColor: pressed ? t.surfaceCardElevated : t.surfaceCard,
-            borderColor: t.glassLine,
-            borderTopColor: t.glassHighlight,
-            boxShadow: sombras.glass,
-          },
-        ]}
+        style={({ pressed }) => [styles.selector, tema.selector, pressed && tema.selectorPresionado]}
       >
         <Icon name={icono} size={20} color={t.textTertiary} strokeWidth={1.75} />
         <LumeText rol="bodySm" color={valor ? t.textPrimary : t.textTertiary} style={styles.selectorValor}>
@@ -427,3 +423,14 @@ const styles = StyleSheet.create({
   selectorValor: { flex: 1 },
   centrado: { textAlign: 'center' },
 });
+
+const makeStyles = (t: LumePalette, sombras: LumeSombras) =>
+  StyleSheet.create({
+    selector: {
+      backgroundColor: t.surfaceCard,
+      borderColor: t.glassLine,
+      borderTopColor: t.glassHighlight,
+      boxShadow: sombras.glass,
+    },
+    selectorPresionado: { backgroundColor: t.surfaceCardElevated },
+  });
