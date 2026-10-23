@@ -4,7 +4,7 @@
    contraseña en el mismo lugar. "Empezá a registrar cada serie." */
 
 import React, { useState } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { Keyboard, StyleSheet, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import type { AuthError } from '@supabase/supabase-js';
 
@@ -84,6 +84,8 @@ export default function RegisterScreen() {
 
   async function handleRegister() {
     if (!canSubmit || loading) return;
+    // Sin el teclado abierto se ve el error que aparece debajo del boton.
+    Keyboard.dismiss();
     setLoading(true);
     setErrorMsg('');
     setEmailTaken(false);
@@ -120,6 +122,7 @@ export default function RegisterScreen() {
   // mano; el gate del layout raiz detecta la sesion y decide setup vs home.
   async function handleOAuth(provider: OAuthProvider) {
     if (oauthLoading) return;
+    Keyboard.dismiss();
     setOauthLoading(provider);
     setErrorMsg('');
     setEmailTaken(false);

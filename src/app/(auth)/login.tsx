@@ -5,7 +5,7 @@
    6 o mas. "Cada serie cuenta." */
 
 import React, { useState } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { Keyboard, StyleSheet, View } from 'react-native';
 import { useRouter } from 'expo-router';
 
 import { supabase } from '@/lib/supabase';
@@ -45,6 +45,8 @@ export default function LoginScreen() {
   // detecta la nueva sesion y decide entre setup (perfil incompleto) y home.
   async function handleLogin() {
     if (!canSubmit || loading) return;
+    // Sin el teclado abierto se ve el error que aparece debajo del boton.
+    Keyboard.dismiss();
     setLoading(true);
     setErrorMsg('');
 
@@ -84,6 +86,7 @@ export default function LoginScreen() {
 
   async function handleOAuth(provider: OAuthProvider) {
     if (oauthLoading) return;
+    Keyboard.dismiss();
     setOauthLoading(provider);
     setErrorMsg('');
     // El navegador tapa la app durante el flujo; al volver, el spinner cubre

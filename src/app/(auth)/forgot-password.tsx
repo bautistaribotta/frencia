@@ -5,7 +5,7 @@
    nueva (tras el deep link) queda para mas adelante. */
 
 import React, { useState } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { Keyboard, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { makeRedirectUri } from 'expo-auth-session';
@@ -41,6 +41,8 @@ export default function ForgotPasswordScreen() {
 
   async function handleSend() {
     if (!canSubmit || loading) return;
+    // Sin el teclado abierto se ve el error que aparece debajo del boton.
+    Keyboard.dismiss();
     setLoading(true);
     setErrorMsg('');
 
