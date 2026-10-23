@@ -9,7 +9,8 @@
    Arriba a la derecha va la racha de entrenamientos planificados cumplidos
    (ver docs/specs/racha-de-entrenamientos.md): en tinta y con la llama si
    esta viva, neutra si hoy toca y todavia no se entreno.
-   Fondo: cumbre, pleno, quieto. */
+   Fondo: cumbre, pleno, quieto. En claro suma el reflejo de la luz lume
+   abajo a la izquierda. */
 
 import React, { useCallback, useRef, useState } from 'react';
 import { Pressable, RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
@@ -81,7 +82,7 @@ function indiceProximo(days: DiaResumen[], hoy: number): number {
 }
 
 export default function HomeScreen() {
-  const { t } = useLume();
+  const { t, modo } = useLume();
   const tema = useLumeStyles(makeStyles);
   const router = useRouter();
   const scrollRef = useRef<ScrollView>(null);
@@ -162,7 +163,7 @@ export default function HomeScreen() {
 
   return (
     <View style={styles.pantalla}>
-      <Fondo posicion="cumbre" />
+      <Fondo posicion="cumbre" reflejo={modo === 'light'} />
       <SafeAreaView style={styles.safe} edges={['top']}>
         <ScrollView
           ref={scrollRef}

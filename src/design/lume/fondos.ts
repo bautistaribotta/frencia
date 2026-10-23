@@ -36,6 +36,10 @@ export const POSICIONES: Record<PosicionFondo, Luz[]> = {
   velada: [luz('a', 102, 104, 82, 0.4), luz('b', 12, 58, 110, 0.85), luz('c', -6, -4, 62, 0.22)],
 };
 
+/** La luz lume (capa a) reflejada en diagonal: en cumbre, de arriba a la
+ *  derecha pasa abajo a la izquierda. La usa `reflejo` del Fondo. */
+export const reflejar = (l: Luz): Luz => ({ ...l, x: 100 - l.x, y: 100 - l.y });
+
 export const INTENSIDAD_SUAVE: Record<CapaLuz, number> = { a: 0.8, b: 0.95, c: 0.8 };
 
 /** Multiplica el alfa de cada luz (tope 1). En claro el lume palido sobre

@@ -36,6 +36,7 @@ import {
   GANANCIA,
   INTENSIDAD_SUAVE,
   POSICIONES,
+  reflejar,
   type IntensidadFondo,
   type Luz,
   type PosicionFondo,
@@ -49,9 +50,12 @@ export interface FondoProps {
   // Solo en el onboarding: acceso, textos legales y setup del perfil.
   animado?: boolean;
   grano?: boolean;
+  // Suma una copia de la luz lume reflejada en diagonal. Solo para fondos
+  // quietos: la copia no viaja ni se funde entre posiciones.
+  reflejo?: boolean;
 }
 
-export function Fondo({ posicion = 'cumbre', intensidad = 'pleno', animado = false, grano = true }: FondoProps) {
+export function Fondo({ posicion = 'cumbre', intensidad = 'pleno', animado = false, grano = true, reflejo = false }: FondoProps) {
   const { t, modo, reducida, reducirMovimiento } = useLume();
   const tema = useLumeStyles(makeStyles);
   const { width: W, height: H } = useWindowDimensions();
@@ -118,26 +122,29 @@ export function Fondo({ posicion = 'cumbre', intensidad = 'pleno', animado = fal
   const deriva = animado && !reducirMovimiento;
   const destino = hacia ? POSICIONES[hacia] : null;
 
+  const capa = (l: Luz, key: string, hacia: Luz | null) => (
+    <CapaLuz
+      key={key}
+      luz={l}
+      hacia={hacia}
+      recorrido={recorrido}
+      color={t[`glow${l.capa.toUpperCase() as 'A' | 'B' | 'C'}`]}
+      alfa={Math.min(1, l.alfa * ganancia * (intensidad === 'suave' ? INTENSIDAD_SUAVE[l.capa] : 1))}
+      deriva={deriva}
+      W={W}
+      H={H}
+    />
+  );
+
   const capas = (pos: PosicionFondo, desplazar: boolean) =>
-    POSICIONES[pos].map((l, i) => (
-      <CapaLuz
-        key={l.capa}
-        luz={l}
-        hacia={desplazar ? destino?.[i] ?? null : null}
-        recorrido={recorrido}
-        color={t[`glow${l.capa.toUpperCase() as 'A' | 'B' | 'C'}`]}
-        alfa={Math.min(1, l.alfa * ganancia * (intensidad === 'suave' ? INTENSIDAD_SUAVE[l.capa] : 1))}
-        deriva={deriva}
-        W={W}
-        H={H}
-      />
-    ));
+    POSICIONES[pos].map((l, i) => capa(l, l.capa, desplazar ? destino?.[i] ?? null : null));
 
   const estiloSaliente = useAnimatedStyle(() => ({ opacity: 1 - fundido.value }));
 
   return (
     <View style={[StyleSheet.absoluteFill, tema.fondo]}>
       {capas(actual, true)}
+      {reflejo ? capa(reflejar(POSICIONES[actual][0]), 'reflejo', null) : null}
       {saliente ? (
         <Animated.View style={[StyleSheet.absoluteFill, tema.saliente, estiloSaliente]}>
           {capas(saliente, false)}

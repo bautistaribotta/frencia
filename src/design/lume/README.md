@@ -48,7 +48,7 @@ app, tambien en las pantallas que siguen en el sistema anterior.
 | `tipografia.ts` | `useLumeFonts()` (se carga en el layout raiz) y los roles `lumeTexto`. |
 | `useLume()` | Tema activo + Reducir transparencia + Reducir movimiento. |
 | `useLumeStyles(makeStyles)` | Estilos memoizados contra el tema activo. Los colores del tema van aca, no en el array de `style`. |
-| `Fondo` | Las luces. `posicion` por pantalla (`cumbre`, `centro`, `flanco`, `base`, `velada`); `animado` solo en el onboarding. |
+| `Fondo` | Las luces. `posicion` por pantalla (`cumbre`, `centro`, `flanco`, `base`, `velada`); `animado` solo en el onboarding; `reflejo` suma la luz lume reflejada en diagonal (el inicio en claro). |
 | `Vidrio` | Panel translucido: `normal`, `fuerte`, `denso` (con blur, solo en el cromo). |
 | `LumeText`, `LumeButton`, `Campo`, `Casilla`, `Segmentado`, `Opciones` | Componentes base. |
 | `Cargando` | El anillo de carga: pista en data-track, un cuarto en tinta, una vuelta cada 1,2 s (3,6 s con Reducir movimiento). `sm` 16 en botones, `md` 20 en pantallas y listas, `lg` 28 para arrastrar y actualizar. Reemplaza a `ActivityIndicator` en toda la app. |
