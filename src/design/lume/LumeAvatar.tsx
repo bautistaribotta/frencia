@@ -10,7 +10,8 @@ import { StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
 import { Image } from 'expo-image';
 import BoringAvatar from 'react-native-boring-avatars';
 
-import { useLume } from './useLume';
+import { useLume, useLumeStyles } from './useLume';
+import type { LumePalette } from './tokens';
 
 type TamanioAvatar = 'xs' | 'sm' | 'md' | 'lg' | 'xl';
 
@@ -28,14 +29,11 @@ const LADO: Record<TamanioAvatar, number> = { xs: 28, sm: 36, md: 44, lg: 64, xl
 
 export function LumeAvatar({ src, cacheKey, name = '', size = 'md', ring = false, style }: LumeAvatarProps) {
   const { t } = useLume();
+  const styles = useLumeStyles(makeStyles);
   const lado = LADO[size];
   return (
     <View
-      style={[
-        styles.base,
-        { width: lado, height: lado, borderRadius: lado / 2, backgroundColor: t.surfaceChip },
-        style,
-      ]}
+      style={[styles.base, { width: lado, height: lado, borderRadius: lado / 2 }, style]}
     >
       {src ? (
         <Image
@@ -47,16 +45,15 @@ export function LumeAvatar({ src, cacheKey, name = '', size = 'md', ring = false
         <BoringAvatar size={lado} name={name} variant="beam" colors={[t.accent, t.bgApp]} />
       )}
       {ring ? (
-        <View
-          style={[StyleSheet.absoluteFill, styles.filo, { borderRadius: lado / 2, borderColor: t.borderDefault }]}
-        />
+        <View style={[StyleSheet.absoluteFill, styles.filo, { borderRadius: lado / 2 }]} />
       ) : null}
     </View>
   );
 }
 
-const styles = StyleSheet.create({
-  base: { overflow: 'hidden', alignItems: 'center', justifyContent: 'center' },
-  foto: { width: '100%', height: '100%' },
-  filo: { borderWidth: 1, pointerEvents: 'none' },
-});
+const makeStyles = (t: LumePalette) =>
+  StyleSheet.create({
+    base: { overflow: 'hidden', alignItems: 'center', justifyContent: 'center', backgroundColor: t.surfaceChip },
+    foto: { width: '100%', height: '100%' },
+    filo: { borderWidth: 1, pointerEvents: 'none', borderColor: t.borderDefault },
+  });

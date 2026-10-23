@@ -8,10 +8,10 @@ import React from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 import * as Haptics from 'expo-haptics';
 
-import { useLume } from './useLume';
+import { useLumeStyles, type LumeSombras } from './useLume';
 import { LumeText } from './LumeText';
 import { lumeFuente } from './tipografia';
-import { lumeRadius, lumeSpace } from './tokens';
+import { lumeRadius, lumeSpace, type LumePalette } from './tokens';
 
 export interface Opcion {
   value: string;
@@ -25,7 +25,7 @@ export interface OpcionesProps {
 }
 
 export function Opciones({ opciones, value, onChange }: OpcionesProps) {
-  const { t, sombras } = useLume();
+  const styles = useLumeStyles(makeStyles);
 
   return (
     <View style={styles.lista} accessibilityRole="radiogroup">
@@ -40,27 +40,13 @@ export function Opciones({ opciones, value, onChange }: OpcionesProps) {
             }}
             accessibilityRole="radio"
             accessibilityState={{ checked: sel }}
-            style={[
-              styles.opcion,
-              sel
-                ? {
-                    backgroundColor: t.surfaceCardElevated,
-                    borderColor: t.accent,
-                    boxShadow: `${sombras.glass}, 0 0 0 0.5px ${t.accent}`,
-                  }
-                : {
-                    backgroundColor: t.surfaceCard,
-                    borderColor: t.glassLine,
-                    borderTopColor: t.glassHighlight,
-                    boxShadow: sombras.glass,
-                  },
-            ]}
+            style={[styles.opcion, sel ? styles.opcionElegida : styles.opcionLibre]}
           >
             <LumeText rol="body" style={styles.texto}>
               {o.label}
             </LumeText>
-            <View style={[styles.radio, { borderColor: sel ? t.accent : t.borderStrong }]}>
-              {sel ? <View style={[styles.punto, { backgroundColor: t.accent }]} /> : null}
+            <View style={[styles.radio, sel && styles.radioElegido]}>
+              {sel ? <View style={styles.punto} /> : null}
             </View>
           </Pressable>
         );
@@ -69,25 +55,39 @@ export function Opciones({ opciones, value, onChange }: OpcionesProps) {
   );
 }
 
-const styles = StyleSheet.create({
-  lista: { gap: lumeSpace[3] },
-  opcion: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: lumeSpace[4],
-    height: 60,
-    paddingHorizontal: lumeSpace[5],
-    borderRadius: lumeRadius.lg,
-    borderWidth: 1,
-  },
-  texto: { flex: 1, fontFamily: lumeFuente.medium, lineHeight: 20 },
-  radio: {
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    borderWidth: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  punto: { width: 10, height: 10, borderRadius: 5 },
-});
+const makeStyles = (t: LumePalette, sombras: LumeSombras) =>
+  StyleSheet.create({
+    lista: { gap: lumeSpace[3] },
+    opcion: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: lumeSpace[4],
+      height: 60,
+      paddingHorizontal: lumeSpace[5],
+      borderRadius: lumeRadius.lg,
+      borderWidth: 1,
+    },
+    opcionElegida: {
+      backgroundColor: t.surfaceCardElevated,
+      borderColor: t.accent,
+      boxShadow: `${sombras.glass}, 0 0 0 0.5px ${t.accent}`,
+    },
+    opcionLibre: {
+      backgroundColor: t.surfaceCard,
+      borderColor: t.glassLine,
+      borderTopColor: t.glassHighlight,
+      boxShadow: sombras.glass,
+    },
+    texto: { flex: 1, fontFamily: lumeFuente.medium, lineHeight: 20 },
+    radio: {
+      width: 20,
+      height: 20,
+      borderRadius: 10,
+      borderWidth: 1,
+      alignItems: 'center',
+      justifyContent: 'center',
+      borderColor: t.borderStrong,
+    },
+    radioElegido: { borderColor: t.accent },
+    punto: { width: 10, height: 10, borderRadius: 5, backgroundColor: t.accent },
+  });

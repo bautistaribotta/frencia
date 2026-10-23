@@ -10,10 +10,10 @@ import React from 'react';
 import { StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
 
 import { Icon, type IconName } from '../Icon';
-import { useLume } from './useLume';
+import { useLume, useLumeStyles } from './useLume';
 import { LumeText } from './LumeText';
 import { lumeFuente } from './tipografia';
-import { lumeRadius } from './tokens';
+import { lumeRadius, type LumePalette } from './tokens';
 
 export interface LumeMetricPillProps {
   icon?: IconName;
@@ -33,10 +33,7 @@ export function LumeMetricPill({
   style,
 }: LumeMetricPillProps) {
   const { t } = useLume();
-  const fondo =
-    tone === 'signal' ? t.surfaceSignalSoft : tone === 'intensity' ? t.surfaceIntensitySoft : t.surfaceCard;
-  const borde =
-    tone === 'signal' ? t.surfaceSignalLine : tone === 'intensity' ? t.surfaceIntensityLine : t.glassLine;
+  const styles = useLumeStyles(makeStyles);
   const tinta = tone === 'signal' ? t.signalText : tone === 'intensity' ? t.intensityText : undefined;
   const inline = layout === 'inline';
 
@@ -45,7 +42,7 @@ export function LumeMetricPill({
       style={[
         styles.base,
         inline ? styles.inline : styles.stack,
-        { backgroundColor: fondo, borderColor: borde },
+        tone === 'signal' ? styles.signal : tone === 'intensity' && styles.intensity,
         style,
       ]}
     >
@@ -64,19 +61,24 @@ export function LumeMetricPill({
   );
 }
 
-const styles = StyleSheet.create({
-  base: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    alignSelf: 'flex-start',
-    gap: 10,
-    borderRadius: lumeRadius.md,
-    borderWidth: 1,
-  },
-  stack: { height: 44, paddingHorizontal: 14 },
-  inline: { height: 34, paddingHorizontal: 12 },
-  cuerpo: { gap: 3 },
-  cuerpoInline: { flexDirection: 'row', alignItems: 'baseline', gap: 6 },
-  rotulo: { fontSize: 9.5, lineHeight: 11 },
-  valor: { fontFamily: lumeFuente.semibold, fontSize: 15, lineHeight: 17 },
-});
+const makeStyles = (t: LumePalette) =>
+  StyleSheet.create({
+    base: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      alignSelf: 'flex-start',
+      gap: 10,
+      borderRadius: lumeRadius.md,
+      borderWidth: 1,
+      backgroundColor: t.surfaceCard,
+      borderColor: t.glassLine,
+    },
+    signal: { backgroundColor: t.surfaceSignalSoft, borderColor: t.surfaceSignalLine },
+    intensity: { backgroundColor: t.surfaceIntensitySoft, borderColor: t.surfaceIntensityLine },
+    stack: { height: 44, paddingHorizontal: 14 },
+    inline: { height: 34, paddingHorizontal: 12 },
+    cuerpo: { gap: 3 },
+    cuerpoInline: { flexDirection: 'row', alignItems: 'baseline', gap: 6 },
+    rotulo: { fontSize: 9.5, lineHeight: 11 },
+    valor: { fontFamily: lumeFuente.semibold, fontSize: 15, lineHeight: 17 },
+  });

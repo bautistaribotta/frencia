@@ -47,6 +47,7 @@ app, tambien en las pantallas que siguen en el sistema anterior.
 | `tokens.ts` | Colores de los dos temas, sombras y halos (`boxShadow`), espaciado, radios, movimiento. |
 | `tipografia.ts` | `useLumeFonts()` (se carga en el layout raiz) y los roles `lumeTexto`. |
 | `useLume()` | Tema activo + Reducir transparencia + Reducir movimiento. |
+| `useLumeStyles(makeStyles)` | Estilos memoizados contra el tema activo. Los colores del tema van aca, no en el array de `style`. |
 | `Fondo` | Las luces. `posicion` por pantalla (`cumbre`, `centro`, `flanco`, `base`, `velada`); `animado` solo en el onboarding. |
 | `Vidrio` | Panel translucido: `normal`, `fuerte`, `denso` (con blur, solo en el cromo). |
 | `LumeText`, `LumeButton`, `Campo`, `Casilla`, `Segmentado`, `Opciones` | Componentes base. |

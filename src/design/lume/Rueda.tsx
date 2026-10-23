@@ -139,7 +139,7 @@ export function Rueda({
   return (
     <Animated.ScrollView
       ref={ref}
-      style={{ height: ALTO, width: ancho + izq + der, marginLeft: -izq, marginRight: -der, flexGrow: 0 }}
+      style={[styles.rueda, { width: ancho + izq + der, marginLeft: -izq, marginRight: -der }]}
       showsVerticalScrollIndicator={false}
       snapToInterval={RUEDA_ITEM}
       decelerationRate="fast"
@@ -220,6 +220,7 @@ export function EscenarioRueda({ unidad, children }: EscenarioRuedaProps) {
 }
 
 const styles = StyleSheet.create({
+  rueda: { height: ALTO, flexGrow: 0 },
   item: { height: RUEDA_ITEM, justifyContent: 'center' },
   numero: { fontSize: 34, lineHeight: 40, letterSpacing: -0.7 },
   escenario: { height: ALTO, alignSelf: 'stretch' },

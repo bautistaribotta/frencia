@@ -10,9 +10,9 @@ import React, { forwardRef, useState } from 'react';
 import { StyleSheet, TextInput, View, type TextInputProps } from 'react-native';
 
 import { Icon, type IconName } from '../Icon';
-import { useLume } from './useLume';
+import { useLume, useLumeStyles, type LumeSombras } from './useLume';
 import { lumeFuente } from './tipografia';
-import { lumeLayout, lumeRadius } from './tokens';
+import { lumeLayout, lumeRadius, type LumePalette } from './tokens';
 
 export interface CampoProps extends TextInputProps {
   icono: IconName;
@@ -26,32 +26,18 @@ export const Campo = forwardRef<TextInput, CampoProps>(function Campo(
   { icono, final, iconoAcento = false, lg = false, onFocus, onBlur, style, ...rest },
   ref,
 ) {
-  const { t, sombras } = useLume();
+  const { t } = useLume();
+  const styles = useLumeStyles(makeStyles);
   const [foco, setFoco] = useState(false);
 
   return (
     <View
-      style={[
-        styles.campo,
-        lg && styles.campoLg,
-        foco
-          ? {
-              backgroundColor: t.surfaceCardElevated,
-              borderColor: t.signal,
-              boxShadow: `${sombras.glass}, 0 0 0 1px ${t.signal}`,
-            }
-          : {
-              backgroundColor: t.surfaceCard,
-              borderColor: t.glassLine,
-              borderTopColor: t.glassHighlight,
-              boxShadow: sombras.glass,
-            },
-      ]}
+      style={[styles.campo, lg && styles.campoLg, foco ? styles.campoFoco : styles.campoReposo]}
     >
       <Icon name={icono} size={20} color={foco || iconoAcento ? t.signal : t.textTertiary} strokeWidth={1.75} />
       <TextInput
         ref={ref}
-        style={[styles.input, { color: t.textPrimary }, style]}
+        style={[styles.input, style]}
         placeholderTextColor={t.textTertiary}
         selectionColor={t.signal}
         cursorColor={t.signal}
@@ -70,21 +56,34 @@ export const Campo = forwardRef<TextInput, CampoProps>(function Campo(
   );
 });
 
-const styles = StyleSheet.create({
-  campo: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    height: lumeLayout.controlHLg,
-    paddingHorizontal: lumeLayout.padControl,
-    borderRadius: lumeRadius.lg,
-    borderWidth: 1,
-  },
-  campoLg: { paddingHorizontal: 20 },
-  input: {
-    flex: 1,
-    fontFamily: lumeFuente.regular,
-    fontSize: 16,
-    padding: 0,
-  },
-});
+const makeStyles = (t: LumePalette, sombras: LumeSombras) =>
+  StyleSheet.create({
+    campo: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 12,
+      height: lumeLayout.controlHLg,
+      paddingHorizontal: lumeLayout.padControl,
+      borderRadius: lumeRadius.lg,
+      borderWidth: 1,
+    },
+    campoLg: { paddingHorizontal: 20 },
+    campoFoco: {
+      backgroundColor: t.surfaceCardElevated,
+      borderColor: t.signal,
+      boxShadow: `${sombras.glass}, 0 0 0 1px ${t.signal}`,
+    },
+    campoReposo: {
+      backgroundColor: t.surfaceCard,
+      borderColor: t.glassLine,
+      borderTopColor: t.glassHighlight,
+      boxShadow: sombras.glass,
+    },
+    input: {
+      flex: 1,
+      fontFamily: lumeFuente.regular,
+      fontSize: 16,
+      padding: 0,
+      color: t.textPrimary,
+    },
+  });

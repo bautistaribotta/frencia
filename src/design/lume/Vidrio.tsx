@@ -53,17 +53,16 @@ export function Vidrio({
         <BlurView
           intensity={lumeBlur.sheet}
           tint={modo === 'dark' ? 'dark' : 'light'}
-          style={[StyleSheet.absoluteFill, { borderRadius: radio, overflow: 'hidden' }]}
+          style={[StyleSheet.absoluteFill, styles.blur, { borderRadius: radio }]}
         />
       ) : null}
       <View
         style={[
           StyleSheet.absoluteFill,
+          styles.capa,
           {
-            pointerEvents: 'none',
             borderRadius: radio,
             backgroundColor: relleno,
-            borderWidth: 1,
             borderColor: linea,
             // El brillo de canto: el borde de arriba toma el highlight.
             borderTopColor: borde ?? t.glassHighlight,
@@ -74,3 +73,8 @@ export function Vidrio({
     </View>
   );
 }
+
+const styles = StyleSheet.create({
+  blur: { overflow: 'hidden' },
+  capa: { pointerEvents: 'none', borderWidth: 1 },
+});

@@ -9,8 +9,8 @@ import React, { useEffect } from 'react';
 import { Pressable, StyleSheet } from 'react-native';
 import Animated, { useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 
-import { useLume } from './useLume';
-import { lumeMotion } from './tokens';
+import { useLume, useLumeStyles } from './useLume';
+import { lumeMotion, type LumePalette } from './tokens';
 
 export interface LumeSwitchProps {
   checked: boolean;
@@ -20,7 +20,8 @@ export interface LumeSwitchProps {
 }
 
 export function LumeSwitch({ checked, onChange, disabled = false, accessibilityLabel }: LumeSwitchProps) {
-  const { t, reducirMovimiento } = useLume();
+  const { reducirMovimiento } = useLume();
+  const styles = useLumeStyles(makeStyles);
   const x = useSharedValue(checked ? 20 : 0);
 
   useEffect(() => {
@@ -37,17 +38,12 @@ export function LumeSwitch({ checked, onChange, disabled = false, accessibilityL
       accessibilityRole="switch"
       accessibilityLabel={accessibilityLabel}
       accessibilityState={{ checked, disabled }}
-      style={[
-        styles.pista,
-        checked
-          ? { backgroundColor: t.accent, borderColor: t.accent }
-          : { backgroundColor: t.surfaceChip, borderColor: disabled ? t.borderSubtle : t.borderDefault },
-      ]}
+      style={[styles.pista, checked ? styles.pistaEncendida : disabled && styles.pistaApagada]}
     >
       <Animated.View
         style={[
           styles.perilla,
-          { backgroundColor: disabled ? t.textDisabled : checked ? t.textOnAccent : t.textSecondary },
+          disabled ? styles.perillaApagada : checked && styles.perillaEncendida,
           perilla,
         ]}
       />
@@ -55,14 +51,28 @@ export function LumeSwitch({ checked, onChange, disabled = false, accessibilityL
   );
 }
 
-const styles = StyleSheet.create({
-  pista: { width: 50, height: 30, borderRadius: 999, borderWidth: 1, justifyContent: 'center' },
-  perilla: {
-    position: 'absolute',
-    left: 3,
-    width: 22,
-    height: 22,
-    borderRadius: 11,
-    boxShadow: '0 1px 2px rgba(0, 0, 0, 0.3)',
-  },
-});
+const makeStyles = (t: LumePalette) =>
+  StyleSheet.create({
+    pista: {
+      width: 50,
+      height: 30,
+      borderRadius: 999,
+      borderWidth: 1,
+      justifyContent: 'center',
+      backgroundColor: t.surfaceChip,
+      borderColor: t.borderDefault,
+    },
+    pistaEncendida: { backgroundColor: t.accent, borderColor: t.accent },
+    pistaApagada: { borderColor: t.borderSubtle },
+    perilla: {
+      position: 'absolute',
+      left: 3,
+      width: 22,
+      height: 22,
+      borderRadius: 11,
+      boxShadow: '0 1px 2px rgba(0, 0, 0, 0.3)',
+      backgroundColor: t.textSecondary,
+    },
+    perillaEncendida: { backgroundColor: t.textOnAccent },
+    perillaApagada: { backgroundColor: t.textDisabled },
+  });

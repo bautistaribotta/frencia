@@ -20,9 +20,9 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 
-import { useLume } from './useLume';
+import { useLume, useLumeStyles } from './useLume';
 import { LumeText } from './LumeText';
-import { lumeSpace } from './tokens';
+import { lumeSpace, type LumePalette } from './tokens';
 
 export type TamanioCargando = 'sm' | 'md' | 'lg';
 
@@ -44,6 +44,7 @@ const TAMANIOS: Record<TamanioCargando, { lado: number; borde: number }> = {
 
 export function Cargando({ tam = 'md', texto, color, style }: CargandoProps) {
   const { t, reducirMovimiento } = useLume();
+  const styles = useLumeStyles(makeStyles);
   const { lado, borde } = TAMANIOS[tam];
   const tramo = color ?? t.textPrimary;
   const giro = useSharedValue(0);
@@ -73,7 +74,7 @@ export function Cargando({ tam = 'md', texto, color, style }: CargandoProps) {
           style={[
             StyleSheet.absoluteFill,
             circulo,
-            color ? { borderColor: color, opacity: 0.25 } : { borderColor: t.dataTrack },
+            color ? [styles.pistaTenue, { borderColor: color }] : styles.pista,
           ]}
         />
         <Animated.View style={[StyleSheet.absoluteFill, circulo, styles.tramo, { borderTopColor: tramo }, girando]} />
@@ -87,11 +88,14 @@ export function Cargando({ tam = 'md', texto, color, style }: CargandoProps) {
   );
 }
 
-const styles = StyleSheet.create({
-  base: { alignItems: 'center', gap: lumeSpace[4] },
-  tramo: {
-    borderLeftColor: 'transparent',
-    borderRightColor: 'transparent',
-    borderBottomColor: 'transparent',
-  },
-});
+const makeStyles = (t: LumePalette) =>
+  StyleSheet.create({
+    base: { alignItems: 'center', gap: lumeSpace[4] },
+    pista: { borderColor: t.dataTrack },
+    pistaTenue: { opacity: 0.25 },
+    tramo: {
+      borderLeftColor: 'transparent',
+      borderRightColor: 'transparent',
+      borderBottomColor: 'transparent',
+    },
+  });

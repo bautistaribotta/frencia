@@ -6,6 +6,7 @@
      del Fondo bajan a menos de la mitad.
    - Reducir movimiento: las luces del onboarding quedan quietas.
    Uso: const { t, modo, sombras, reducida } = useLume();
+   Estilos: const styles = useLumeStyles(makeStyles);
    ============================================================ */
 
 import { useMemo, useSyncExternalStore } from 'react';
@@ -44,10 +45,12 @@ export function useReducirTransparencia(): boolean {
   return useSyncExternalStore(suscribir, leer, leer);
 }
 
+export type LumeSombras = (typeof lumeSombras)[LumeModo];
+
 export interface LumeContexto {
   modo: LumeModo;
   t: LumePalette;
-  sombras: (typeof lumeSombras)[LumeModo];
+  sombras: LumeSombras;
   reducida: boolean;
   reducirMovimiento: boolean;
 }
@@ -66,4 +69,18 @@ export function useLume(): LumeContexto {
       reducirMovimiento,
     };
   }, [mode, reducida, reducirMovimiento]);
+}
+
+/** Memoiza una fabrica de estilos contra el tema Lume activo, igual que
+ *  useThemedStyles con la paleta anterior. Los colores que dependen solo del
+ *  tema van en la fabrica, no en el array de style:
+ *    const makeStyles = (t: LumePalette, sombras: LumeSombras) => StyleSheet.create({ ... });
+ *    const styles = useLumeStyles(makeStyles);
+ *
+ *  La fabrica tiene que ser estable (a nivel de modulo), por la misma razon
+ *  que en useThemedStyles. */
+export function useLumeStyles<T>(factory: (t: LumePalette, sombras: LumeSombras) => T): T {
+  const { t, sombras } = useLume();
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- ver nota de arriba
+  return useMemo(() => factory(t, sombras), [t, sombras]);
 }

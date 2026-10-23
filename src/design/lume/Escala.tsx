@@ -8,7 +8,8 @@
 import React from 'react';
 import { StyleSheet, View } from 'react-native';
 
-import { useLume } from './useLume';
+import { useLumeStyles, type LumeSombras } from './useLume';
+import type { LumePalette } from './tokens';
 
 export interface EscalaProps {
   total: number;
@@ -17,15 +18,10 @@ export interface EscalaProps {
 }
 
 export function Escala({ total, actual, cortes = [] }: EscalaProps) {
-  const { t, sombras } = useLume();
+  const styles = useLumeStyles(makeStyles);
   const marcas: React.ReactNode[] = [];
   for (let i = 0; i < total; i++) {
-    const estilo =
-      i < actual
-        ? { backgroundColor: t.textPrimary }
-        : i === actual
-          ? { backgroundColor: t.signal, boxShadow: sombras.haloSignal }
-          : { backgroundColor: t.dataTrack };
+    const estilo = i < actual ? styles.hecha : i === actual ? styles.actual : styles.pendiente;
     marcas.push(<View key={i} style={[styles.marca, estilo]} />);
     if (cortes.includes(i) && i < total - 1) marcas.push(<View key={`c${i}`} style={styles.corte} />);
   }
@@ -40,8 +36,12 @@ export function Escala({ total, actual, cortes = [] }: EscalaProps) {
   );
 }
 
-const styles = StyleSheet.create({
-  escala: { flexDirection: 'row', alignItems: 'center', gap: 3 },
-  marca: { flex: 1, height: 3, borderRadius: 2 },
-  corte: { width: 6 },
-});
+const makeStyles = (t: LumePalette, sombras: LumeSombras) =>
+  StyleSheet.create({
+    escala: { flexDirection: 'row', alignItems: 'center', gap: 3 },
+    marca: { flex: 1, height: 3, borderRadius: 2 },
+    hecha: { backgroundColor: t.textPrimary },
+    actual: { backgroundColor: t.signal, boxShadow: sombras.haloSignal },
+    pendiente: { backgroundColor: t.dataTrack },
+    corte: { width: 6 },
+  });

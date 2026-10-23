@@ -8,7 +8,7 @@
 export * from './tokens';
 export * from './tipografia';
 export { POSICIONES, type PosicionFondo, type IntensidadFondo } from './fondos';
-export { useLume, useReducirTransparencia, type LumeContexto } from './useLume';
+export { useLume, useLumeStyles, useReducirTransparencia, type LumeContexto, type LumeSombras } from './useLume';
 
 export { Fondo, type FondoProps } from './Fondo';
 export { Vidrio, type VidrioProps, type NivelVidrio } from './Vidrio';

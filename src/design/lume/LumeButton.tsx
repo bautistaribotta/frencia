@@ -13,10 +13,10 @@ import React from 'react';
 import { Pressable, StyleSheet, type StyleProp, type ViewStyle } from 'react-native';
 
 import { Icon, type IconName } from '../Icon';
-import { useLume } from './useLume';
+import { useLume, useLumeStyles, type LumeSombras } from './useLume';
 import { LumeText } from './LumeText';
 import { lumeFuente } from './tipografia';
-import { lumeMotion, lumeRadius } from './tokens';
+import { lumeMotion, lumeRadius, type LumePalette } from './tokens';
 import { Cargando } from './Cargando';
 
 export type VarianteBoton = 'primary' | 'secondary' | 'ghost' | 'soft' | 'danger';
@@ -58,7 +58,8 @@ export function LumeButton({
   accessibilityLabel,
   style,
 }: LumeButtonProps) {
-  const { t, sombras } = useLume();
+  const { t } = useLume();
+  const styles = useLumeStyles(makeStyles);
   const tam = TAMANIOS[size];
   const apagado = disabled || loading;
 
@@ -75,27 +76,19 @@ export function LumeButton({
             ? t.dangerText
             : t.textSecondary;
 
-  function relleno(presionado: boolean): ViewStyle {
+  function relleno(presionado: boolean): StyleProp<ViewStyle> {
     switch (variant) {
       case 'primary':
-        if (disabled) return { backgroundColor: t.surfaceChip };
-        return { backgroundColor: presionado ? t.accentPress : t.accent, boxShadow: sombras.haloAccent };
+        if (disabled) return styles.primarioApagado;
+        return [styles.primario, presionado && styles.primarioPresionado];
       case 'secondary':
-        return {
-          backgroundColor: presionado ? t.surfaceCardElevated : t.surfaceCard,
-          borderColor: disabled ? t.borderSubtle : t.glassLine,
-          borderTopColor: disabled ? t.borderSubtle : t.glassHighlight,
-          boxShadow: sombras.glass,
-        };
+        return [styles.secundario, presionado && styles.secundarioPresionado, disabled && styles.secundarioApagado];
       case 'danger':
-        return {
-          backgroundColor: presionado ? t.surfaceChip : 'transparent',
-          borderColor: disabled ? t.borderSubtle : t.danger,
-        };
+        return [styles.peligro, presionado && styles.fondoPresionado, disabled && styles.peligroApagado];
       case 'soft':
-        return { backgroundColor: presionado ? t.surfaceSignalSoft : 'transparent' };
+        return presionado && styles.suavePresionado;
       default:
-        return { backgroundColor: presionado ? t.surfaceChip : 'transparent' };
+        return presionado && styles.fondoPresionado;
     }
   }
 
@@ -111,7 +104,7 @@ export function LumeButton({
         { height: tam.alto, paddingHorizontal: tam.padding, gap: tam.gap },
         fullWidth && styles.full,
         relleno(pressed && !apagado),
-        pressed && !apagado && { transform: [{ scale: lumeMotion.pressScale }] },
+        pressed && !apagado && styles.presionado,
         style,
       ]}
     >
@@ -125,7 +118,7 @@ export function LumeButton({
               rol="body"
               color={tinta}
               numberOfLines={1}
-              style={{ fontFamily: lumeFuente.semibold, fontSize: tam.fuente, lineHeight: tam.fuente + 4, letterSpacing: -0.08 }}
+              style={[styles.texto, { fontSize: tam.fuente, lineHeight: tam.fuente + 4 }]}
             >
               {children}
             </LumeText>
@@ -137,14 +130,32 @@ export function LumeButton({
   );
 }
 
-const styles = StyleSheet.create({
-  base: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderRadius: lumeRadius.lg,
-    borderWidth: 1,
-    borderColor: 'transparent',
-  },
-  full: { alignSelf: 'stretch' },
-});
+const makeStyles = (t: LumePalette, sombras: LumeSombras) =>
+  StyleSheet.create({
+    base: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      borderRadius: lumeRadius.lg,
+      borderWidth: 1,
+      borderColor: 'transparent',
+    },
+    full: { alignSelf: 'stretch' },
+    presionado: { transform: [{ scale: lumeMotion.pressScale }] },
+    primario: { backgroundColor: t.accent, boxShadow: sombras.haloAccent },
+    primarioPresionado: { backgroundColor: t.accentPress },
+    primarioApagado: { backgroundColor: t.surfaceChip },
+    secundario: {
+      backgroundColor: t.surfaceCard,
+      borderColor: t.glassLine,
+      borderTopColor: t.glassHighlight,
+      boxShadow: sombras.glass,
+    },
+    secundarioPresionado: { backgroundColor: t.surfaceCardElevated },
+    secundarioApagado: { borderColor: t.borderSubtle, borderTopColor: t.borderSubtle },
+    peligro: { borderColor: t.danger },
+    peligroApagado: { borderColor: t.borderSubtle },
+    suavePresionado: { backgroundColor: t.surfaceSignalSoft },
+    fondoPresionado: { backgroundColor: t.surfaceChip },
+    texto: { fontFamily: lumeFuente.semibold, letterSpacing: -0.08 },
+  });

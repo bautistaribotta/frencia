@@ -4,7 +4,8 @@
 import React from 'react';
 import { Image, StyleSheet, View } from 'react-native';
 
-import { useLume } from './useLume';
+import { useLume, useLumeStyles, type LumeSombras } from './useLume';
+import type { LumePalette } from './tokens';
 
 const ICONOS = {
   dark: require('../../../assets/images/lume/icono-oscuro.png'),
@@ -12,14 +13,12 @@ const ICONOS = {
 };
 
 export function IconoApp({ size = 64 }: { size?: number }) {
-  const { modo, t, sombras } = useLume();
+  const { modo } = useLume();
+  const styles = useLumeStyles(makeStyles);
   const radio = Math.round(size * 0.234);
   return (
     <View
-      style={[
-        styles.marco,
-        { width: size, height: size, borderRadius: radio, borderColor: t.glassLine, boxShadow: sombras.md },
-      ]}
+      style={[styles.marco, { width: size, height: size, borderRadius: radio }]}
     >
       <Image
         source={ICONOS[modo]}
@@ -30,6 +29,7 @@ export function IconoApp({ size = 64 }: { size?: number }) {
   );
 }
 
-const styles = StyleSheet.create({
-  marco: { borderWidth: 1, overflow: 'visible' },
-});
+const makeStyles = (t: LumePalette, sombras: LumeSombras) =>
+  StyleSheet.create({
+    marco: { borderWidth: 1, overflow: 'visible', borderColor: t.glassLine, boxShadow: sombras.md },
+  });

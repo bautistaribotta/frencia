@@ -9,9 +9,9 @@
 import React from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 
-import { useLume } from './useLume';
+import { useLume, useLumeStyles } from './useLume';
 import { LumeText } from './LumeText';
-import { lumeRadius } from './tokens';
+import { lumeRadius, type LumePalette } from './tokens';
 
 const LETRAS = ['L', 'M', 'X', 'J', 'V', 'S', 'D'];
 const NOMBRES = ['lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado', 'domingo'];
@@ -25,18 +25,17 @@ export interface SemanaProps {
 
 export function Semana({ marcados, editor = false, onToggle }: SemanaProps) {
   const { t } = useLume();
+  const styles = useLumeStyles(makeStyles);
 
   return (
     <View style={styles.fila}>
       {LETRAS.map((letra, i) => {
         const on = marcados.includes(i);
-        const fondo = on ? (editor ? t.accent : t.textPrimary) : t.surfaceCard;
-        const borde = on ? fondo : t.glassLine;
         const tinta = on ? (editor ? t.textOnAccent : t.bgApp) : editor ? t.textSecondary : t.textTertiary;
         const celda = [
           styles.dia,
           editor ? styles.diaEditor : null,
-          { backgroundColor: fondo, borderColor: borde },
+          on && (editor ? styles.elegido : styles.marcado),
         ];
         const texto = (
           <LumeText rol={editor ? 'data' : 'label'} color={tinta}>
@@ -64,15 +63,20 @@ export function Semana({ marcados, editor = false, onToggle }: SemanaProps) {
   );
 }
 
-const styles = StyleSheet.create({
-  fila: { flexDirection: 'row', gap: 4 },
-  dia: {
-    flex: 1,
-    height: 30,
-    borderRadius: lumeRadius.sm,
-    borderWidth: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  diaEditor: { height: 44, borderRadius: lumeRadius.md },
-});
+const makeStyles = (t: LumePalette) =>
+  StyleSheet.create({
+    fila: { flexDirection: 'row', gap: 4 },
+    dia: {
+      flex: 1,
+      height: 30,
+      borderRadius: lumeRadius.sm,
+      borderWidth: 1,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: t.surfaceCard,
+      borderColor: t.glassLine,
+    },
+    diaEditor: { height: 44, borderRadius: lumeRadius.md },
+    marcado: { backgroundColor: t.textPrimary, borderColor: t.textPrimary },
+    elegido: { backgroundColor: t.accent, borderColor: t.accent },
+  });

@@ -7,10 +7,10 @@
 import React from 'react';
 import { Pressable, StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
 
-import { useLume } from './useLume';
+import { useLume, useLumeStyles, type LumeSombras } from './useLume';
 import { LumeText } from './LumeText';
 import { lumeFuente } from './tipografia';
-import { lumeRadius } from './tokens';
+import { lumeRadius, type LumePalette } from './tokens';
 
 export interface SegmentadoProps {
   opciones: { value: string; label: string }[];
@@ -21,25 +21,23 @@ export interface SegmentadoProps {
 }
 
 export function Segmentado({ opciones, value, onChange, accent = false, style }: SegmentadoProps) {
-  const { t, sombras } = useLume();
+  const { t } = useLume();
+  const styles = useLumeStyles(makeStyles);
 
   return (
     <View
       accessibilityRole="tablist"
-      style={[styles.pista, { backgroundColor: t.surfaceCard, borderColor: t.glassLine }, style]}
+      style={[styles.pista, style]}
     >
       {opciones.map((o) => {
         const activa = o.value === value;
-        const fondoActivo: ViewStyle = accent
-          ? { backgroundColor: t.accent, borderColor: t.accent }
-          : { backgroundColor: t.surfaceCardElevated, borderColor: t.glassLine, boxShadow: sombras.glass };
         return (
           <Pressable
             key={o.value}
             accessibilityRole="tab"
             accessibilityState={{ selected: activa }}
             onPress={() => onChange(o.value)}
-            style={[styles.opcion, activa && fondoActivo]}
+            style={[styles.opcion, activa && (accent ? styles.activaAccent : styles.activa)]}
           >
             <LumeText
               rol="bodySm"
@@ -55,23 +53,28 @@ export function Segmentado({ opciones, value, onChange, accent = false, style }:
   );
 }
 
-const styles = StyleSheet.create({
-  pista: {
-    flexDirection: 'row',
-    padding: 3,
-    gap: 2,
-    borderRadius: lumeRadius.md,
-    borderWidth: 1,
-  },
-  opcion: {
-    flex: 1,
-    height: 36,
-    paddingHorizontal: 14,
-    borderRadius: 11,
-    borderWidth: 1,
-    borderColor: 'transparent',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  texto: { fontFamily: lumeFuente.semibold },
-});
+const makeStyles = (t: LumePalette, sombras: LumeSombras) =>
+  StyleSheet.create({
+    pista: {
+      flexDirection: 'row',
+      padding: 3,
+      gap: 2,
+      borderRadius: lumeRadius.md,
+      borderWidth: 1,
+      backgroundColor: t.surfaceCard,
+      borderColor: t.glassLine,
+    },
+    opcion: {
+      flex: 1,
+      height: 36,
+      paddingHorizontal: 14,
+      borderRadius: 11,
+      borderWidth: 1,
+      borderColor: 'transparent',
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    activa: { backgroundColor: t.surfaceCardElevated, borderColor: t.glassLine, boxShadow: sombras.glass },
+    activaAccent: { backgroundColor: t.accent, borderColor: t.accent },
+    texto: { fontFamily: lumeFuente.semibold },
+  });

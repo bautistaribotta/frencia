@@ -29,8 +29,8 @@ import Animated, {
 } from 'react-native-reanimated';
 import { scheduleOnRN } from 'react-native-worklets';
 
-import { useLume } from './useLume';
-import { lumeMotion } from './tokens';
+import { useLume, useLumeStyles } from './useLume';
+import { lumeMotion, type LumePalette } from './tokens';
 import {
   DERIVA,
   GANANCIA,
@@ -53,6 +53,7 @@ export interface FondoProps {
 
 export function Fondo({ posicion = 'cumbre', intensidad = 'pleno', animado = false, grano = true }: FondoProps) {
   const { t, modo, reducida, reducirMovimiento } = useLume();
+  const tema = useLumeStyles(makeStyles);
   const { width: W, height: H } = useWindowDimensions();
 
   const [actual, setActual] = useState(posicion);
@@ -135,10 +136,10 @@ export function Fondo({ posicion = 'cumbre', intensidad = 'pleno', animado = fal
   const estiloSaliente = useAnimatedStyle(() => ({ opacity: 1 - fundido.value }));
 
   return (
-    <View style={[StyleSheet.absoluteFill, styles.fondo, { backgroundColor: t.bgApp }]}>
+    <View style={[StyleSheet.absoluteFill, tema.fondo]}>
       {capas(actual, true)}
       {saliente ? (
-        <Animated.View style={[StyleSheet.absoluteFill, { backgroundColor: t.bgApp }, estiloSaliente]}>
+        <Animated.View style={[StyleSheet.absoluteFill, tema.saliente, estiloSaliente]}>
           {capas(saliente, false)}
         </Animated.View>
       ) : null}
@@ -237,7 +238,7 @@ function CapaLuz({ luz, hacia, recorrido, color, alfa, deriva, W, H }: CapaLuzPr
   return (
     <Animated.View style={[StyleSheet.absoluteFill, estiloRecorrido]}>
       <Animated.View style={[StyleSheet.absoluteFill, estiloDeriva]}>
-        <Svg width={lado} height={lado} style={{ position: 'absolute', left: cx - r, top: cy - r }}>
+        <Svg width={lado} height={lado} style={[styles.luz, { left: cx - r, top: cy - r }]}>
           <Defs>
             <RadialGradient id={id} cx={r} cy={r} r={r} gradientUnits="userSpaceOnUse">
               <Stop offset="0" stopColor={color} stopOpacity={alfa} />
@@ -253,5 +254,11 @@ function CapaLuz({ luz, hacia, recorrido, color, alfa, deriva, W, H }: CapaLuzPr
 }
 
 const styles = StyleSheet.create({
-  fondo: { overflow: 'hidden', pointerEvents: 'none' },
+  luz: { position: 'absolute' },
 });
+
+const makeStyles = (t: LumePalette) =>
+  StyleSheet.create({
+    fondo: { overflow: 'hidden', pointerEvents: 'none', backgroundColor: t.bgApp },
+    saliente: { backgroundColor: t.bgApp },
+  });

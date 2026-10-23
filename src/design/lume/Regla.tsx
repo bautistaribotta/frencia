@@ -24,11 +24,11 @@ import { scheduleOnRN } from 'react-native-worklets';
 import Svg, { Polygon } from 'react-native-svg';
 import * as Haptics from 'expo-haptics';
 
-import { useLume } from './useLume';
+import { useLume, useLumeStyles, type LumeSombras } from './useLume';
 import { LumeText } from './LumeText';
 import { Vidrio } from './Vidrio';
 import { lumeFuente } from './tipografia';
-import { lumeLayout, lumeRadius, lumeSpace } from './tokens';
+import { lumeLayout, lumeRadius, lumeSpace, type LumePalette } from './tokens';
 
 // Separacion entre marcas, en px.
 const ESP = 10;
@@ -79,7 +79,8 @@ export function Regla({
   lectura,
   accessibilityLabel,
 }: ReglaProps) {
-  const { t, sombras } = useLume();
+  const { t } = useLume();
+  const styles = useLumeStyles(makeStyles);
   const ref = useRef<ScrollView>(null);
   const [ancho, setAncho] = useState(0);
   const total = Math.round((max - min) / paso);
@@ -144,14 +145,7 @@ export function Regla({
           return (
             <View key={i} style={[styles.ranura, i === total && styles.ultima]}>
               <View
-                style={[
-                  styles.marca,
-                  esMayor
-                    ? { height: 32, backgroundColor: t.textTertiary }
-                    : esMedia
-                      ? { height: 22, backgroundColor: t.textDisabled }
-                      : { backgroundColor: t.dataTick },
-                ]}
+                style={[styles.marca, esMayor ? styles.marcaMayor : esMedia ? styles.marcaMedia : styles.marcaMenor]}
               />
               {esMayor ? (
                 <LumeText rol="data" color={t.textTertiary} style={styles.numero}>
@@ -200,7 +194,7 @@ export function Regla({
       >
         {ancho > 0 ? <View style={StyleSheet.absoluteFill}>{escala}</View> : null}
 
-        <View style={[styles.aguja, { left: media2 - 1, backgroundColor: t.signal, boxShadow: sombras.haloSignal }]} />
+        <View style={[styles.aguja, { left: media2 - 1 }]} />
         <Svg width={10} height={6} style={[styles.punta, { left: media2 - 5 }]}>
           <Polygon points="0,0 10,0 5,6" fill={t.signal} />
         </Svg>
@@ -209,25 +203,38 @@ export function Regla({
   );
 }
 
-const styles = StyleSheet.create({
-  lectura: { alignItems: 'center', gap: lumeSpace[6], alignSelf: 'stretch' },
-  valor: { flexDirection: 'row', alignItems: 'baseline', gap: 8 },
-  num: { fontSize: 88, lineHeight: 92, letterSpacing: -4 },
-  unidad: { fontSize: 18, lineHeight: 22 },
-  regla: { alignSelf: 'stretch', height: ALTO, marginHorizontal: -SANGRE },
-  ranura: { width: ESP, height: ALTO },
-  ultima: { width: 1 },
-  marca: { position: 'absolute', left: 0, top: 12, width: 1, height: 14 },
-  numero: {
-    position: 'absolute',
-    left: -20,
-    width: 40,
-    bottom: 10,
-    textAlign: 'center',
-    fontSize: 11,
-    lineHeight: 16,
-    fontFamily: lumeFuente.medium,
-  },
-  aguja: { pointerEvents: 'none', position: 'absolute', top: 8, width: 2, height: 50, borderRadius: 1 },
-  punta: { pointerEvents: 'none', position: 'absolute', top: 8 },
-});
+const makeStyles = (t: LumePalette, sombras: LumeSombras) =>
+  StyleSheet.create({
+    lectura: { alignItems: 'center', gap: lumeSpace[6], alignSelf: 'stretch' },
+    valor: { flexDirection: 'row', alignItems: 'baseline', gap: 8 },
+    num: { fontSize: 88, lineHeight: 92, letterSpacing: -4 },
+    unidad: { fontSize: 18, lineHeight: 22 },
+    regla: { alignSelf: 'stretch', height: ALTO, marginHorizontal: -SANGRE },
+    ranura: { width: ESP, height: ALTO },
+    ultima: { width: 1 },
+    marca: { position: 'absolute', left: 0, top: 12, width: 1, height: 14 },
+    marcaMayor: { height: 32, backgroundColor: t.textTertiary },
+    marcaMedia: { height: 22, backgroundColor: t.textDisabled },
+    marcaMenor: { backgroundColor: t.dataTick },
+    numero: {
+      position: 'absolute',
+      left: -20,
+      width: 40,
+      bottom: 10,
+      textAlign: 'center',
+      fontSize: 11,
+      lineHeight: 16,
+      fontFamily: lumeFuente.medium,
+    },
+    aguja: {
+      pointerEvents: 'none',
+      position: 'absolute',
+      top: 8,
+      width: 2,
+      height: 50,
+      borderRadius: 1,
+      backgroundColor: t.signal,
+      boxShadow: sombras.haloSignal,
+    },
+    punta: { pointerEvents: 'none', position: 'absolute', top: 8 },
+  });

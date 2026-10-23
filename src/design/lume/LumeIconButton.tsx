@@ -11,8 +11,8 @@ import React from 'react';
 import { Pressable, StyleSheet, type StyleProp, type ViewStyle } from 'react-native';
 
 import { Icon, type IconName } from '../Icon';
-import { useLume } from './useLume';
-import { lumeMotion, lumeRadius } from './tokens';
+import { useLume, useLumeStyles, type LumeSombras } from './useLume';
+import { lumeMotion, lumeRadius, type LumePalette } from './tokens';
 
 export type VarianteBotonIcono = 'primary' | 'surface' | 'ghost';
 
@@ -39,7 +39,8 @@ export function LumeIconButton({
   accessibilityLabel,
   style,
 }: LumeIconButtonProps) {
-  const { t, sombras } = useLume();
+  const { t } = useLume();
+  const styles = useLumeStyles(makeStyles);
   const { lado, icono } = TAMANIOS[size];
 
   const tinta = disabled
@@ -50,20 +51,15 @@ export function LumeIconButton({
         ? t.textPrimary
         : t.textSecondary;
 
-  function relleno(presionado: boolean): ViewStyle {
+  function relleno(presionado: boolean): StyleProp<ViewStyle> {
     switch (variant) {
       case 'primary':
-        if (disabled) return { backgroundColor: t.surfaceChip };
-        return { backgroundColor: presionado ? t.accentPress : t.accent, boxShadow: sombras.haloAccent };
+        if (disabled) return styles.primarioApagado;
+        return [styles.primario, presionado && styles.primarioPresionado];
       case 'surface':
-        return {
-          backgroundColor: presionado ? t.surfaceCardElevated : t.surfaceCard,
-          borderColor: t.glassLine,
-          borderTopColor: t.glassHighlight,
-          boxShadow: sombras.glass,
-        };
+        return [styles.vidrio, presionado && styles.vidrioPresionado];
       default:
-        return { backgroundColor: presionado ? t.surfaceChip : 'transparent' };
+        return presionado && styles.fondoPresionado;
     }
   }
 
@@ -79,7 +75,7 @@ export function LumeIconButton({
         styles.base,
         { width: lado, height: lado, borderRadius: round ? lado / 2 : lumeRadius.lg },
         relleno(pressed && !disabled),
-        pressed && !disabled && { transform: [{ scale: lumeMotion.pressScale }] },
+        pressed && !disabled && styles.presionado,
         style,
       ]}
     >
@@ -88,6 +84,19 @@ export function LumeIconButton({
   );
 }
 
-const styles = StyleSheet.create({
-  base: { alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: 'transparent' },
-});
+const makeStyles = (t: LumePalette, sombras: LumeSombras) =>
+  StyleSheet.create({
+    base: { alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: 'transparent' },
+    presionado: { transform: [{ scale: lumeMotion.pressScale }] },
+    primario: { backgroundColor: t.accent, boxShadow: sombras.haloAccent },
+    primarioPresionado: { backgroundColor: t.accentPress },
+    primarioApagado: { backgroundColor: t.surfaceChip },
+    vidrio: {
+      backgroundColor: t.surfaceCard,
+      borderColor: t.glassLine,
+      borderTopColor: t.glassHighlight,
+      boxShadow: sombras.glass,
+    },
+    vidrioPresionado: { backgroundColor: t.surfaceCardElevated },
+    fondoPresionado: { backgroundColor: t.surfaceChip },
+  });
