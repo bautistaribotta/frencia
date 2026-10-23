@@ -23,6 +23,7 @@ import {
   fechaCorta,
   type RutinaResumen,
 } from '@/lib/rutinas';
+import { crearCandado } from '@/lib/candado';
 import { crearRutinas } from '@/lib/rutinas-store';
 import { useSession } from '@/contexts/session';
 import { useToast } from '@/contexts/toast';
@@ -69,7 +70,7 @@ export default function RoutinesScreen() {
   const { activa, anteriores, siguiente, loaded, cargando, error } = estado;
   // Evita disparar dos veces la misma accion mientras la fila vuelve a su lugar
   // y la lista se recarga.
-  const [ocupada, setOcupada] = useState(false);
+  const [candado] = useState(crearCandado);
   // Como en el historial: el RefreshControl solo se muestra cuando la recarga
   // la inicio el gesto de tirar hacia abajo. Las recargas silenciosas (al
   // enfocar o tras activar una rutina) no lo activan: si lo hicieran, iOS lo
@@ -91,8 +92,7 @@ export default function RoutinesScreen() {
   const crearRutina = () => router.push('/create-routine');
 
   async function activar(rutina: RutinaResumen) {
-    if (ocupada || rutina.activa) return;
-    setOcupada(true);
+    if (rutina.activa || !candado.tomar()) return;
     const ok = await activarRutina(rutina.id);
     if (ok) {
       showToast({ message: `${rutina.name} está en curso`, type: 'success' });
@@ -100,11 +100,11 @@ export default function RoutinesScreen() {
     } else {
       showToast({ message: 'No pudimos activar la rutina. Probá de nuevo.', type: 'error' });
     }
-    setOcupada(false);
+    candado.soltar();
   }
 
   function pedirEliminar(rutina: RutinaResumen) {
-    if (ocupada) return;
+    if (candado.tomado()) return;
     const detalle =
       rutina.dias > 0
         ? ` con sus ${rutina.dias} ${rutina.dias === 1 ? 'día' : 'días'} y los ejercicios de cada uno`
@@ -120,8 +120,7 @@ export default function RoutinesScreen() {
   }
 
   async function eliminar(rutina: RutinaResumen) {
-    if (ocupada) return;
-    setOcupada(true);
+    if (!candado.tomar()) return;
     const ok = await eliminarRutina(rutina.id);
     if (ok) {
       lista.quitar(rutina.id);
@@ -129,7 +128,7 @@ export default function RoutinesScreen() {
     } else {
       showToast({ message: 'No pudimos eliminar la rutina. Probá de nuevo.', type: 'error' });
     }
-    setOcupada(false);
+    candado.soltar();
   }
 
   const vacia = loaded && !error && !cargando && !activa && anteriores.length === 0;
