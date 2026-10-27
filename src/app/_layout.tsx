@@ -167,6 +167,9 @@ function RootNavigator() {
           {/* Sesion de entrenamiento. Sin gesto de volver por la misma razon que
               el wizard: los pasos manejan el retroceso con su propio boton. */}
           <Stack.Screen name="session" options={OPCIONES_SIN_GESTO} />
+          {/* Vista previa de una rutina compartida por link. Nada se agrega
+              hasta confirmar, asi que el gesto de volver no pierde nada. */}
+          <Stack.Screen name="shared/[codigo]" options={OPCIONES_GESTO_VOLVER} />
         </Stack.Protected>
         {/* Textos legales. Solo lectura, accesibles con o sin sesion. */}
         <Stack.Screen name="terms" options={OPCIONES_GESTO_VOLVER} />

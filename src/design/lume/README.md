@@ -31,6 +31,11 @@ El wizard de crear rutina tambien, con el marco de `PasoWizard`: el nombre sobre
 una linea con sugerencias y la cantidad de dias en siete numeros.
 Y las dos pantallas de estado de cuenta (`account-recovery` y `profile-error`),
 que comparten el marco de `src/components/EstadoCuenta.tsx`.
+Compartir una rutina (*Pantallas - 9 Compartir* del kit) nace en Lume: la hoja
+de dos pasos (`src/components/compartir/HojaCompartir.tsx`), la fila y la hoja
+de con quien se comparte (`compartir/Vinculo.tsx`), la vista previa de quien
+recibe el link (`shared/[codigo]`) y los estados de la rutina vinculada en
+`routine`. Los dias al hilo del detalle salieron a `src/components/DiasRutina.tsx`.
 
 Las piezas compartidas se migran en su mismo archivo, no en copias: si una
 pantalla todavia vieja las usa, queda
