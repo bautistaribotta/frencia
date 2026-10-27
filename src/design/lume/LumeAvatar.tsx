@@ -13,7 +13,7 @@ import BoringAvatar from 'react-native-boring-avatars';
 import { useLume, useLumeStyles } from './useLume';
 import type { LumePalette } from './tokens';
 
-type TamanioAvatar = 'xs' | 'sm' | 'md' | 'lg' | 'xl';
+type TamanioAvatar = '2xs' | 'xs' | 'sm' | 'md' | 'lg' | 'xl';
 
 export interface LumeAvatarProps {
   src?: string;
@@ -24,8 +24,9 @@ export interface LumeAvatarProps {
   style?: StyleProp<ViewStyle>;
 }
 
-// xl: la vista previa de la hoja de foto de perfil.
-const LADO: Record<TamanioAvatar, number> = { xs: 28, sm: 36, md: 44, lg: 64, xl: 120 };
+// 2xs: junto a un rotulo (quien actualiza una rutina vinculada). xl: la
+// vista previa de la hoja de foto de perfil.
+const LADO: Record<TamanioAvatar, number> = { '2xs': 20, xs: 28, sm: 36, md: 44, lg: 64, xl: 120 };
 
 export function LumeAvatar({ src, cacheKey, name = '', size = 'md', ring = false, style }: LumeAvatarProps) {
   const { t } = useLume();
