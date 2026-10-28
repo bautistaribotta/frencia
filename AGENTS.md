@@ -50,6 +50,23 @@ https://docs.expo.dev/versions/v57.0.0/ antes de escribir codigo que toque el SD
   `npx supabase db push --dry-run`). El agente **nunca** ejecuta el push por su
   cuenta: la decision de tocar la base remota es del programador.
 
+## Terminos y Condiciones y Politica de Privacidad
+
+- Los textos legales son los mismos en la app movil y en la web
+  (github.com/bautistaribotta/frencia-web), y la aceptacion es por cuenta:
+  aceptar en una plataforma vale para la otra.
+- **Siempre** que se modifiquen los Terminos y Condiciones y/o la Politica de
+  Privacidad, el cambio se hace en **los dos repositorios**: aca
+  (`src/lib/terminos.ts`, `src/lib/privacidad.ts` y, si cambian los datos del
+  titular, `src/lib/legal.ts`) y en el repo web (los mismos archivos en
+  `src/lib/`). Los dos tienen que quedar identicos, con la misma vigencia y la
+  misma version (`TERMINOS_VERSION` / `PRIVACIDAD_VERSION`).
+- Un cambio de fondo sube la version, y subir la version vuelve a pedir la
+  aceptacion a todos en las dos plataformas. Una correccion de forma (una
+  errata) no cambia la version, pero igual se copia en los dos repos.
+- Si el agente solo tiene acceso a uno de los dos repos, hace el cambio en ese
+  y avisa que falta replicarlo en el otro, con el texto exacto a copiar.
+
 ## Commits y pull requests
 
 - **Nunca** usar emojis en los commits.
