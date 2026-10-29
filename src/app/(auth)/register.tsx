@@ -9,7 +9,7 @@ import { useRouter } from 'expo-router';
 import type { AuthError } from '@supabase/supabase-js';
 
 import { supabase } from '@/lib/supabase';
-import { signInWithProvider, type OAuthProvider } from '@/lib/oauth';
+import { NOMBRE_PROVEEDOR, signInWithProvider, type OAuthProvider } from '@/lib/oauth';
 import {
   AvisoTerminos,
   BotonOjo,
@@ -127,11 +127,12 @@ export default function RegisterScreen() {
     setErrorMsg('');
     setEmailTaken(false);
 
-    const { error } = await signInWithProvider(provider);
+    const { error, cancelado } = await signInWithProvider(provider);
 
     setOauthLoading(null);
 
-    if (error) setErrorMsg('No pudimos continuar con ese proveedor. Probá de nuevo.');
+    // Cerrar el navegador o rechazar en el proveedor no es un error.
+    if (error && !cancelado) setErrorMsg(`No pudimos continuar con ${NOMBRE_PROVEEDOR[provider]}. Probá de nuevo.`);
   }
 
   return (

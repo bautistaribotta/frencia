@@ -336,17 +336,31 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
   );
 
   const aceptarLegales = useCallback(async (): Promise<boolean> => {
+    // La aceptacion apunta a profiles: una cuenta sin su fila (si el trigger
+    // de alta fallo) daba un error de clave foranea. Se crea antes con el
+    // nombre que trajo el proveedor, sin pisar una fila que ya exista.
+    const sinFila = !activeProfile && !!userId;
+    if (sinFila) {
+      const meta = user?.user_metadata ?? {};
+      const nombre = (meta.name ?? meta.full_name ?? null) as string | null;
+      const { error: errorPerfil } = await supabase
+        .from('profiles')
+        .upsert({ id: userId, name: nombre }, { onConflict: 'id', ignoreDuplicates: true });
+      if (errorPerfil) return false;
+    }
     // La fecha y el usuario los pone la base; aca solo van las versiones.
     const { error } = await supabase.rpc('registrar_aceptacion_legal', {
       p_version_terminos: TERMINOS_VERSION,
       p_version_privacidad: PRIVACIDAD_VERSION,
     });
     if (error) return false;
+    // Recien creada, la fila se relee entera para que el gate la vea.
+    if (sinFila) return refresh();
     setProfile((prev) =>
       prev ? { ...prev, aceptacionLegal: { terminos: TERMINOS_VERSION, privacidad: PRIVACIDAD_VERSION } } : prev,
     );
     return true;
-  }, []);
+  }, [activeProfile, userId, user, refresh]);
 
   const displayName = activeProfile?.name?.trim() || 'Atleta';
   const legalesVigentes =

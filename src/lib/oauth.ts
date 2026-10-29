@@ -11,6 +11,12 @@ WebBrowser.maybeCompleteAuthSession();
 
 export type OAuthProvider = 'google' | 'apple';
 
+export const NOMBRE_PROVEEDOR: Record<OAuthProvider, string> = { google: 'Google', apple: 'Apple' };
+
+/** Los que se ofrecen en el acceso, en orden. Apple vuelve cuando haya cuenta
+ *  de Apple Developer y este habilitado en Supabase (igual que en la web). */
+export const PROVEEDORES_ACTIVOS: OAuthProvider[] = ['google'];
+
 // URL a la que el navegador redirige de vuelta a la app.
 // Expo Go -> exp://... ; build nativo -> frencia://oauth-callback
 const redirectTo = makeRedirectUri({ path: 'oauth-callback' });
@@ -44,7 +50,9 @@ function parseUrl(url: string): Record<string, string> {
 
 /**
  * Inicia sesion con un proveedor OAuth.
- * Devuelve { error } — si es null, la sesion quedo establecida.
+ * Devuelve { error, cancelado }: sin error, la sesion quedo establecida; con
+ * cancelado, el usuario cerro el navegador o rechazo en la pantalla del
+ * proveedor, y no hace falta mostrarle un error.
  */
 export async function signInWithProvider(provider: OAuthProvider) {
   const { data, error } = await supabase.auth.signInWithOAuth({
@@ -55,27 +63,28 @@ export async function signInWithProvider(provider: OAuthProvider) {
     },
   });
 
-  if (error) return { error };
-  if (!data?.url) return { error: new Error('No se pudo iniciar sesión con este proveedor.') };
+  if (error) return { error, cancelado: false };
+  if (!data?.url) return { error: new Error('No se pudo iniciar sesión con este proveedor.'), cancelado: false };
 
   const result = await WebBrowser.openAuthSessionAsync(data.url, redirectTo);
 
   if (result.type !== 'success' || !result.url) {
-    return { error: new Error('Inicio de sesión cancelado.') };
+    return { error: new Error('Inicio de sesión cancelado.'), cancelado: true };
   }
 
   const params = parseUrl(result.url);
   if (params.error) {
     // El usuario cancelo en la pantalla del proveedor, o Auth rechazo el login.
-    const cancelado = params.error === 'access_denied';
+    const cancelado = params.error === 'access_denied' || /cancel/i.test(params.error_description ?? '');
     return {
       error: new Error(cancelado ? 'Inicio de sesión cancelado.' : 'No se pudo iniciar sesión con este proveedor.'),
+      cancelado,
     };
   }
 
   const code = params.code;
-  if (!code) return { error: new Error('Respuesta de OAuth inválida.') };
+  if (!code) return { error: new Error('Respuesta de OAuth inválida.'), cancelado: false };
 
   const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);
-  return { error: exchangeError ?? null };
+  return { error: exchangeError ?? null, cancelado: false };
 }

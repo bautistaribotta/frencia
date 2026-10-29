@@ -1,7 +1,7 @@
 /* Frencia · Piezas de las pantallas de acceso (login, registro y recuperar
    contraseña) en Lume. Login y registro llevan arriba el nombre FRENCIA.
    como marca; las tres comparten el formulario alineado a la izquierda y
-   Apple / Google como secundarios en vidrio. Ver "Pantallas - 1 Acceso" en
+   los proveedores (hoy solo Google) como secundarios en vidrio. Ver "Pantallas - 1 Acceso" en
    el design system. */
 
 import React from 'react';
@@ -22,7 +22,7 @@ import {
   useLumeStyles,
   type LumePalette,
 } from '@/design/lume';
-import type { OAuthProvider } from '@/lib/oauth';
+import { NOMBRE_PROVEEDOR, PROVEEDORES_ACTIVOS, type OAuthProvider } from '@/lib/oauth';
 
 import AppleLogo from '@/assets/icons/apple.svg';
 import GoogleLogo from '@/assets/icons/google.svg';
@@ -159,7 +159,14 @@ export function Divisor({ texto }: { texto: string }) {
   );
 }
 
-/* Apple y Google: secundarios en vidrio, mitad y mitad. */
+/* Apple y Google: secundarios en vidrio, mitad y mitad. Solo se muestran los
+   proveedores activos (PROVEEDORES_ACTIVOS): con uno solo, ocupa el ancho. El
+   tocado carga y los otros quedan apagados hasta que vuelve el navegador. */
+const LOGO: Record<OAuthProvider, (color: string) => React.ReactNode> = {
+  apple: (color) => <AppleLogo width={18} height={18} color={color} />,
+  google: () => <GoogleLogo width={18} height={18} />,
+};
+
 export function BotonesSociales({
   cargando,
   onPress,
@@ -170,28 +177,20 @@ export function BotonesSociales({
   const { t } = useLume();
   return (
     <View style={styles.social}>
-      <LumeButton
-        variant="secondary"
-        size="lg"
-        style={styles.socialBoton}
-        leading={<AppleLogo width={18} height={18} color={t.textPrimary} />}
-        loading={cargando === 'apple'}
-        disabled={cargando !== null && cargando !== 'apple'}
-        onPress={() => onPress('apple')}
-      >
-        Apple
-      </LumeButton>
-      <LumeButton
-        variant="secondary"
-        size="lg"
-        style={styles.socialBoton}
-        leading={<GoogleLogo width={18} height={18} />}
-        loading={cargando === 'google'}
-        disabled={cargando !== null && cargando !== 'google'}
-        onPress={() => onPress('google')}
-      >
-        Google
-      </LumeButton>
+      {PROVEEDORES_ACTIVOS.map((proveedor) => (
+        <LumeButton
+          key={proveedor}
+          variant="secondary"
+          size="lg"
+          style={styles.socialBoton}
+          leading={LOGO[proveedor](t.textPrimary)}
+          loading={cargando === proveedor}
+          disabled={cargando !== null && cargando !== proveedor}
+          onPress={() => onPress(proveedor)}
+        >
+          {NOMBRE_PROVEEDOR[proveedor]}
+        </LumeButton>
+      ))}
     </View>
   );
 }

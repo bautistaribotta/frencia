@@ -9,7 +9,7 @@ import { Keyboard, StyleSheet, View } from 'react-native';
 import { useRouter } from 'expo-router';
 
 import { supabase } from '@/lib/supabase';
-import { signInWithProvider, type OAuthProvider } from '@/lib/oauth';
+import { NOMBRE_PROVEEDOR, signInWithProvider, type OAuthProvider } from '@/lib/oauth';
 import {
   AvisoTerminos,
   BotonOjo,
@@ -93,13 +93,14 @@ export default function LoginScreen() {
     // el hueco hasta que el gate redirija.
     setEntering(true);
 
-    const { error } = await signInWithProvider(provider);
+    const { error, cancelado } = await signInWithProvider(provider);
 
     setOauthLoading(null);
 
     if (error) {
       setEntering(false);
-      setErrorMsg('No pudimos ingresar con ese proveedor. Probá de nuevo.');
+      // Cerrar el navegador o rechazar en el proveedor no es un error.
+      if (!cancelado) setErrorMsg(`No pudimos ingresar con ${NOMBRE_PROVEEDOR[provider]}. Probá de nuevo.`);
     }
   }
 
