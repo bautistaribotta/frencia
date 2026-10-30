@@ -17,7 +17,7 @@ import {
   type LayoutChangeEvent,
   type NativeScrollEvent,
   type NativeSyntheticEvent,
-  type ScrollView,
+  type ScrollViewInstance,
 } from 'react-native';
 import Animated, { useAnimatedScrollHandler, useSharedValue } from 'react-native-reanimated';
 import { scheduleOnRN } from 'react-native-worklets';
@@ -81,7 +81,7 @@ export function Regla({
 }: ReglaProps) {
   const { t } = useLume();
   const styles = useLumeStyles(makeStyles);
-  const ref = useRef<ScrollView>(null);
+  const ref = useRef<ScrollViewInstance>(null);
   const [ancho, setAncho] = useState(0);
   const total = Math.round((max - min) / paso);
   const indiceDe = (v: number) => Math.max(0, Math.min(total, Math.round((v - min) / paso)));

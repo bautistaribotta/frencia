@@ -19,7 +19,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
-import MaskedView from '@react-native-masked-view/masked-view';
+import { MaskedView } from '@/components/MaskedView';
 
 import { useProfile } from '@/contexts/profile';
 import { useToast } from '@/contexts/toast';

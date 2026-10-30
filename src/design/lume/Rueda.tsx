@@ -17,7 +17,7 @@ import {
   View,
   type NativeScrollEvent,
   type NativeSyntheticEvent,
-  type ScrollView,
+  type ScrollViewInstance,
 } from 'react-native';
 import Animated, {
   Extrapolation,
@@ -84,7 +84,7 @@ export function Rueda({
 }: RuedaProps) {
   const { izq, der } = ALCANCE[alcance];
   const { t } = useLume();
-  const ref = useRef<ScrollView>(null);
+  const ref = useRef<ScrollViewInstance>(null);
   const maxIndice = Math.max(0, valores.length - 1);
   const indiceSeguro = Math.max(0, Math.min(maxIndice, indice));
   const y = useSharedValue(indiceSeguro * RUEDA_ITEM);

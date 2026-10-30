@@ -3,7 +3,7 @@
    Compartir abajo. Se abre desde el detalle del historial. */
 
 import React, { useMemo, useRef, useState } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { StyleSheet, View, type ViewInstance } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 
@@ -33,7 +33,7 @@ export default function SessionTicketScreen() {
     () => (sesion ? ejerciciosDelHistorial(sesion.ejercicios) : []),
     [sesion],
   );
-  const capturaRef = useRef<View>(null);
+  const capturaRef = useRef<ViewInstance>(null);
   const [compartiendo, setCompartiendo] = useState(false);
 
   function volver() {

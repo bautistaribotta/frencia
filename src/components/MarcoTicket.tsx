@@ -8,7 +8,7 @@
 import React, { type ReactNode } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import MaskedView from '@react-native-masked-view/masked-view';
+import { MaskedView } from '@/components/MaskedView';
 
 import { ANCHO_TICKET, MARGEN_CAPTURA } from '@/components/TicketSesion';
 import { MASCARA_LLENA, MASCARA_VACIA, lumeLayout, lumeSpace } from '@/design/lume';

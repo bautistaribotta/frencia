@@ -5,11 +5,14 @@
    de Android. En lugar de salir, se pregunta si se descartan los cambios.
 
    Si la salida es porque ya se guardo (o se borro), se llama salir con
-   sinPreguntar y se deja pasar sin el modal. */
+   sinPreguntar y se deja pasar sin el modal.
 
-import { useCallback, useRef } from 'react';
-import { useNavigation, useRouter, type Href } from 'expo-router';
-import { usePreventRemove } from 'expo-router/react-navigation';
+   Desde Expo Router 58, volver a despachar la accion bloqueada mientras la
+   prevencion sigue activa la bloquea de nuevo: para dejarla pasar se apaga la
+   prevencion (suelto) y se repite con repeat(). */
+
+import { useCallback, useRef, useState } from 'react';
+import { usePreventRemove, useRouter, type Href } from 'expo-router';
 
 import { alerta } from '@/lib/alerta';
 
@@ -25,26 +28,38 @@ interface Opciones {
 }
 
 export function useDescartarAlSalir({ sucio, ocupado, mensaje, respaldo }: Opciones) {
-  const navigation = useNavigation();
   const router = useRouter();
-  // La salida ya esta decidida (se guardo o se borro): no se pregunta.
+  // La salida ya esta decidida (se guardo, se borro o se descarto): no se
+  // pregunta. El ref la ve al instante; el estado apaga la prevencion.
   const libre = useRef(false);
+  const [suelto, setSuelto] = useState(false);
 
-  usePreventRemove(sucio || ocupado, ({ data }) => {
+  usePreventRemove((sucio || ocupado) && !suelto, ({ repeat }) => {
     if (libre.current) {
-      navigation.dispatch(data.action);
+      repeat();
       return;
     }
     if (ocupado) return;
     alerta('Descartar cambios', mensaje, [
       { text: 'Seguir editando', style: 'cancel' },
-      { text: 'Descartar', style: 'destructive', onPress: () => navigation.dispatch(data.action) },
+      {
+        text: 'Descartar',
+        style: 'destructive',
+        onPress: () => {
+          libre.current = true;
+          setSuelto(true);
+          repeat();
+        },
+      },
     ]);
   });
 
   return useCallback(
     (opciones?: { sinPreguntar?: boolean }) => {
-      if (opciones?.sinPreguntar) libre.current = true;
+      if (opciones?.sinPreguntar) {
+        libre.current = true;
+        setSuelto(true);
+      }
       if (router.canGoBack()) router.back();
       else router.replace(respaldo);
     },

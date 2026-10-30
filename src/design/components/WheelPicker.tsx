@@ -9,10 +9,10 @@ import {
   Platform,
   StyleSheet,
   View,
-  type ScrollView,
   type NativeScrollEvent,
   type NativeSyntheticEvent,
   type TextStyle,
+  type ScrollViewInstance,
 } from 'react-native';
 import Animated, {
   Extrapolation,
@@ -61,7 +61,7 @@ export function WheelPicker({
   align = 'center',
 }: WheelPickerProps) {
   const styles = useThemedStyles(makeStyles);
-  const scrollRef = useRef<ScrollView>(null);
+  const scrollRef = useRef<ScrollViewInstance>(null);
   const maxIndex = Math.max(0, values.length - 1);
   const safeIndex = Math.max(0, Math.min(maxIndex, index));
   const scrollY = useSharedValue(safeIndex * itemHeight);

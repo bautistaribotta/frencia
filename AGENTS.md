@@ -7,7 +7,7 @@ regla nueva aparece, va aca.
 ## Expo
 
 Expo cambio. Leer la documentacion versionada exacta en
-https://docs.expo.dev/versions/v57.0.0/ antes de escribir codigo que toque el SDK.
+https://docs.expo.dev/versions/v58.0.0/ antes de escribir codigo que toque el SDK.
 
 ## Design system
 

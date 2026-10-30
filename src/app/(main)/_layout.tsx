@@ -22,7 +22,7 @@ const TABS = [
   { value: 'profile', label: 'Perfil', icon: 'user' },
 ] satisfies LumeTabItem[];
 
-function FrenciaTabBar({ state, navigation }: BottomTabBarProps) {
+function FrenciaTabBar({ state, emitter, navigateToTab }: BottomTabBarProps) {
   const activa = state.routes[state.index]?.name ?? '';
 
   const cambiar = useCallback(
@@ -32,14 +32,14 @@ function FrenciaTabBar({ state, navigation }: BottomTabBarProps) {
 
       // Emitir el evento es lo que deja que una pantalla cancele la navegacion,
       // por ejemplo para volver arriba cuando ya estas parado en ella.
-      const evento = navigation.emit({
+      const evento = emitter.emit({
         type: 'tabPress',
         target: ruta.key,
         canPreventDefault: true,
       });
-      if (!evento.defaultPrevented) navigation.navigate(ruta.name);
+      if (ruta.name !== activa && !evento.defaultPrevented) navigateToTab(ruta.key);
     },
-    [state.routes, navigation],
+    [state.routes, emitter, navigateToTab, activa],
   );
 
   return <LumeTabBar items={TABS} value={activa} onChange={cambiar} />;

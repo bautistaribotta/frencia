@@ -292,7 +292,7 @@ export default function RoutinesScreen() {
                   Cargar más
                 </LumeButton>
               </View>
-            ) : null
+            ) : undefined
           }
         />
       </SafeAreaView>

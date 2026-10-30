@@ -13,7 +13,7 @@
    abajo a la izquierda. */
 
 import React, { useCallback, useRef, useState } from 'react';
-import { Pressable, RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
+import { Pressable, RefreshControl, ScrollView, StyleSheet, View, type ScrollViewInstance } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect, useRouter } from 'expo-router';
 
@@ -85,7 +85,7 @@ export default function HomeScreen() {
   const { t, modo } = useLume();
   const tema = useLumeStyles(makeStyles);
   const router = useRouter();
-  const scrollRef = useRef<ScrollView>(null);
+  const scrollRef = useRef<ScrollViewInstance>(null);
   useVolverArribaAlRetocar(scrollRef);
   const { displayName, profile } = useProfile();
   // El usuario sale de la sesion local: getUser() hace un pedido HTTP y falla

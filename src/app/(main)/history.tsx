@@ -231,7 +231,7 @@ export default function HistoryScreen() {
           ItemSeparatorComponent={() => <View style={styles.separador} />}
           /* Hasta tener la primera lectura no decidimos que mostrar. */
           ListEmptyComponent={
-            !loaded || error || cargando === 'inicio' ? null : (
+            !loaded || error || cargando === 'inicio' ? undefined : (
               <VacioPestania
                 icono="history"
                 titulo="Todavía no hay sesiones"
@@ -255,7 +255,7 @@ export default function HistoryScreen() {
                   Cargar más
                 </LumeButton>
               </View>
-            ) : null
+            ) : undefined
           }
         />
       </SafeAreaView>

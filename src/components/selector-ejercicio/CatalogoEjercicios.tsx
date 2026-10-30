@@ -4,7 +4,7 @@
 import React, { useCallback } from 'react';
 import { FlatList, Pressable, ScrollView, StyleSheet, Text, TextInput, View, type ListRenderItemInfo } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import MaskedView from '@react-native-masked-view/masked-view';
+import { MaskedView } from '@/components/MaskedView';
 
 import { Icon, Tag } from '@/design';
 import {

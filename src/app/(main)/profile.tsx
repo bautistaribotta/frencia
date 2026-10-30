@@ -6,7 +6,7 @@
 
 import { useRouter } from 'expo-router';
 import React, { useRef, useState } from 'react';
-import { Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { Platform, Pressable, ScrollView, StyleSheet, View, type ScrollViewInstance } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { useProfile, type Preferencias } from '@/contexts/profile';
@@ -49,7 +49,7 @@ export default function ProfileScreen() {
   const { t } = useLume();
   const tema = useLumeStyles(makeStyles);
   const router = useRouter();
-  const scrollRef = useRef<ScrollView>(null);
+  const scrollRef = useRef<ScrollViewInstance>(null);
   useVolverArribaAlRetocar(scrollRef);
   const { user } = useSession();
   // Datos del perfil compartidos (saludo, avatar, preferencias) + reflejo de

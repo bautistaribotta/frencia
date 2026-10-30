@@ -8,7 +8,7 @@
    historial. */
 
 import React, { type RefObject } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { StyleSheet, type ViewInstance } from 'react-native';
 
 import { MarcoTicket } from '@/components/MarcoTicket';
 import { TicketSesion } from '@/components/TicketSesion';
@@ -28,7 +28,7 @@ export interface ResumenSesionProps {
   unidadDistancia: UnidadDistancia;
   guardando: boolean;
   /** Lo que se captura como imagen al compartir. */
-  capturaRef: RefObject<View | null>;
+  capturaRef: RefObject<ViewInstance | null>;
   compartiendo: boolean;
   onVolver: () => void;
   onCompartir: () => void;

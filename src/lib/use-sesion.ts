@@ -8,7 +8,7 @@
 
 import { useRouter } from 'expo-router';
 import { useCallback, useEffect, useMemo, useReducer, useRef } from 'react';
-import { Platform, type View } from 'react-native';
+import { Platform, type ViewInstance } from 'react-native';
 import * as Haptics from 'expo-haptics';
 
 import { useProfile } from '@/contexts/profile';
@@ -55,7 +55,7 @@ export function useSesion(trainingDayId: string, nombreParam: string | undefined
   const unidadDistancia: UnidadDistancia = profile?.unidadDistancia ?? 'km';
 
   // El ticket que se captura como imagen al compartir.
-  const capturaRef = useRef<View>(null);
+  const capturaRef = useRef<ViewInstance>(null);
   const yaVibro = useRef<Set<string>>(new Set());
   // Se avisa una sola vez por sesion que hay series guardadas solo en el
   // telefono; repetirlo en cada paso sin senal seria puro ruido.

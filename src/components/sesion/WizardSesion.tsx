@@ -4,7 +4,7 @@
    sola decision por pantalla se completa sin leer. */
 
 import React, { useEffect, useRef } from 'react';
-import { Keyboard, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, View } from 'react-native';
+import { Keyboard, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, View, type ScrollViewInstance } from 'react-native';
 
 import { MarqueeText } from '@/components/MarqueeText';
 import { LumeButton, LumeIconButton, LumeText, lumeLayout, lumeSpace, useLume } from '@/design/lume';
@@ -34,7 +34,7 @@ export function WizardSesion({
 
   // Con el teclado abierto el alto se achica y la serie anclada abajo queda
   // fuera de vista: el scroll baja hasta el final para mostrar la fila de hoy.
-  const scrollRef = useRef<ScrollView>(null);
+  const scrollRef = useRef<ScrollViewInstance>(null);
   useEffect(() => {
     const sub = Keyboard.addListener('keyboardDidShow', () => {
       scrollRef.current?.scrollToEnd({ animated: true });

@@ -7,7 +7,7 @@
    no se ve, pero la captura lo encuentra igual. */
 
 import React, { useMemo, useRef, useState } from 'react';
-import { SectionList, StyleSheet, Text, View } from 'react-native';
+import { SectionList, StyleSheet, Text, View, type ViewInstance } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 
@@ -96,7 +96,7 @@ export default function SessionHistoryScreen() {
   const unidadDistancia = profile?.unidadDistancia ?? 'km';
 
   const { resultado, noEncontrada, reintentar } = useDetalleSesion(sessionId);
-  const capturaRef = useRef<View>(null);
+  const capturaRef = useRef<ViewInstance>(null);
   const [compartiendo, setCompartiendo] = useState(false);
 
   const sesion = resultado?.estado === 'ok' ? resultado.sesion : null;
@@ -316,7 +316,7 @@ export default function SessionHistoryScreen() {
                     Compartir
                   </LumeButton>
                 </View>
-              ) : null
+              ) : undefined
             }
             ListEmptyComponent={
               <View style={styles.vacio}>

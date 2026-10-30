@@ -8,7 +8,7 @@
    digito se perderia. */
 
 import React, { useRef, useState } from 'react';
-import { Pressable, StyleSheet, Text, TextInput, View, type ViewStyle } from 'react-native';
+import { Pressable, StyleSheet, Text, TextInput, View, type ViewStyle, type TextInputInstance } from 'react-native';
 import { useLume, useLumeStyles } from '../lume/useLume';
 import { lumeFuente } from '../lume/tipografia';
 import { lumeRadius, type LumePalette } from '../lume/tokens';
@@ -47,7 +47,7 @@ export function DurationField({
 }: DurationFieldProps) {
   const { t: colors } = useLume();
   const styles = useLumeStyles(makeStyles);
-  const input = useRef<TextInput>(null);
+  const input = useRef<TextInputInstance>(null);
   const [foco, setFoco] = useState(false);
   const [buf, setBuf] = useState('');
 

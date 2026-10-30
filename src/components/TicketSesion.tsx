@@ -17,7 +17,7 @@
    del vidrio, asi se ve igual en pantalla y en la imagen. */
 
 import React, { useMemo, useState, type RefObject } from 'react';
-import { StyleSheet, Text, View, type LayoutChangeEvent } from 'react-native';
+import { StyleSheet, Text, View, type LayoutChangeEvent, type ViewInstance } from 'react-native';
 import Svg, { Defs, FeGaussianBlur, FeOffset, Filter, G, Path } from 'react-native-svg';
 
 import type { UnidadDistancia } from '@/lib/distancia';
@@ -59,7 +59,7 @@ export interface TicketSesionProps {
   unidad: UnidadPeso;
   unidadDistancia: UnidadDistancia;
   /** Lo que se captura como imagen al compartir. */
-  capturaRef: RefObject<View | null>;
+  capturaRef: RefObject<ViewInstance | null>;
 }
 
 export function TicketSesion({

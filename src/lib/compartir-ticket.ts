@@ -2,13 +2,13 @@
    pantalla. Lo usan el resumen al terminar la sesion y el historial. */
 
 import type { RefObject } from 'react';
-import type { View } from 'react-native';
+import type { ViewInstance } from 'react-native';
 import * as Sharing from 'expo-sharing';
 import { captureRef } from 'react-native-view-shot';
 
 export type ResultadoCompartir = 'ok' | 'no-disponible' | 'error';
 
-export async function compartirTicket(ref: RefObject<View | null>): Promise<ResultadoCompartir> {
+export async function compartirTicket(ref: RefObject<ViewInstance | null>): Promise<ResultadoCompartir> {
   try {
     if (!ref.current) return 'error';
     if (!(await Sharing.isAvailableAsync())) return 'no-disponible';

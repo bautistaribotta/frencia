@@ -7,7 +7,7 @@
    ============================================================ */
 
 import React, { forwardRef, useState } from 'react';
-import { StyleSheet, TextInput, View, type TextInputProps } from 'react-native';
+import { StyleSheet, TextInput, View, type TextInputProps, type TextInputInstance } from 'react-native';
 
 import { Icon, type IconName } from '../Icon';
 import { useLume, useLumeStyles, type LumeSombras } from './useLume';
@@ -22,7 +22,7 @@ export interface CampoProps extends TextInputProps {
   lg?: boolean;
 }
 
-export const Campo = forwardRef<TextInput, CampoProps>(function Campo(
+export const Campo = forwardRef<TextInputInstance, CampoProps>(function Campo(
   { icono, final, iconoAcento = false, lg = false, onFocus, onBlur, style, ...rest },
   ref,
 ) {
