@@ -6,7 +6,7 @@
 import { StyleSheet } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
-import { Stack } from 'expo-router';
+import { Stack, type Href } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 
 import { AnimatedSplashOverlay } from '@/components/AnimatedSplashOverlay';
@@ -92,20 +92,42 @@ function useFase(): { fase: Fase; necesitaSetup: boolean } {
   return { fase, necesitaSetup: needsOnboarding || ONBOARDING_SIEMPRE };
 }
 
+/* Pantalla a la que lleva cada fase. Desde Expo Router 58 una pantalla
+   protegida que deja de estar disponible no se saca del navegador: redirige.
+   Sin destino, el router va a la primera ruta accesible, y cuando esa ruta es
+   un grupo como (auth) termina en su URL de grupo y muestra "Unmatched Route".
+   Por eso cada Stack.Protected lleva este destino explicito. */
+function destinoDeFase(fase: Fase, necesitaSetup: boolean): Href {
+  switch (fase) {
+    case 'cargando':
+      return '/';
+    case 'invitado':
+      return '/login';
+    case 'error':
+      return '/profile-error';
+    case 'recuperacion':
+      return '/account-recovery';
+    case 'legal':
+      return '/legal-consent';
+    case 'adentro':
+      return necesitaSetup ? '/setup' : '/home';
+  }
+}
+
 /* Navegacion + gate de auth. Vive dentro de los providers para poder leer
    sesion y perfil.
 
-   El gate es declarativo: cada Stack.Protected saca del navegador las
-   pantallas de las fases que no corresponden. Si la pantalla actual queda
-   protegida, Expo Router lleva a la primera disponible en el orden de abajo,
-   y por eso el orden importa: al entrar a la app, el setup (si hace falta)
-   va antes que (main). Una vez adentro no se fuerza mas ruta: el usuario
-   puede saltar el setup y navegar libre. Los textos legales van al final
-   porque se ven en cualquier fase y nunca tienen que ser el destino. */
+   El gate es declarativo: cada Stack.Protected bloquea las pantallas de las
+   fases que no corresponden. Si la pantalla actual queda protegida, Expo
+   Router redirige al destino de la fase (destinoDeFase): al entrar a la app,
+   el setup si hace falta y si no (main). Una vez adentro no se fuerza mas
+   ruta: el usuario puede saltar el setup y navegar libre. Los textos legales
+   quedan sin proteger porque se ven en cualquier fase. */
 function RootNavigator() {
   const colors = useColors();
   const { mode } = useTheme();
   const { fase, necesitaSetup } = useFase();
+  const destino = destinoDeFase(fase, necesitaSetup);
 
   return (
     <>
@@ -118,31 +140,31 @@ function RootNavigator() {
         }}
       >
         {/* Pantalla puente con spinner mientras se resuelve la fase. */}
-        <Stack.Protected guard={fase === 'cargando'}>
+        <Stack.Protected guard={fase === 'cargando'} redirectTo={destino}>
           <Stack.Screen name="index" />
         </Stack.Protected>
-        <Stack.Protected guard={fase === 'invitado'}>
+        <Stack.Protected guard={fase === 'invitado'} redirectTo={destino}>
           <Stack.Screen name="(auth)" />
         </Stack.Protected>
-        <Stack.Protected guard={fase === 'error'}>
+        <Stack.Protected guard={fase === 'error'} redirectTo={destino}>
           {/* No se pudo leer el perfil. Sin gesto de volver por lo mismo: las
               salidas son reintentar o volver al login. */}
           <Stack.Screen name="profile-error" options={OPCIONES_BLOQUEO_FADE} />
         </Stack.Protected>
-        <Stack.Protected guard={fase === 'recuperacion'}>
+        <Stack.Protected guard={fase === 'recuperacion'} redirectTo={destino}>
           {/* Cuenta en periodo de gracia. Sin gesto de volver: no hay a donde
               volver, la unica salida es recuperar la cuenta o cerrar sesion. */}
           <Stack.Screen name="account-recovery" options={OPCIONES_BLOQUEO_FADE} />
         </Stack.Protected>
-        <Stack.Protected guard={fase === 'legal'}>
+        <Stack.Protected guard={fase === 'legal'} redirectTo={destino}>
           {/* Aceptacion de los textos legales. Sin gesto de volver: no hay a
               donde volver, las salidas son aceptar o cerrar sesion. */}
           <Stack.Screen name="legal-consent" options={OPCIONES_BLOQUEO_FADE} />
         </Stack.Protected>
-        <Stack.Protected guard={fase === 'adentro' && necesitaSetup}>
+        <Stack.Protected guard={fase === 'adentro' && necesitaSetup} redirectTo={destino}>
           <Stack.Screen name="setup" />
         </Stack.Protected>
-        <Stack.Protected guard={fase === 'adentro'}>
+        <Stack.Protected guard={fase === 'adentro'} redirectTo={destino}>
           <Stack.Screen name="(main)" />
           {/* Card (no modal nativo) para que el toast del root quede por encima
               sin bloquear la interaccion. edit-profile entra desde la derecha y
