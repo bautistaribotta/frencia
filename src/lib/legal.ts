@@ -3,6 +3,7 @@
    (terminos.ts) y la Politica de Privacidad (privacidad.ts). */
 
 export const TITULAR = 'Bautista Ribotta';
+export const DOMICILIO = 'Formosa 09, Huinca Renancó, Córdoba, Argentina';
 export const EMAIL_CONTACTO = 'bautistaribotta@hotmail.com';
 
 export type BloqueLegal = string | { lista: string[] };

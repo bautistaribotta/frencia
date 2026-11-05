@@ -54,6 +54,7 @@
         "expo-image-picker",
         {
           "photosPermission": "Frencia necesita acceso a tus fotos para elegir tu foto de perfil.",
+          "cameraPermission": false,
           "microphonePermission": false
         }
       ],

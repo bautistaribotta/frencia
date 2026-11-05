@@ -64,6 +64,12 @@ https://docs.expo.dev/versions/v58.0.0/ antes de escribir codigo que toque el SD
 - Un cambio de fondo sube la version, y subir la version vuelve a pedir la
   aceptacion a todos en las dos plataformas. Una correccion de forma (una
   errata) no cambia la version, pero igual se copia en los dos repos.
+- **Siempre** que se agregue, cambie o quite una funcionalidad, antes de darla
+  por terminada revisar si hay que actualizar los Terminos y Condiciones y la
+  Politica de Privacidad: datos nuevos, proveedores o SDKs, permisos,
+  almacenamiento, cuentas, pagos, funciones que se describen en los textos. Los
+  textos describen lo que el codigo hace hoy, no lo planeado. Si hay que
+  cambiarlos, se hace en el mismo cambio; si no, se avisa que se reviso.
 - Si el agente solo tiene acceso a uno de los dos repos, hace el cambio en ese
   y avisa que falta replicarlo en el otro, con el texto exacto a copiar.
 
